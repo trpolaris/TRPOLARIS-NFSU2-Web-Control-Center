@@ -144,7 +144,7 @@ try {
         $DockerExe = $DockerExeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
     }
     if (-not $DockerExe) { throw 'Docker Desktop kurulumdan sonra bulunamadı. Windows yeniden başlatması gerekiyorsa yeniden başlatıp scripti tekrar çalıştır.' }
-    if (-not (Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Process -Name 'Docker Desktop','com.docker.backend' -ErrorAction SilentlyContinue)) {
         Write-Host 'Docker Desktop başlatılıyor...' -ForegroundColor Cyan
         Start-Process -FilePath $DockerExe
     }
@@ -436,7 +436,181 @@ try {
         throw 'WSL_DEFAULT_USER_REQUIRED: Root hesabı yerine standart Ubuntu kullanıcısı gerekli.'
     }
 
-    Write-InstallProgress 18 'WSL ve Ubuntu hazır'
+    Write-Host '[DOCKER/WSL] Ubuntu dağıtımı Docker Desktop WSL Integration için hazırlanıyor...' -ForegroundColor Cyan
+    $DistroWslVersion = 0
+    $CurrentDefaultDistro = ''
+    try {
+        $wslVerbose = @(& wsl.exe --list --verbose 2>$null)
+        foreach ($rawLine in $wslVerbose) {
+            $line = ([string]$rawLine) -replace "`0", ''
+            $line = $line -replace "`r|`n", ''
+            if ($line -match '^\s*(?<Default>\*)?\s*(?<Name>.+?)\s{2,}\S+\s+(?<Version>[12])\s*$') {
+                $rowName = $Matches.Name.Trim()
+                if ($Matches.Default -eq '*') { $CurrentDefaultDistro = $rowName }
+                if ([string]::Equals($rowName, $Distro, [StringComparison]::OrdinalIgnoreCase)) {
+                    $DistroWslVersion = [int]$Matches.Version
+                }
+            }
+        }
+    } catch { }
+
+    if ($DistroWslVersion -eq 0) {
+        try {
+            $lxssRoot = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
+            foreach ($lxssKey in @(Get-ChildItem -LiteralPath $lxssRoot -ErrorAction SilentlyContinue)) {
+                $lxssProps = Get-ItemProperty -LiteralPath $lxssKey.PSPath -ErrorAction SilentlyContinue
+                if ([string]::Equals([string]$lxssProps.DistributionName, $Distro, [StringComparison]::OrdinalIgnoreCase) -and $null -ne $lxssProps.Version) {
+                    $DistroWslVersion = [int]$lxssProps.Version
+                    break
+                }
+            }
+        } catch { }
+    }
+
+    if ($DistroWslVersion -eq 1) {
+        Write-Host "[DOCKER/WSL] $Distro WSL 1 üzerinde. WSL 2'ye dönüştürülüyor..." -ForegroundColor Yellow
+        & wsl.exe --set-version $Distro 2
+        if ($LASTEXITCODE -ne 0) { throw "Ubuntu dağıtımı WSL 2'ye dönüştürülemedi: $Distro. Docker Desktop WSL Integration etkinleştirilemez." }
+        $DistroWslVersion = 2
+    }
+    if ($DistroWslVersion -eq 0) {
+        Write-Host '[DOCKER/WSL] WSL dağıtım sürümü otomatik okunamadı; Ubuntu komut satırı erişimiyle doğrulama yapılacak.' -ForegroundColor Yellow
+    }
+
+    $DefaultDistroChanged = -not [string]::Equals($CurrentDefaultDistro, $Distro, [StringComparison]::OrdinalIgnoreCase)
+    if ($DefaultDistroChanged) {
+        & wsl.exe --set-default $Distro
+        if ($LASTEXITCODE -ne 0) { throw "Ubuntu varsayılan WSL dağıtımı yapılamadı: $Distro." }
+        Write-Host "[DOCKER/WSL] Varsayılan WSL dağıtımı Ubuntu olarak ayarlandı: $Distro" -ForegroundColor Green
+    } else {
+        Write-Host "[DOCKER/WSL] Ubuntu zaten varsayılan WSL dağıtımı: $Distro" -ForegroundColor Green
+    }
+
+    $DockerSettingsCandidates = @(
+        (Join-Path $env:APPDATA 'Docker\settings-store.json'),
+        (Join-Path $env:APPDATA 'Docker\settings.json')
+    )
+    $DockerSettingsPath = $DockerSettingsCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    $DockerSettingsChanged = $false
+    $settingsOriginal = $null
+    $settingsUpdated = $null
+    if ($DockerSettingsPath) {
+        try {
+            $settingsOriginal = [System.IO.File]::ReadAllText($DockerSettingsPath, [System.Text.Encoding]::UTF8)
+            $settingsObject = $settingsOriginal | ConvertFrom-Json -ErrorAction Stop
+            if ($null -eq $settingsObject) { throw 'Docker Desktop settings JSON boş.' }
+
+            $integratedDistros = @()
+            $integrationProperty = $settingsObject.PSObject.Properties['integratedWslDistros']
+            if ($null -ne $integrationProperty -and $null -ne $integrationProperty.Value) {
+                $integratedDistros = @($integrationProperty.Value | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            }
+            $hasDistro = [bool]($integratedDistros | Where-Object { [string]::Equals($_, $Distro, [StringComparison]::OrdinalIgnoreCase) })
+            $defaultIntegrationProperty = $settingsObject.PSObject.Properties['enableIntegrationWithDefaultWslDistro']
+            $wslEngineProperty = $settingsObject.PSObject.Properties['wslEngineEnabled']
+            $defaultIntegrationEnabled = $null -ne $defaultIntegrationProperty -and [bool]$defaultIntegrationProperty.Value
+            $wslEngineEnabled = $null -ne $wslEngineProperty -and [bool]$wslEngineProperty.Value
+            $DockerSettingsChanged = (-not $hasDistro) -or (-not $defaultIntegrationEnabled) -or (-not $wslEngineEnabled)
+
+            if (-not $hasDistro) { $integratedDistros += $Distro }
+            $integratedDistros = @($integratedDistros | Select-Object -Unique)
+            $settingsObject | Add-Member -MemberType NoteProperty -Name 'integratedWslDistros' -Value $integratedDistros -Force
+            $settingsObject | Add-Member -MemberType NoteProperty -Name 'enableIntegrationWithDefaultWslDistro' -Value $true -Force
+            $settingsObject | Add-Member -MemberType NoteProperty -Name 'wslEngineEnabled' -Value $true -Force
+            $settingsUpdated = ConvertTo-Json -InputObject $settingsObject -Depth 100
+        } catch {
+            throw "Docker Desktop WSL Integration ayarları okunamadı veya hazırlanamadı: $($_.Exception.Message)"
+        }
+    } else {
+        throw 'Docker Desktop settings-store.json bulunamadı. Docker Desktop ilk açılışını tamamlayıp ayar dosyasını oluşturduktan sonra kurulumu yeniden çalıştır. WSL Integration seçimi doğrulanmadan kuruluma devam edilmeyecek.'
+    }
+
+    $NeedsDockerApplyRestart = $DefaultDistroChanged -or $DockerSettingsChanged
+    $DockerCliCandidates = @(
+        (Join-Path (Split-Path -Parent $DockerExe) 'DockerCli.exe'),
+        (Join-Path (Split-Path -Parent $DockerExe) 'resources\bin\DockerCli.exe')
+    )
+    $DockerCliExe = $DockerCliCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    $DockerWasRunning = [bool](Get-Process -Name 'Docker Desktop','com.docker.backend' -ErrorAction SilentlyContinue)
+
+    if ($NeedsDockerApplyRestart -and $DockerWasRunning) {
+        Write-Host '[DOCKER/WSL] Değişiklikler Apply ediliyor: Docker Desktop güvenli biçimde kapatılıp yeniden başlatılacak...' -ForegroundColor Cyan
+        if ($DockerCliExe) {
+            & $DockerCliExe -Shutdown 2>&1 | ForEach-Object { if (-not [string]::IsNullOrWhiteSpace([string]$_)) { Write-Host ('[DOCKER/WSL] ' + [string]$_) } }
+        } else {
+            foreach ($desktopProcess in @(Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)) {
+                try { [void]$desktopProcess.CloseMainWindow() } catch { }
+            }
+        }
+        $shutdownDeadline = (Get-Date).AddSeconds(90)
+        do {
+            Start-Sleep -Seconds 2
+            $desktopStillRunning = [bool](Get-Process -Name 'Docker Desktop','com.docker.backend' -ErrorAction SilentlyContinue)
+        } while ($desktopStillRunning -and (Get-Date) -lt $shutdownDeadline)
+        if ($desktopStillRunning) {
+            foreach ($desktopProcess in @(Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)) {
+                try { [void]$desktopProcess.CloseMainWindow() } catch { }
+            }
+            $closeDeadline = (Get-Date).AddSeconds(30)
+            do {
+                Start-Sleep -Seconds 2
+                $desktopStillRunning = [bool](Get-Process -Name 'Docker Desktop','com.docker.backend' -ErrorAction SilentlyContinue)
+            } while ($desktopStillRunning -and (Get-Date) -lt $closeDeadline)
+        }
+        if ($desktopStillRunning) {
+            throw 'Docker Desktop değişiklikleri Apply etmek için kapatılamadı. Diğer containerlar etkilenmesin diye zorla sonlandırılmadı; Docker Desktop penceresini kapatıp kurulumu yeniden çalıştır.'
+        }
+    }
+
+    # Apply the settings only after Docker Desktop has exited, so its in-memory state cannot overwrite them on shutdown.
+    if ($DockerSettingsChanged -and $DockerSettingsPath) {
+        try {
+            $settingsBackup = $DockerSettingsPath + '.trpolaris-backup-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
+            Copy-Item -LiteralPath $DockerSettingsPath -Destination $settingsBackup -Force
+            $settingsTemp = $DockerSettingsPath + '.trpolaris.tmp'
+            [System.IO.File]::WriteAllText($settingsTemp, $settingsUpdated, [System.Text.UTF8Encoding]::new($false))
+            Move-Item -LiteralPath $settingsTemp -Destination $DockerSettingsPath -Force
+            Write-Host "[DOCKER/WSL] Docker settings güncellendi; orijinal dosya yedeklendi: $settingsBackup" -ForegroundColor Green
+        } catch {
+            throw "Docker Desktop WSL Integration ayarları yazılamadı: $($_.Exception.Message)"
+        }
+    } elseif ($DockerSettingsPath) {
+        Write-Host '[DOCKER/WSL] Docker Desktop WSL Integration ayarları zaten doğru.' -ForegroundColor Green
+    }
+
+    if (-not (Get-Process -Name 'Docker Desktop','com.docker.backend' -ErrorAction SilentlyContinue)) {
+        Write-Host '[DOCKER/WSL] Docker Desktop başlatılıyor...' -ForegroundColor Cyan
+        Start-Process -FilePath $DockerExe
+    }
+
+    Write-Host "[DOCKER/WSL] Ubuntu entegrasyonu bekleniyor ve gerçek Docker Engine bağlantısı test ediliyor: $Distro" -ForegroundColor Cyan
+    $DockerWslReady = $false
+    $DockerOstype = ''
+    for ($dockerAttempt = 1; $dockerAttempt -le 90; $dockerAttempt++) {
+        Assert-InstallNotStopped
+        $dockerProbe = @(& wsl.exe -d $Distro -u root -- docker info --format '{{.OSType}}' 2>$null)
+        $dockerProbeCode = $LASTEXITCODE
+        $DockerOstype = ([string]($dockerProbe | Select-Object -First 1)).Trim()
+        if ($dockerProbeCode -eq 0 -and $DockerOstype -eq 'linux') {
+            $DockerWslReady = $true
+            break
+        }
+        if ($dockerProbeCode -eq 0 -and $DockerOstype -eq 'windows' -and $DockerCliExe) {
+            Write-Host '[DOCKER/WSL] Docker Windows container modunda. Linux engine moduna geçiş isteniyor...' -ForegroundColor Yellow
+            & $DockerCliExe -SwitchLinuxEngine 2>&1 | ForEach-Object { if (-not [string]::IsNullOrWhiteSpace([string]$_)) { Write-Host ('[DOCKER/WSL] ' + [string]$_) } }
+            Start-Sleep -Seconds 5
+        }
+        if (($dockerAttempt % 10) -eq 0) {
+            Write-Host "[DOCKER/WSL] Ubuntu Docker entegrasyonu bekleniyor... ($($dockerAttempt * 2)/180 sn)" -ForegroundColor Cyan
+        }
+        Start-Sleep -Seconds 2
+    }
+    if (-not $DockerWslReady) {
+        throw "Docker Desktop Ubuntu WSL Integration doğrulanamadı. Ayar dosyası ve varsayılan dağıtım güncellendi; Docker Engine yanıtı: '$DockerOstype'. Docker Desktop > Settings > Resources > WSL Integration bölümünde '$Distro' seçili olmalı."
+    }
+    Write-Host "[DOCKER/WSL] BAŞARILI: $Distro için WSL Integration etkin, Apply/Restart tamam ve Linux Docker Engine erişilebilir." -ForegroundColor Green
+
+    Write-InstallProgress 18 'WSL, Ubuntu ve Docker WSL Integration hazır'
 
     # Make the WSL-side helper. The selected game path is passed base64 encoded so spaces and Turkish chars survive.
     $BashScript = @'

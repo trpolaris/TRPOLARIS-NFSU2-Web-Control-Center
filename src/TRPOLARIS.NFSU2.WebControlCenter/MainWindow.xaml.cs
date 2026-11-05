@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
@@ -25,12 +26,17 @@ namespace TRPOLARIS.NFSU2.WebControlCenter;
 
 public partial class MainWindow : Window
 {
-    private const string ProductName = "TRPOLARIS NFSU2 Web Server Control Center";
+    private const string ProductName = "TRPOLARIS NFSU2 Web Control Center";
     private const string InstallerResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.NFSU2-Windows-OneClick-Installer.ps1";
     private const string AccessResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-access.sh";
     private const string ProjectLookupResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-project-lookup.sh";
     private const string GitUpdateResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-git-update.sh";
-    private const string GameArchiveDownloadUrl = "https://download1350.mediafire.com/01nkc48zrwhgwWqRkkGLes5UeMMf_Tml-ktVRBFnSowkLqRYN8iNcxYHjDVmfWnUAUPZ6Q9rMSeiw8_xnBhkz60Lxxi4HYLvN8EeDI-qxJOuR0tJACJimZVLuTLSJYTwH5hNd_Fsj5BXgQko1SK7CMkeA4AhmJIyU8QI1yJnFZ8/8is8o4zs7yzcreg/Need+For+Speed+Underground+2.zip";
+    private const string ControlCenterRepo = "trpolaris/TRPOLARIS-NFSU2-Web-Control-Center";
+    private const string ControlCenterExeName = "TRPOLARIS.NFSU2.WebControlCenter.exe";
+    private const string UpdaterResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.ControlCenterUpdater.ps1";
+    private const string ControlCenterCurrentVersion = "1.6.6";
+    private const string GitHubLatestReleaseApi = "https://api.github.com/repos/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest";
+    private const string GameArchiveDownloadUrl = "https://download946.mediafire.com/fe7ib77eqhxgTG6mSV85tsKnmdib9EBhv_kOYHPn3CfUrE8DtulmcE2m8MqLLeUToqjNU4yACOkvJLo65YTFY1hgXq9jC2OmUZ-uL1dopna79G7_eXtZC9_rLqPwHQEPKN5UsC_PgDSQXKTHO-ucx617PXk-GQatGjv8H4APkKo/a6eug3g6v1duw8f/Need+For+Speed+Underground+2.zip";
     private const long MaxGameArchiveDownloadBytes = 20L * 1024 * 1024 * 1024;
     private const long SupportedGameExeSize = 4_800_512;
     private const string SupportedGameExeSha256 = "f9dd86c054878ce6276beb07c1fd61874f7a1e4bf1f241b084c65b73e24168a7";
@@ -51,6 +57,7 @@ public partial class MainWindow : Window
         @"\b(error|failed|failure|denied|exception|fatal|not found|could not|cannot|timed out|unavailable)\b|başarısız|erişim engellendi|zaman aşım|bulunamadı|erişilemiyor",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private static readonly HttpClient UpdateHttp = CreateUpdateHttpClient();
     private static readonly HttpClient GameDownloadHttp = new(new HttpClientHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 10 }) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
     private static readonly HttpClient LocalHttp = new(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(8) };
     // LAN profile uses a self-signed cert. This client is used only for the local 127.0.0.1 port probe,
@@ -103,6 +110,18 @@ public partial class MainWindow : Window
     private TextBox? _portBox;
     private TextBox? _gameDirBox;
     private TextBlock? _gameValidationStatus;
+    private ProgressBar? _gameDownloadProgressBar;
+    private TextBlock? _gameDownloadProgressText;
+    private Button? _gameDownloadPauseButton;
+    private Button? _gameDownloadResumeButton;
+    private Button? _gameDownloadCancelButton;
+    private Button? _gameDownloadStartButton;
+    private CancellationTokenSource? _gameDownloadOperationCts;
+    private CancellationTokenSource? _activeGameDownloadRequestCts;
+    private TaskCompletionSource<bool>? _gameDownloadResumeSignal;
+    private bool _gameDownloadPaused;
+    private bool _gameDownloadCancelRequested;
+    private int _gameDownloadPauseVersion;
     private ComboBox? _installAccessCombo;
     private TextBox? _lanIpBox;
     private TextBox? _lanPortBox;
@@ -149,6 +168,9 @@ public partial class MainWindow : Window
     private sealed record WslProjectLocation(string Distro, string ProjectDirectory, string LinuxHome, string LinuxUser);
     private sealed record GameFolderValidation(bool IsValid, string Message, string? GameDirectory);
     private sealed record GameImportResult(string TargetDirectory, string? BackupDirectory, long ExpandedBytes, int ExtractedFiles);
+    private sealed record GameArchiveDownloadMetadata(string Url, long? TotalBytes, string? ETag, DateTimeOffset? LastModified, string? FinalUrl);
+    private sealed record ControlCenterRelease(string TagName, string Name, string Body, string HtmlUrl, string Version,
+        string AssetUrl, string AssetName, string Sha256, long AssetSize, DateTimeOffset PublishedAt);
     private sealed record ProjectFileEntry(string Name, string RelativePath, bool IsDirectory, long Length, DateTime LastWriteUtc)
     {
         public override string ToString() => IsDirectory
@@ -180,7 +202,7 @@ public partial class MainWindow : Window
         _diskLogTimer = new System.Threading.Timer(_ => FlushPendingDiskLogs(), null, 150, 150);
         _logUiTimer.Start();
         ShowPage("Dashboard");
-        AppendLog("Kontrol merkezi başlatıldı (v1.6.3). WSL, Docker ve NFSU2 sunucu durumu denetleniyor.", "OK");
+        AppendLog("Kontrol merkezi başlatıldı (v1.6.6). WSL, Docker ve NFSU2 sunucu durumu denetleniyor.", "OK");
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -671,17 +693,33 @@ public partial class MainWindow : Window
         _gameDirBox.LostFocus += (_, _) => RefreshGameFolderValidation();
         gamePanel.Children.Add(_gameDirBox);
         var gameActions = new WrapPanel();
-        var downloadGameButton = MakeButton("Oyunu sunucudan indir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
-        downloadGameButton.ToolTip = GameArchiveDownloadUrl;
-        gameActions.Children.Add(downloadGameButton);
+        _gameDownloadStartButton = MakeButton("Oyunu sunucudan indir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
+        _gameDownloadStartButton.ToolTip = GameArchiveDownloadUrl;
+        gameActions.Children.Add(_gameDownloadStartButton);
         gameActions.Children.Add(MakeButton("Bilgisayardaki ZIP arşivini içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
         gameActions.Children.Add(MakeButton("Klasörü doğrula", "SecondaryButton", VerifyGameFolder_Click, new Thickness(8, 0, 0, 0)));
         gamePanel.Children.Add(gameActions);
         _gameValidationStatus = new TextBlock { Text = "Oyun klasörü henüz doğrulanmadı.", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap };
         gamePanel.Children.Add(_gameValidationStatus);
+        _gameDownloadProgressBar = new ProgressBar { Minimum = 0, Maximum = 100, Height = 7, Margin = new Thickness(0, 5, 0, 0), Background = BrushHex("#263541"), Foreground = BrushHex("#61D4C7"), BorderThickness = new Thickness(0), Visibility = Visibility.Collapsed };
+        gamePanel.Children.Add(_gameDownloadProgressBar);
+        _gameDownloadProgressText = new TextBlock { Text = string.Empty, FontSize = 9, Foreground = BrushHex("#AFC0CB"), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+        gamePanel.Children.Add(_gameDownloadProgressText);
+        var downloadControlRow = new WrapPanel { Margin = new Thickness(0, 3, 0, 0) };
+        _gameDownloadPauseButton = MakeButton("Ⅱ  Duraklat", "SecondaryButton", PauseGameArchiveDownload_Click);
+        _gameDownloadResumeButton = MakeButton("▶  Devam et", "ModernButton", ResumeGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
+        _gameDownloadCancelButton = MakeButton("İndirmeyi iptal et", "DangerButton", CancelGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
+        _gameDownloadPauseButton.Visibility = Visibility.Collapsed;
+        _gameDownloadResumeButton.Visibility = Visibility.Collapsed;
+        _gameDownloadCancelButton.Visibility = Visibility.Collapsed;
+        downloadControlRow.Children.Add(_gameDownloadPauseButton);
+        downloadControlRow.Children.Add(_gameDownloadResumeButton);
+        downloadControlRow.Children.Add(_gameDownloadCancelButton);
+        gamePanel.Children.Add(downloadControlRow);
+        SetGameDownloadControls(active: _gameArchiveBusy, paused: _gameDownloadPaused);
         gamePanel.Children.Add(new TextBlock { Text = "MediaFire indirme kaynağı:", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap, MaxWidth = 680 });
         var sourceLinkText = new TextBlock { FontSize = 10, Margin = new Thickness(0, -6, 0, 0) };
-        var sourceLink = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("NFS Underground 2 ZIP bağlantısını tarayıcıda aç"))
+        var sourceLink = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("NFS Underground 2 ZIP dosyasını tarayıcıda indir"))
         {
             NavigateUri = new Uri(GameArchiveDownloadUrl),
             Foreground = BrushHex("#86C8FF")
@@ -708,7 +746,7 @@ public partial class MainWindow : Window
         _installAccessCombo.Items.Add(new ComboBoxItem { Content = "Herkese açık geçici tünel", Tag = "public" });
         accessCell.Children.Add(_installAccessCombo);
         AddGridRow(grid, 3, "Bilgi", out var infoCell);
-        infoCell.Children.Add(new TextBlock { Text = "WSL/Ubuntu, Docker Desktop ve .NET kurulumu ayrı bileşenlerdir. Uygulama bunları kaldırmadan kurulum yapar. Ubuntu ilk kurulumunda Linux hesabı oluşturman istenebilir.", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("MutedBrush"), FontSize = 11, MaxWidth = 650 });
+        infoCell.Children.Add(new TextBlock { Text = "WSL/Ubuntu, Docker Desktop ve .NET ayrı bileşenlerdir. İlk kurulumda Ubuntu WSL 2 ve Docker Desktop WSL Integration otomatik yapılandırılır; ayarı uygulamak için Docker Desktop yeniden başlatılabilir ve çalışan containerlar geçici olarak durabilir. Ubuntu ilk açılışında Linux hesabı oluşturman istenebilir.", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("MutedBrush"), FontSize = 11, MaxWidth = 650 });
         AddCardChild(card, grid);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 18, 0, 0) };
         _installButton = MakeButton("Kurulumu başlat", "ModernButton", Install_Click); actions.Children.Add(_installButton);
@@ -1797,6 +1835,245 @@ export DOCKER_CONFIG="$safe_config"
         if (warnings.Count > 0) rows.Add("WSL/Docker uyarısı: " + string.Join(" | ", warnings));
         return string.Join("\n\n", rows);
     }
+
+    private async void CheckAppUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        await CheckControlCenterUpdatesAsync(sender as Button);
+    }
+
+    private async Task CheckControlCenterUpdatesAsync(Button? checkButton)
+    {
+        if (_operationBusy)
+        {
+            MessageBox.Show(this, "Başka bir kurulum veya sunucu işlemi devam ediyor. İşlem tamamlandıktan sonra tekrar dene.",
+                "Güncelleme denetimi", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (checkButton is not null) checkButton.IsEnabled = false;
+        FooterStatus.Text = "Control Center güncellemeleri denetleniyor...";
+        AppendLog($"Control Center güncellemesi denetleniyor. Kaynak: https://github.com/{ControlCenterRepo}", "INFO", "APP");
+        try
+        {
+            var release = await GetLatestControlCenterReleaseAsync();
+            if (release is null)
+            {
+                FooterStatus.Text = "GitHub'da yayımlanmış Control Center güncellemesi yok.";
+                AppendLog("GitHub deposunda yayımlanmış kararlı Control Center Release bulunamadı. İlk v* etiketi yayımlandığında denetim etkinleşecek.", "UYARI", "APP");
+                MessageBox.Show(this,
+                    "Control Center deposuna henüz yayımlanmış bir kararlı Release eklenmemiş.\n\nİlk v* etiketiyle EXE ve latest.json yayımlandığında uygulama içinden otomatik güncelleme kullanılabilecek.",
+                    "Güncelleme bulunamadı", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var current = ParseVersionOrZero(ControlCenterCurrentVersion);
+            var latest = ParseVersionOrZero(release.Version);
+            if (latest <= current)
+            {
+                FooterStatus.Text = $"Control Center güncel · v{ControlCenterCurrentVersion}";
+                AppendLog($"Control Center güncel. Yüklü=v{ControlCenterCurrentVersion}; GitHub=v{release.Version}.", "OK", "APP");
+                MessageBox.Show(this,
+                    $"Uygulama güncel.\n\nYüklü sürüm: v{ControlCenterCurrentVersion}\nGitHub sürümü: v{release.Version}\n\n{release.Name}",
+                    "Güncelleme denetimi", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            string notes = string.IsNullOrWhiteSpace(release.Body) ? "Bu sürüm için açıklama yayımlanmamış." : release.Body.Trim();
+            if (notes.Length > 5000) notes = notes[..5000] + "\n\n(Notlar kısaltıldı.)";
+            var answer = MessageBox.Show(this,
+                $"Yeni Control Center sürümü bulundu.\n\nYüklü sürüm: v{ControlCenterCurrentVersion}\nYeni sürüm: v{release.Version}\nDosya: {release.AssetName}\nBoyut: {FormatBytes(release.AssetSize)}\n\nSürüm notları:\n{notes}\n\nEXE GitHub'dan indirilecek, SHA-256 doğrulamasından geçirilecek ve uygulama kapandıktan sonra yedekli biçimde değiştirilecek. Güncelleme yapılsın mı?",
+                "Control Center güncellemesi", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.Yes) return;
+
+            await DownloadAndApplyControlCenterUpdateAsync(release);
+        }
+        catch (Exception ex)
+        {
+            FooterStatus.Text = "Control Center güncellemesi denetlenemedi.";
+            AppendLog("Control Center güncelleme denetimi başarısız: " + ex.Message, "HATA", "APP");
+            MessageBox.Show(this, ex.Message, "Güncelleme hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            if (checkButton is not null) checkButton.IsEnabled = true;
+        }
+    }
+
+    private async Task<ControlCenterRelease?> GetLatestControlCenterReleaseAsync()
+    {
+        using var response = await UpdateHttp.GetAsync(GitHubLatestReleaseApi, HttpCompletionOption.ResponseHeadersRead);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var document = await JsonDocument.ParseAsync(stream);
+        var root = document.RootElement;
+        if (root.TryGetProperty("draft", out var draft) && draft.GetBoolean()) return null;
+        if (root.TryGetProperty("prerelease", out var prerelease) && prerelease.GetBoolean()) return null;
+
+        string tag = GetJsonString(root, "tag_name");
+        string versionText = tag.TrimStart('v', 'V');
+        if (!Version.TryParse(versionText, out var version))
+            throw new InvalidDataException("GitHub Release etiketi geçerli bir sürüm numarası içermiyor: " + tag);
+
+        string htmlUrl = GetJsonString(root, "html_url");
+        string name = GetJsonString(root, "name");
+        string body = GetJsonString(root, "body");
+        DateTimeOffset published = DateTimeOffset.MinValue;
+        if (DateTimeOffset.TryParse(GetJsonString(root, "published_at"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)) published = parsed;
+
+        JsonElement assets = root.GetProperty("assets");
+        JsonElement exeAsset = default;
+        JsonElement manifestAssetElement = default;
+        foreach (var asset in assets.EnumerateArray())
+        {
+            string assetName = GetJsonString(asset, "name");
+            if (assetName.Equals(ControlCenterExeName, StringComparison.OrdinalIgnoreCase)) exeAsset = asset;
+            else if (assetName.Equals("latest.json", StringComparison.OrdinalIgnoreCase)) manifestAssetElement = asset;
+        }
+        if (exeAsset.ValueKind == JsonValueKind.Undefined || manifestAssetElement.ValueKind == JsonValueKind.Undefined)
+        {
+            AppendLog($"Release {tag} EXE veya latest.json içermiyor; çalıştırılabilir güncelleme olarak kabul edilmedi.", "UYARI", "APP");
+            throw new InvalidDataException("GitHub Release içinde hem " + ControlCenterExeName + " hem de latest.json bulunmalı.");
+        }
+
+        string manifestUrl = GetJsonString(manifestAssetElement, "browser_download_url");
+        using var manifestResponse = await UpdateHttp.GetAsync(manifestUrl, HttpCompletionOption.ResponseHeadersRead);
+        manifestResponse.EnsureSuccessStatusCode();
+        await using var manifestStream = await manifestResponse.Content.ReadAsStreamAsync();
+        using var manifestDocument = await JsonDocument.ParseAsync(manifestStream);
+        var manifest = manifestDocument.RootElement;
+        string manifestProduct = GetJsonString(manifest, "product");
+        string manifestVersion = GetJsonString(manifest, "version").TrimStart('v', 'V');
+        string manifestAssetName = GetJsonString(manifest, "asset");
+        string sha256 = GetJsonString(manifest, "sha256").ToLowerInvariant();
+        if (!manifestProduct.Equals("TRPOLARIS NFSU2 Web Control Center", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Release manifesti farklı bir ürüne ait.");
+        if (!Version.TryParse(manifestVersion, out var manifestVersionParsed) || manifestVersionParsed != version)
+            throw new InvalidDataException("Release etiketi ile latest.json sürüm bilgisi eşleşmiyor.");
+        if (!string.Equals(manifestAssetName, ControlCenterExeName, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Release manifesti beklenmeyen EXE dosyasını gösteriyor.");
+        if (!Regex.IsMatch(sha256, "^[a-f0-9]{64}$"))
+            throw new InvalidDataException("Release latest.json içindeki SHA-256 geçerli değil.");
+
+        string assetUrl = GetJsonString(exeAsset, "browser_download_url");
+        if (!Uri.TryCreate(assetUrl, UriKind.Absolute, out var parsedAssetUri) || parsedAssetUri.Scheme != Uri.UriSchemeHttps ||
+            !parsedAssetUri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) &&
+            !parsedAssetUri.Host.EndsWith("githubusercontent.com", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Release EXE indirme adresi güvenilir GitHub HTTPS adresi değil.");
+        long size = exeAsset.TryGetProperty("size", out var sizeElement) && sizeElement.TryGetInt64(out var parsedSize) ? parsedSize : 0;
+        if (size <= 0 || size > 500L * 1024 * 1024) throw new InvalidDataException("Release EXE boyutu geçersiz veya 500 MB sınırını aşıyor.");
+
+        return new ControlCenterRelease(tag, name, body, htmlUrl, version.ToString(), assetUrl, ControlCenterExeName, sha256, size, published);
+    }
+
+    private async Task DownloadAndApplyControlCenterUpdateAsync(ControlCenterRelease release)
+    {
+        string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "updates");
+        Directory.CreateDirectory(appData);
+        string downloaded = Path.Combine(appData, ControlCenterExeName + ".download");
+        string targetExe = Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName
+            ?? throw new InvalidOperationException("Çalışan uygulamanın EXE yolu belirlenemedi.");
+        string targetDirectory = Path.GetDirectoryName(Path.GetFullPath(targetExe)) ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(targetDirectory) || targetDirectory.StartsWith(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Control Center geçici klasörden çalışıyor. Önce uygulamayı kalıcı bir klasöre taşı ve oradan başlat.");
+        try
+        {
+            string probe = Path.Combine(targetDirectory, ".trpolaris-update-write-test");
+            using (File.Create(probe)) { }
+            File.Delete(probe);
+        }
+        catch (Exception ex)
+        {
+            throw new UnauthorizedAccessException("Uygulama klasörüne yazma izni yok. Control Center'ı yazma izni olan bir klasöre kurup tekrar dene.", ex);
+        }
+        string updater = ExtractResource(UpdaterResource, "ControlCenterUpdater.ps1");
+        FooterStatus.Text = $"v{release.Version} indiriliyor...";
+        AppendLog($"Control Center v{release.Version} indiriliyor ({FormatBytes(release.AssetSize)}).", "INFO", "APP");
+
+        using (var response = await UpdateHttp.GetAsync(release.AssetUrl, HttpCompletionOption.ResponseHeadersRead))
+        {
+            response.EnsureSuccessStatusCode();
+            long? contentLength = response.Content.Headers.ContentLength;
+            if (contentLength.HasValue && contentLength.Value != release.AssetSize)
+                throw new InvalidDataException("Release EXE Content-Length değeri asset manifestindeki boyutla eşleşmiyor.");
+            await using var input = await response.Content.ReadAsStreamAsync();
+            await using var output = new FileStream(downloaded, FileMode.Create, FileAccess.Write, FileShare.None, 128 * 1024, useAsync: true);
+            var buffer = new byte[128 * 1024];
+            long total = 0;
+            int read;
+            while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
+            {
+                total += read;
+                if (total > 500L * 1024 * 1024 || total > release.AssetSize) throw new InvalidDataException("İndirilen dosya beklenenden büyük.");
+                await output.WriteAsync(buffer.AsMemory(0, read));
+            }
+            await output.FlushAsync();
+            if (total != release.AssetSize) throw new InvalidDataException($"İndirilen dosya boyutu uyuşmuyor. Beklenen: {release.AssetSize}; alınan: {total}.");
+        }
+
+        string actualHash;
+        await using (var file = File.OpenRead(downloaded))
+        {
+            var hash = await SHA256.HashDataAsync(file);
+            actualHash = Convert.ToHexString(hash).ToLowerInvariant();
+        }
+        if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(actualHash), Encoding.ASCII.GetBytes(release.Sha256)))
+            throw new InvalidDataException("İndirilen Control Center EXE dosyasının SHA-256 değeri GitHub manifestiyle eşleşmiyor.");
+
+        AppendLog($"Control Center v{release.Version} indirildi ve SHA-256 doğrulandı: {actualHash}.", "OK", "APP");
+        FooterStatus.Text = "Güncelleme doğrulandı; uygulama yeniden başlatılacak.";
+        MessageBox.Show(this,
+            $"Yeni sürüm indirildi ve SHA-256 doğrulaması başarılı.\n\nUygulama kapatılıp güncellenecek, ardından otomatik yeniden açılacak.\n\nv{ControlCenterCurrentVersion} → v{release.Version}",
+            "Güncelleme hazır", MessageBoxButton.OK, MessageBoxImage.Information);
+
+        int parentPid = Environment.ProcessId;
+        var psi = new ProcessStartInfo
+        {
+            FileName = GetPowerShellExe(),
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
+        psi.ArgumentList.Add("-NoProfile");
+        psi.ArgumentList.Add("-ExecutionPolicy");
+        psi.ArgumentList.Add("Bypass");
+        psi.ArgumentList.Add("-File");
+        psi.ArgumentList.Add(updater);
+        psi.ArgumentList.Add("-TargetExe");
+        psi.ArgumentList.Add(targetExe);
+        psi.ArgumentList.Add("-DownloadedExe");
+        psi.ArgumentList.Add(downloaded);
+        psi.ArgumentList.Add("-ExpectedSha256");
+        psi.ArgumentList.Add(release.Sha256);
+        psi.ArgumentList.Add("-ParentProcessId");
+        psi.ArgumentList.Add(parentPid.ToString(CultureInfo.InvariantCulture));
+        psi.ArgumentList.Add("-BackupExe");
+        psi.ArgumentList.Add(targetExe + ".previous");
+        _ = Process.Start(psi) ?? throw new InvalidOperationException("Güncelleme yardımcı süreci başlatılamadı.");
+        AppendLog("Güncelleme yardımcısı başlatıldı; Control Center kapatılıyor.", "OK", "APP");
+        _diskLogTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        FlushPendingDiskLogs();
+        Application.Current.Shutdown();
+    }
+
+    private static HttpClient CreateUpdateHttpClient()
+    {
+        var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 5 })
+        {
+            Timeout = TimeSpan.FromMinutes(15)
+        };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TRPOLARIS-Control-Center/1.6.6");
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        return client;
+    }
+
+    private static string GetJsonString(JsonElement element, string property)
+    {
+        return element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString() ?? string.Empty : string.Empty;
+    }
+
+    private static Version ParseVersionOrZero(string value) => Version.TryParse(value, out var version) ? version : new Version(0, 0);
 
     private async Task UpdateServerAsync()
     {
@@ -2954,101 +3231,475 @@ export DOCKER_CONFIG="$safe_config"
     {
         if (_operationBusy || _gameArchiveBusy) return false;
         _gameArchiveBusy = true;
-        string archivePath = Path.Combine(RuntimeDir, "nfsu2-game-download-" + Guid.NewGuid().ToString("N") + ".zip");
+        string archivePath = Path.Combine(RuntimeDir, "nfsu2-game-download.zip");
         string partialPath = archivePath + ".partial";
+        string metadataPath = partialPath + ".json";
+        bool completedDownload = false;
+        _gameDownloadCancelRequested = false;
+        _gameDownloadPaused = false;
+        _gameDownloadResumeSignal = null;
+        using var operationCts = new CancellationTokenSource();
+        _gameDownloadOperationCts = operationCts;
+        CancellationToken operationToken = operationCts.Token;
+        SetGameDownloadControls(active: true, paused: false);
+
         try
         {
             Directory.CreateDirectory(RuntimeDir);
-            if (_gameValidationStatus is not null) _gameValidationStatus.Text = "MediaFire bağlantısı hazırlanıyor…";
-            AppendLog("Kullanıcının verdiği MediaFire bağlantısından NFSU2 oyun arşivi indiriliyor.", "INFO");
+            if (_gameValidationStatus is not null)
+                _gameValidationStatus.Text = "MediaFire bağlantısı hazırlanıyor…";
 
-            using var timeout = new CancellationTokenSource(TimeSpan.FromHours(3));
-            using var request = new HttpRequestMessage(HttpMethod.Get, GameArchiveDownloadUrl);
-            request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.6.3");
-            using var response = await GameDownloadHttp.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
-            if (!response.IsSuccessStatusCode)
-                throw new HttpRequestException($"MediaFire indirmesi başarısız: HTTP {(int)response.StatusCode} ({response.ReasonPhrase}). Bağlantı süresi dolmuş veya sunucu indirmeyi reddetmiş olabilir.");
-
-            Uri? finalUri = response.RequestMessage?.RequestUri;
-            if (finalUri is null || !string.Equals(finalUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("İndirme adresi güvenli HTTPS bağlantısına yönlenmedi. İndirme durduruldu.");
-
-            long? contentLength = response.Content.Headers.ContentLength;
-            if (contentLength is > MaxGameArchiveDownloadBytes)
-                throw new InvalidDataException($"İndirilecek arşiv izin verilen indirme sınırını ({FormatBytes(MaxGameArchiveDownloadBytes)}) aşıyor.");
-
-            var downloadDrive = new DriveInfo(Path.GetPathRoot(RuntimeDir)!);
-            long minimumFreeSpace = contentLength.HasValue
-                ? checked(contentLength.Value + 512L * 1024 * 1024)
-                : 512L * 1024 * 1024;
-            if (downloadDrive.AvailableFreeSpace < minimumFreeSpace)
-                throw new IOException($"Arşivi indirmek için yeterli boş alan yok. Gereken en az: {FormatBytes(minimumFreeSpace)}; boş alan: {FormatBytes(downloadDrive.AvailableFreeSpace)}.");
-
-            await using (var input = await response.Content.ReadAsStreamAsync(timeout.Token))
-            await using (var output = new FileStream(partialPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1024 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan))
+            GameArchiveDownloadMetadata? metadata = TryLoadGameDownloadMetadata(metadataPath);
+            if (metadata is not null && !string.Equals(metadata.Url, GameArchiveDownloadUrl, StringComparison.Ordinal))
             {
-                var buffer = new byte[1024 * 1024];
-                long downloaded = 0;
-                long lastLogged = 0;
-                while (true)
-                {
-                    int read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), timeout.Token);
-                    if (read == 0) break;
-                    downloaded = checked(downloaded + read);
-                    if (downloaded > MaxGameArchiveDownloadBytes)
-                        throw new InvalidDataException("İndirilen arşiv 20 GB indirme sınırını aştı. Dosya güvenlik nedeniyle silinecek.");
-                    await output.WriteAsync(buffer.AsMemory(0, read), timeout.Token);
-
-                    if (contentLength is > 0)
-                    {
-                        double percent = Math.Min(100, downloaded * 100d / contentLength.Value);
-                        if (_gameValidationStatus is not null)
-                            _gameValidationStatus.Text = $"Oyun arşivi indiriliyor… {percent:0.0}% · {FormatBytes(downloaded)} / {FormatBytes(contentLength.Value)}";
-                    }
-                    else if (_gameValidationStatus is not null)
-                    {
-                        _gameValidationStatus.Text = "Oyun arşivi indiriliyor… " + FormatBytes(downloaded);
-                    }
-
-                    if (downloaded - lastLogged >= 64L * 1024 * 1024)
-                    {
-                        AppendLog("Oyun arşivi indirildi: " + FormatBytes(downloaded) + (contentLength.HasValue ? " / " + FormatBytes(contentLength.Value) : string.Empty), "INFO");
-                        lastLogged = downloaded;
-                    }
-                }
-                await output.FlushAsync(timeout.Token);
-                if (contentLength.HasValue && downloaded != contentLength.Value)
-                    throw new EndOfStreamException($"İndirme tamamlanmadı. Beklenen: {FormatBytes(contentLength.Value)}; alınan: {FormatBytes(downloaded)}.");
-                if (downloaded == 0)
-                    throw new InvalidDataException("MediaFire boş bir dosya döndürdü.");
+                TryDeleteFile(partialPath);
+                TryDeleteFile(metadataPath);
+                metadata = null;
             }
 
-            File.Move(partialPath, archivePath);
-            AppendLog("Oyun arşivi indirildi (" + new FileInfo(archivePath).Length.ToString("N0", CultureInfo.InvariantCulture) + " bayt). ZIP içeriği doğrulanıyor.", "OK");
-            if (_gameValidationStatus is not null) _gameValidationStatus.Text = "İndirme tamamlandı. ZIP açılıyor ve SPEED2.EXE / oyun klasörleri doğrulanıyor…";
+            long currentLength = File.Exists(partialPath) ? new FileInfo(partialPath).Length : 0;
+            if (currentLength > MaxGameArchiveDownloadBytes)
+            {
+                TryDeleteFile(partialPath);
+                TryDeleteFile(metadataPath);
+                currentLength = 0;
+                metadata = null;
+            }
+
+            if (currentLength > 0)
+            {
+                AppendLog("Önceki indirme parçası bulundu: " + FormatBytes(currentLength) + ". HTTP Range desteğiyle kaldığı yerden devam edilecek.", "INFO");
+                if (_gameValidationStatus is not null)
+                    _gameValidationStatus.Text = "Önceki indirme bulundu. Kaldığı yerden devam ediliyor…";
+            }
+            else
+            {
+                AppendLog("Kullanıcının MediaFire bağlantısından NFSU2 oyun arşivi indiriliyor.", "INFO");
+            }
+
+            int retryCount = 0;
+            long? totalBytes = metadata?.TotalBytes;
+            bool downloadComplete = false;
+
+            while (!downloadComplete)
+            {
+                operationToken.ThrowIfCancellationRequested();
+                await WaitForGameDownloadResumeAsync(operationToken);
+
+                long offset = File.Exists(partialPath) ? new FileInfo(partialPath).Length : 0;
+                if (offset > MaxGameArchiveDownloadBytes)
+                    throw new InvalidDataException("İndirilen arşiv 20 GB indirme sınırını aştı.");
+
+                int pauseVersionAtRequestStart = Volatile.Read(ref _gameDownloadPauseVersion);
+                try
+                {
+                using var request = new HttpRequestMessage(HttpMethod.Get, GameArchiveDownloadUrl);
+                request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.6.6");
+                request.Headers.AcceptEncoding.Clear();
+                request.Headers.AcceptEncoding.ParseAdd("identity");
+                if (offset > 0)
+                {
+                    request.Headers.Range = new RangeHeaderValue(offset, null);
+                    if (!string.IsNullOrWhiteSpace(metadata?.ETag) && EntityTagHeaderValue.TryParse(metadata.ETag, out var etag))
+                        request.Headers.IfRange = new RangeConditionHeaderValue(etag);
+                    else if (metadata?.LastModified is DateTimeOffset modified)
+                        request.Headers.IfRange = new RangeConditionHeaderValue(modified);
+                }
+
+                using var requestCts = CancellationTokenSource.CreateLinkedTokenSource(operationToken);
+                requestCts.CancelAfter(TimeSpan.FromMinutes(2));
+                _activeGameDownloadRequestCts = requestCts;
+                HttpResponseMessage response;
+                try
+                {
+                    response = await GameDownloadHttp.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, requestCts.Token);
+                }
+                catch (OperationCanceledException) when (Volatile.Read(ref _gameDownloadPauseVersion) != pauseVersionAtRequestStart && !operationToken.IsCancellationRequested)
+                {
+                    await WaitForGameDownloadResumeAsync(operationToken);
+                    continue;
+                }
+                catch (OperationCanceledException) when (!operationToken.IsCancellationRequested)
+                {
+                    throw new TimeoutException("MediaFire yanıt başlıkları 2 dakika içinde alınamadı. İndirme parçası korundu.");
+                }
+                requestCts.CancelAfter(Timeout.InfiniteTimeSpan);
+                using (response)
+                {
+                    Uri? finalUri = response.RequestMessage?.RequestUri;
+                    if (finalUri is null || !string.Equals(finalUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("İndirme adresi güvenli HTTPS bağlantısına yönlenmedi. İndirme durduruldu.");
+
+                    if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
+                    {
+                        long? serverTotal = response.Content.Headers.ContentRange?.Length;
+                        if (offset > 0 && serverTotal.HasValue && serverTotal.Value == offset)
+                        {
+                            totalBytes = serverTotal;
+                            downloadComplete = true;
+                            break;
+                        }
+                        TryDeleteFile(partialPath);
+                        TryDeleteFile(metadataPath);
+                        metadata = null;
+                        totalBytes = null;
+                        AppendLog("MediaFire kaldığı yerden indirme aralığını kabul etmedi; bozuk parça silinerek indirme baştan başlatılacak.", "UYARI");
+                        continue;
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                        throw new HttpRequestException($"MediaFire indirmesi başarısız: HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).");
+
+                    long? responseTotal;
+                    if (response.StatusCode == HttpStatusCode.PartialContent)
+                    {
+                        var contentRange = response.Content.Headers.ContentRange;
+                        if (contentRange is null || !string.Equals(contentRange.Unit, "bytes", StringComparison.OrdinalIgnoreCase) ||
+                            !contentRange.From.HasValue || contentRange.From.Value != offset || !contentRange.Length.HasValue)
+                            throw new InvalidDataException("MediaFire sunucusunun Content-Range yanıtı beklenen indirme konumuyla eşleşmiyor.");
+
+                        responseTotal = contentRange.Length.Value;
+                        string? responseEtag = response.Headers.ETag?.ToString();
+                        DateTimeOffset? responseModified = response.Content.Headers.LastModified;
+                        bool validatorChanged = (metadata?.ETag is not null && responseEtag is not null && !string.Equals(metadata.ETag, responseEtag, StringComparison.Ordinal)) ||
+                                                (metadata?.LastModified is not null && responseModified is not null && metadata.LastModified != responseModified);
+                        if (metadata?.TotalBytes is long savedTotal && savedTotal != responseTotal.Value)
+                            validatorChanged = true;
+                        if (validatorChanged)
+                        {
+                            TryDeleteFile(partialPath);
+                            TryDeleteFile(metadataPath);
+                            metadata = null;
+                            totalBytes = null;
+                            AppendLog("MediaFire arşiv kimliği veya boyutu değişti; eski parça güvenli biçimde atılıp yeni indirme başlatılacak.", "UYARI");
+                            continue;
+                        }
+                    }
+                    else if (response.StatusCode == HttpStatusCode.OK)
+                    {
+                        responseTotal = response.Content.Headers.ContentLength;
+                        if (offset > 0)
+                        {
+                            TryDeleteFile(partialPath);
+                            offset = 0;
+                            metadata = null;
+                            AppendLog("MediaFire Range isteğini desteklemedi; mevcut parça temizlenerek sıfırdan indiriliyor.", "UYARI");
+                        }
+                    }
+                    else
+                    {
+                        throw new HttpRequestException("MediaFire sunucusu beklenmeyen HTTP yanıtı döndürdü: " + (int)response.StatusCode);
+                    }
+
+                    if (responseTotal is > MaxGameArchiveDownloadBytes)
+                        throw new InvalidDataException($"İndirilecek arşiv izin verilen indirme sınırını ({FormatBytes(MaxGameArchiveDownloadBytes)}) aşıyor.");
+                    if (responseTotal.HasValue)
+                    {
+                        var downloadDrive = new DriveInfo(Path.GetPathRoot(RuntimeDir)!);
+                        long minimumFreeSpace = checked(Math.Max(0, responseTotal.Value - offset) + 512L * 1024 * 1024);
+                        if (downloadDrive.AvailableFreeSpace < minimumFreeSpace)
+                            throw new IOException($"Arşivi indirmek için yeterli boş alan yok. Gereken en az: {FormatBytes(minimumFreeSpace)}; boş alan: {FormatBytes(downloadDrive.AvailableFreeSpace)}.");
+                    }
+
+                    totalBytes = responseTotal ?? totalBytes;
+                    metadata = new GameArchiveDownloadMetadata(
+                        GameArchiveDownloadUrl,
+                        totalBytes,
+                        response.Headers.ETag?.ToString() ?? metadata?.ETag,
+                        response.Content.Headers.LastModified ?? metadata?.LastModified,
+                        finalUri.AbsoluteUri);
+                    SaveGameDownloadMetadata(metadataPath, metadata);
+
+                    await using var input = await response.Content.ReadAsStreamAsync(requestCts.Token);
+                    await using var output = new FileStream(
+                        partialPath,
+                        offset > 0 ? FileMode.Open : FileMode.Create,
+                        FileAccess.Write,
+                        FileShare.Read,
+                        1024 * 1024,
+                        FileOptions.Asynchronous | FileOptions.SequentialScan);
+                    if (offset > 0)
+                    {
+                        if (output.Length != offset)
+                            throw new IOException("Kısmi indirme dosyasının boyutu değişti; indirme güvenli biçimde yeniden başlatılmalı.");
+                        output.Seek(0, SeekOrigin.End);
+                    }
+
+                    byte[] buffer = new byte[1024 * 1024];
+                    long downloaded = offset;
+                    long sampleBytes = offset;
+                    var sampleClock = Stopwatch.StartNew();
+                    double speedBytesPerSecond = 0;
+                    bool pausedInterrupted = false;
+                    bool streamEnded = false;
+
+                    while (true)
+                    {
+                        await WaitForGameDownloadResumeAsync(operationToken);
+                        if (requestCts.IsCancellationRequested && !operationToken.IsCancellationRequested)
+                        {
+                            pausedInterrupted = true;
+                            break;
+                        }
+
+                        using var readCts = CancellationTokenSource.CreateLinkedTokenSource(operationToken, requestCts.Token);
+                        readCts.CancelAfter(TimeSpan.FromSeconds(90));
+                        int read;
+                        try
+                        {
+                            read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), readCts.Token);
+                        }
+                        catch (OperationCanceledException) when (requestCts.IsCancellationRequested && !operationToken.IsCancellationRequested)
+                        {
+                            pausedInterrupted = true;
+                            break;
+                        }
+                        catch (OperationCanceledException) when (!operationToken.IsCancellationRequested)
+                        {
+                            throw new TimeoutException("MediaFire bağlantısından 90 saniyedir veri alınamıyor. İndirilen parça korundu.");
+                        }
+                        catch (IOException ex)
+                        {
+                            throw new HttpRequestException("MediaFire veri akışı koptu. Kısmi ZIP dosyası korunarak bağlantı yeniden kurulacak.", ex);
+                        }
+
+                        if (read == 0)
+                        {
+                            streamEnded = true;
+                            break;
+                        }
+
+                        downloaded = checked(downloaded + read);
+                        if (downloaded > MaxGameArchiveDownloadBytes)
+                            throw new InvalidDataException("İndirilen arşiv 20 GB indirme sınırını aştı.");
+                        await output.WriteAsync(buffer.AsMemory(0, read), operationToken);
+
+                        if (sampleClock.ElapsedMilliseconds >= 1000)
+                        {
+                            speedBytesPerSecond = Math.Max(0, downloaded - sampleBytes) / Math.Max(0.001, sampleClock.Elapsed.TotalSeconds);
+                            sampleBytes = downloaded;
+                            sampleClock.Restart();
+                            UpdateGameDownloadProgress(downloaded, totalBytes, speedBytesPerSecond, "İndiriliyor");
+                        }
+                    }
+
+                    await output.FlushAsync(CancellationToken.None);
+                    if (pausedInterrupted)
+                    {
+                        AppendLog("Oyun arşivi indirmesi kullanıcı tarafından duraklatıldı. İndirilen parça diske yazıldı; devam edildiğinde HTTP Range kullanılacak.", "INFO");
+                        continue;
+                    }
+                    if (!streamEnded)
+                        continue;
+
+                    long actualLength = new FileInfo(partialPath).Length;
+                    if (totalBytes.HasValue && actualLength != totalBytes.Value)
+                        throw new EndOfStreamException($"İndirme bağlantısı erken kapandı. Beklenen toplam: {FormatBytes(totalBytes.Value)}; alınan: {FormatBytes(actualLength)}. Kaldığı yerden yeniden denenecek.");
+                    if (actualLength == 0)
+                        throw new InvalidDataException("MediaFire boş bir dosya döndürdü.");
+                    totalBytes = actualLength;
+                    downloadComplete = true;
+                }
+
+                if (ReferenceEquals(_activeGameDownloadRequestCts, requestCts))
+                    _activeGameDownloadRequestCts = null;
+                if (!downloadComplete)
+                    retryCount = 0;
+                }
+                catch (OperationCanceledException) when (Volatile.Read(ref _gameDownloadPauseVersion) != pauseVersionAtRequestStart && !operationToken.IsCancellationRequested)
+                {
+                    await WaitForGameDownloadResumeAsync(operationToken);
+                    continue;
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TimeoutException or EndOfStreamException or TaskCanceledException)
+                {
+                    retryCount++;
+                    if (retryCount >= 6)
+                        throw new IOException("MediaFire bağlantısı art arda 6 kez kesildi. Kısmi indirme dosyası korundu; aynı düğmeye tekrar basarak devam edebilirsin.", ex);
+                    int delaySeconds = Math.Min(30, 2 * (1 << Math.Min(retryCount - 1, 4)));
+                    string retryMessage = $"Bağlantı kesildi. {delaySeconds} saniye sonra yeniden bağlanılacak ({retryCount}/5). Kısmi dosya korunuyor.";
+                    if (_gameValidationStatus is not null) _gameValidationStatus.Text = retryMessage;
+                    AppendLog(retryMessage + " Ayrıntı: " + ex.Message, "UYARI");
+                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds), operationToken);
+                }
+            }
+
+            operationToken.ThrowIfCancellationRequested();
+            if (!File.Exists(partialPath) || new FileInfo(partialPath).Length == 0)
+                throw new InvalidDataException("İndirme tamamlanmış görünmesine rağmen ZIP dosyası bulunamadı veya boş.");
+
+            File.Move(partialPath, archivePath, overwrite: true);
+            TryDeleteFile(metadataPath);
+            completedDownload = true;
+            long finalSize = new FileInfo(archivePath).Length;
+            UpdateGameDownloadProgress(finalSize, finalSize, 0, "İndirme tamamlandı");
+            AppendLog("Oyun arşivi indirildi (" + finalSize.ToString("N0", CultureInfo.InvariantCulture) + " bayt). ZIP içeriği doğrulanıyor.", "OK");
+            if (_gameValidationStatus is not null)
+                _gameValidationStatus.Text = "İndirme tamamlandı. ZIP açılıyor ve SPEED2.EXE / oyun klasörleri doğrulanıyor…";
             return await ImportGameArchiveAsync(archivePath, "Kullanıcının MediaFire bağlantısından indirilen ZIP arşivi");
+        }
+        catch (OperationCanceledException) when (_gameDownloadCancelRequested)
+        {
+            TryDeleteFile(partialPath);
+            TryDeleteFile(metadataPath);
+            const string message = "Oyun arşivi indirmesi iptal edildi. Kısmi indirme dosyası silindi; kurulum başlatılmadı.";
+            if (_gameValidationStatus is not null) _gameValidationStatus.Text = message;
+            AppendLog(message, "UYARI");
+            return false;
         }
         catch (OperationCanceledException)
         {
-            const string message = "Oyun arşivi indirmesi zaman aşımına uğradı veya iptal edildi. Kurulum başlatılmadı.";
+            string message = "Oyun arşivi indirmesi durduruldu. Kısmi dosya korundu; yeniden indir düğmesine basıldığında destekleniyorsa kaldığı yerden devam edilecek.";
             if (_gameValidationStatus is not null) _gameValidationStatus.Text = message;
             AppendLog(message, "UYARI");
-            MessageBox.Show(this, message, "İndirme tamamlanamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
         catch (Exception ex)
         {
-            if (_gameValidationStatus is not null) _gameValidationStatus.Text = "Oyun indirilemedi: " + ex.Message;
+            long saved = File.Exists(partialPath) ? new FileInfo(partialPath).Length : 0;
+            string resumeText = saved > 0 ? " İndirilen " + FormatBytes(saved) + " veri korundu; aynı indirme düğmesine tekrar basarak devam edebilirsin." : string.Empty;
+            if (_gameValidationStatus is not null) _gameValidationStatus.Text = "Oyun indirilemedi: " + ex.Message + resumeText;
             AppendLog("MediaFire oyun arşivi indirilemedi: " + ex, "HATA");
-            MessageBox.Show(this, "Oyun arşivi indirilemedi veya doğrulama aşamasına geçilemedi. Kurulum başlatılmadı.\n\n" + ex.Message + "\n\nBağlantı geçici olarak çalışmıyorsa \"Bilgisayardaki ZIP arşivini içe aktar\" seçeneğini kullanabilirsin.", "Oyun indirilemedi", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this,
+                "Oyun arşivi indirilemedi veya doğrulama aşamasına geçilemedi. Kurulum başlatılmadı.\n\n" + ex.Message + resumeText + "\n\nBağlantı tekrar geldiğinde indirmeyi yeniden başlatabilirsin.",
+                "Oyun indirilemedi", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
         finally
         {
-            try { if (File.Exists(partialPath)) File.Delete(partialPath); } catch { }
-            try { if (File.Exists(archivePath)) File.Delete(archivePath); } catch { }
+            _activeGameDownloadRequestCts = null;
+            _gameDownloadOperationCts = null;
+            _gameDownloadPaused = false;
             _gameArchiveBusy = false;
+            SetGameDownloadControls(active: false, paused: false);
+            try { if (File.Exists(archivePath)) File.Delete(archivePath); } catch { }
+            if (_gameDownloadCancelRequested)
+            {
+                TryDeleteFile(partialPath);
+                TryDeleteFile(metadataPath);
+            }
+            if (!completedDownload && File.Exists(partialPath) && _gameValidationStatus is not null)
+                _gameValidationStatus.Text += "\nKısmi indirme: " + FormatBytes(new FileInfo(partialPath).Length) + " · devam etmek için indirme düğmesine tekrar bas.";
         }
+    }
+
+    private async Task WaitForGameDownloadResumeAsync(CancellationToken cancellationToken)
+    {
+        while (_gameDownloadPaused)
+        {
+            _gameDownloadResumeSignal ??= new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            await _gameDownloadResumeSignal.Task.WaitAsync(cancellationToken);
+        }
+    }
+
+    private void PauseGameArchiveDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_gameArchiveBusy || _gameDownloadPaused) return;
+        _gameDownloadPaused = true;
+        Interlocked.Increment(ref _gameDownloadPauseVersion);
+        _gameDownloadResumeSignal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try { _activeGameDownloadRequestCts?.Cancel(); } catch (ObjectDisposedException) { }
+        SetGameDownloadControls(active: true, paused: true);
+        if (_gameValidationStatus is not null) _gameValidationStatus.Text = "İndirme duraklatılıyor; alınan son veri diske yazılacak…";
+        AppendLog("Kullanıcı oyun arşivi indirmesini duraklattı.", "INFO");
+    }
+
+    private void ResumeGameArchiveDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_gameArchiveBusy || !_gameDownloadPaused) return;
+        _gameDownloadPaused = false;
+        _gameDownloadResumeSignal?.TrySetResult(true);
+        SetGameDownloadControls(active: true, paused: false);
+        if (_gameValidationStatus is not null) _gameValidationStatus.Text = "İndirme devam ediyor; son dosya parçasından HTTP Range ile sürdürülecek…";
+        AppendLog("Kullanıcı oyun arşivi indirmesini sürdürdü.", "INFO");
+    }
+
+    private void CancelGameArchiveDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_gameArchiveBusy) return;
+        var answer = MessageBox.Show(this,
+            "İndirme durdurulacak ve kısmi ZIP dosyası silinecek. Daha sonra tekrar indirmen gerekecek. Devam edilsin mi?",
+            "İndirmeyi iptal et", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (answer != MessageBoxResult.Yes) return;
+        _gameDownloadCancelRequested = true;
+        _gameDownloadPaused = false;
+        _gameDownloadResumeSignal?.TrySetResult(true);
+        try { _gameDownloadOperationCts?.Cancel(); } catch (ObjectDisposedException) { }
+        try { _activeGameDownloadRequestCts?.Cancel(); } catch (ObjectDisposedException) { }
+    }
+
+    private void SetGameDownloadControls(bool active, bool paused)
+    {
+        if (_gameDownloadProgressBar is not null)
+            _gameDownloadProgressBar.Visibility = active || File.Exists(Path.Combine(RuntimeDir, "nfsu2-game-download.zip.partial")) ? Visibility.Visible : Visibility.Collapsed;
+        if (_gameDownloadProgressText is not null)
+            _gameDownloadProgressText.Visibility = active || File.Exists(Path.Combine(RuntimeDir, "nfsu2-game-download.zip.partial")) ? Visibility.Visible : Visibility.Collapsed;
+        if (_gameDownloadPauseButton is not null)
+            _gameDownloadPauseButton.Visibility = active && !paused ? Visibility.Visible : Visibility.Collapsed;
+        if (_gameDownloadResumeButton is not null)
+            _gameDownloadResumeButton.Visibility = active && paused ? Visibility.Visible : Visibility.Collapsed;
+        if (_gameDownloadCancelButton is not null)
+            _gameDownloadCancelButton.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+        if (_gameDownloadStartButton is not null)
+            _gameDownloadStartButton.IsEnabled = !active;
+    }
+
+    private void UpdateGameDownloadProgress(long downloaded, long? total, double speedBytesPerSecond, string state)
+    {
+        if (_gameDownloadProgressBar is not null)
+        {
+            _gameDownloadProgressBar.Visibility = Visibility.Visible;
+            _gameDownloadProgressBar.IsIndeterminate = !total.HasValue || total.Value <= 0;
+            if (total is > 0)
+                _gameDownloadProgressBar.Value = Math.Clamp(downloaded * 100d / total.Value, 0, 100);
+        }
+
+        string speedText = state.Contains("tamamlandı", StringComparison.OrdinalIgnoreCase) ? "Tamamlandı" : speedBytesPerSecond > 0 ? (speedBytesPerSecond / (1024d * 1024d)).ToString("0.00", CultureInfo.InvariantCulture) + " MB/s" : "Hız hesaplanıyor";
+        string sizeText = total is > 0
+            ? FormatBytes(downloaded) + " / " + FormatBytes(total.Value) + " · " + Math.Clamp(downloaded * 100d / total.Value, 0, 100).ToString("0.0", CultureInfo.InvariantCulture) + "%"
+            : FormatBytes(downloaded) + " indirildi";
+        string etaText = total is > 0 && speedBytesPerSecond > 0 && downloaded < total.Value
+            ? " · Kalan " + FormatRemainingTime(TimeSpan.FromSeconds((total.Value - downloaded) / speedBytesPerSecond))
+            : string.Empty;
+        if (_gameDownloadProgressText is not null)
+        {
+            _gameDownloadProgressText.Visibility = Visibility.Visible;
+            _gameDownloadProgressText.Text = state + " · " + sizeText + " · " + speedText + etaText;
+        }
+    }
+
+    private static string FormatRemainingTime(TimeSpan remaining)
+    {
+        if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
+        if (remaining.TotalDays >= 1) return ((int)remaining.TotalDays).ToString(CultureInfo.InvariantCulture) + " gün " + remaining.ToString("hh\\:mm\\:ss", CultureInfo.InvariantCulture);
+        return remaining.ToString("hh\\:mm\\:ss", CultureInfo.InvariantCulture);
+    }
+
+    private static GameArchiveDownloadMetadata? TryLoadGameDownloadMetadata(string path)
+    {
+        try
+        {
+            if (!File.Exists(path)) return null;
+            return JsonSerializer.Deserialize<GameArchiveDownloadMetadata>(File.ReadAllText(path, Encoding.UTF8));
+        }
+        catch { return null; }
+    }
+
+    private static void SaveGameDownloadMetadata(string path, GameArchiveDownloadMetadata metadata)
+    {
+        string temp = path + ".tmp";
+        File.WriteAllText(temp, JsonSerializer.Serialize(metadata), new UTF8Encoding(false));
+        if (File.Exists(path))
+        {
+            try { File.Replace(temp, path, null); }
+            catch { File.Delete(path); File.Move(temp, path); }
+        }
+        else File.Move(temp, path);
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); } catch { }
     }
 
     private async Task<bool> ImportGameArchiveAsync(string archivePath, string sourceDescription)

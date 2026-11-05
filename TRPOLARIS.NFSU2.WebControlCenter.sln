@@ -1,0 +1,21 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPOLARIS.NFSU2.WebControlCenter", "src\TRPOLARIS.NFSU2.WebControlCenter\TRPOLARIS.NFSU2.WebControlCenter.csproj", "{7B11CDA1-90D7-438A-A85E-82160BB2BC91}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7B11CDA1-90D7-438A-A85E-82160BB2BC91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B11CDA1-90D7-438A-A85E-82160BB2BC91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B11CDA1-90D7-438A-A85E-82160BB2BC91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B11CDA1-90D7-438A-A85E-82160BB2BC91}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

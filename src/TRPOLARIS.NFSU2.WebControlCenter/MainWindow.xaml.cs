@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     private const string ControlCenterRepo = "trpolaris/TRPOLARIS-NFSU2-Web-Control-Center";
     private const string ControlCenterExeName = "TRPOLARIS.NFSU2.WebControlCenter.exe";
     private const string UpdaterResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.ControlCenterUpdater.ps1";
-    private const string ControlCenterCurrentVersion = "1.6.6";
+    private const string ControlCenterCurrentVersion = "1.7.1";
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest";
     private const string GameArchiveDownloadUrl = "https://download946.mediafire.com/fe7ib77eqhxgTG6mSV85tsKnmdib9EBhv_kOYHPn3CfUrE8DtulmcE2m8MqLLeUToqjNU4yACOkvJLo65YTFY1hgXq9jC2OmUZ-uL1dopna79G7_eXtZC9_rLqPwHQEPKN5UsC_PgDSQXKTHO-ucx617PXk-GQatGjv8H4APkKo/a6eug3g6v1duw8f/Need+For+Speed+Underground+2.zip";
     private const long MaxGameArchiveDownloadBytes = 20L * 1024 * 1024 * 1024;
@@ -43,7 +43,7 @@ public partial class MainWindow : Window
     private const long MaxGameArchiveExpandedBytes = 20L * 1024 * 1024 * 1024;
     private const int MaxGameArchiveEntries = 150_000;
     private const string AppLogFolder = "TRPOLARIS\\NFSU2-Web-Control-Center";
-    private static readonly string RootDir = @"C:\nfsu2";
+    private static readonly string RootDir = @"C:\\nfsu2";
     private static readonly string SafeStopRequestPath = Path.Combine(RootDir, "logs", ".nfsu2-safe-stop.request");
     private static readonly string LogsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "logs");
     private static readonly string RuntimeDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "runtime");
@@ -202,7 +202,7 @@ public partial class MainWindow : Window
         _diskLogTimer = new System.Threading.Timer(_ => FlushPendingDiskLogs(), null, 150, 150);
         _logUiTimer.Start();
         ShowPage("Dashboard");
-        AppendLog("Kontrol merkezi başlatıldı (v1.6.6). WSL, Docker ve NFSU2 sunucu durumu denetleniyor.", "OK");
+        AppendLog("TRPOLARIS Control Center v1.7.1 başlatıldı. WSL, Docker ve NFSU2 kurulum durumu denetleniyor.", "OK");
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -556,20 +556,19 @@ public partial class MainWindow : Window
         _projectPathBox = null;
         _projectFileExplorerStatus = null;
         _autoApplyProjectChangesCheckBox = null;
+        _statusLabels.Clear();
         switch (page)
         {
             case "Dashboard":
-                TopEyebrow.Text = "SUNUCU YÖNETİMİ / GENEL BAKIŞ"; TopTitle.Text = "Kontrol Merkezi"; PageHost.Content = BuildDashboardPage(); break;
-            case "Server":
-                TopEyebrow.Text = "SUNUCU / YAŞAM DÖNGÜSÜ"; TopTitle.Text = "Sunucu Yönetimi"; PageHost.Content = BuildServerPage(); break;
-            case "Files":
-                TopEyebrow.Text = "SUNUCU / YAPILANDIRMA DOSYALARI"; TopTitle.Text = "Dosya Yöneticisi"; PageHost.Content = BuildServerFilesPage(); break;
+                TopEyebrow.Text = "DEPLOYMENT / OVERVIEW"; TopTitle.Text = "Altyapı kontrol merkezi"; PageHost.Content = BuildDashboardPage(); break;
             case "Install":
-                TopEyebrow.Text = "DAĞITIM / YAPILANDIRMA"; TopTitle.Text = "Tek Tık Kurulum"; PageHost.Content = BuildInstallPage(); break;
+                TopEyebrow.Text = "DEPLOYMENT / INSTALL"; TopTitle.Text = "Sunucu kurulumu"; PageHost.Content = BuildInstallPage(); break;
+            case "Update":
+                TopEyebrow.Text = "INFRASTRUCTURE / UPDATE"; TopTitle.Text = "Altyapı güncelleme"; PageHost.Content = BuildUpdatePage(); break;
+            case "Files":
+                TopEyebrow.Text = "INFRASTRUCTURE / FILES"; TopTitle.Text = "Dosya Yöneticisi"; PageHost.Content = BuildServerFilesPage(); break;
             case "Access":
-                TopEyebrow.Text = "AĞ / ERİŞİM PROFİLLERİ"; TopTitle.Text = "Erişim ve Paylaşım"; PageHost.Content = BuildAccessPage(); break;
-            case "Diagnostics":
-                TopEyebrow.Text = "SİSTEM / BAKIM"; TopTitle.Text = "Tanılama ve Bakım"; PageHost.Content = BuildDiagnosticsPage(); break;
+                TopEyebrow.Text = "NETWORK / ACCESS & SHARING"; TopTitle.Text = "Erişim ve Paylaşım"; PageHost.Content = BuildAccessPage(); break;
             case "Uninstall":
                 TopEyebrow.Text = "KALDIRMA / TEMİZLİK"; TopTitle.Text = "Kaldırma Merkezi"; PageHost.Content = BuildUninstallPage(); break;
             case "Logs":
@@ -578,84 +577,88 @@ public partial class MainWindow : Window
                 ShowPage("Dashboard"); return;
         }
         SetNavState(page);
-        if (page == "Dashboard") UpdateAccessLabels();
         if (page == "Logs") ScrollLiveLogToEnd();
     }
 
     private void SetNavState(string selected)
     {
-        var nav = new[] { NavDashboard, NavServer, NavFiles, NavInstall, NavAccess, NavDiagnostics, NavUninstall, NavLogs };
+        var nav = new[] { NavDashboard, NavInstall, NavUpdate, NavFiles, NavAccess, NavUninstall, NavLogs };
         foreach (var b in nav)
         {
             bool active = Equals(b.Tag, selected);
-            b.Background = active ? BrushHex("#1A2B33") : Brushes.Transparent;
-            b.BorderBrush = active ? BrushHex("#36535A") : Brushes.Transparent;
-            b.Foreground = active ? BrushHex("#70D9D0") : BrushHex("#A7B5C1");
+            b.Background = active ? BrushHex("#143448") : Brushes.Transparent;
+            b.BorderBrush = active ? BrushHex("#3D8292") : Brushes.Transparent;
+            b.Foreground = active ? BrushHex("#76F0E0") : BrushHex("#AFC0D2");
         }
     }
 
     private UIElement BuildDashboardPage()
     {
-        var root = NewStack(12);
-        root.Children.Add(Heading("Sunucu durumu", "Tarayıcıdan oynanan NFSU2 sunucusunun anlık durumu ve erişim bilgileri."));
+        var root = NewStack(17);
+        root.Children.Add(Heading("Altyapı durumu", "Windows bilgisayarındaki NFSU2 Web sunucu kurulumunu ve onu çalıştıran altyapıyı tek ekrandan hazırla."));
+
         var hero = new Border
         {
-            CornerRadius = new CornerRadius(10), Padding = new Thickness(17),
-            BorderThickness = new Thickness(1), BorderBrush = BrushHex("#344550"),
-            Background = new LinearGradientBrush(BrushHex("#1A2834").Color, BrushHex("#151F2A").Color, 0)
+            CornerRadius = new CornerRadius(17), Padding = new Thickness(23),
+            BorderThickness = new Thickness(1), BorderBrush = BrushHex("#2C6070"),
+            Background = new LinearGradientBrush(BrushHex("#143448").Color, BrushHex("#101E31").Color, 0)
+        };
+        hero.Effect = new System.Windows.Media.Effects.DropShadowEffect
+        {
+            Color = (Color)ColorConverter.ConvertFromString("#43E4D0"), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.10
         };
         var heroGrid = new Grid();
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var heroText = NewStack(6);
-        heroText.Children.Add(MutedLabel("TRPOLARIS  /  NFSU2 WEB SERVER"));
-        heroText.Children.Add(new TextBlock { Text = "Sunucunu tek merkezden yönet.", FontSize = 18, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#F1F3F4") });
-        heroText.Children.Add(new TextBlock { Text = "Kurulum, erişim profilleri, yapılandırma dosyaları ve sunucu yaşam döngüsü aynı kontrol panelinde.", FontSize = 10, Foreground = BrushHex("#A2AFBA"), TextWrapping = TextWrapping.Wrap, MaxWidth = 620 });
+        var heroText = NewStack(8);
+        heroText.Children.Add(MutedLabel("TRPOLARIS  /  DEPLOYMENT CONSOLE"));
+        heroText.Children.Add(new TextBlock
+        {
+            Text = "Sunucunu kur.\nAltyapını güncel tut.", FontSize = 26, FontWeight = FontWeights.SemiBold,
+            Foreground = BrushHex("#F1F7FF"), TextWrapping = TextWrapping.Wrap
+        });
+        heroText.Children.Add(new TextBlock
+        {
+            Text = "Control Center yalnızca Windows kurulumunu, kaldırmayı ve WSL–Docker güncelleme zincirini yönetir. Web sitesinin veya oyunun iç yönetim ekranlarına müdahale etmez.",
+            FontSize = 11, Foreground = BrushHex("#A9BED1"), TextWrapping = TextWrapping.Wrap, MaxWidth = 610
+        });
         heroGrid.Children.Add(heroText);
-        var heroActions = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20, 0, 0, 0) };
-        heroActions.Children.Add(MakeButton("Sunucu yönetimi", "ModernButton", (_, _) => ShowPage("Server")));
-        heroActions.Children.Add(MakeButton("Yeni kurulum", "SecondaryButton", (_, _) => ShowPage("Install"), new Thickness(0, 6, 0, 0)));
-        Grid.SetColumn(heroActions, 1); heroGrid.Children.Add(heroActions); hero.Child = heroGrid;
+        var heroActions = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(24, 0, 0, 0), Width = 210 };
+        heroActions.Children.Add(MakeButton("＋  Sunucuyu kur", "ModernButton", (_, _) => ShowPage("Install")));
+        heroActions.Children.Add(MakeButton("↻  Altyapıyı güncelle", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(0, 9, 0, 0)));
+        Grid.SetColumn(heroActions, 1);
+        heroGrid.Children.Add(heroActions);
+        hero.Child = heroGrid;
         root.Children.Add(hero);
-        var statusGrid = new UniformGrid { Columns = 4, Rows = 1, Margin = new Thickness(0) };
-        statusGrid.Children.Add(BuildStatusCard("WSL 2", "WSL", "Windows Linux altyapısı"));
+
+        var statusHeader = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        statusHeader.Children.Add(new TextBlock { Text = "BİLEŞEN SAĞLIĞI", Style = (Style)FindResource("Eyebrow"), VerticalAlignment = VerticalAlignment.Center });
+        statusHeader.Children.Add(new TextBlock { Text = "  ·  WSL 2 / Ubuntu / Docker / Sunucu", FontSize = 9, Foreground = BrushHex("#6F879E"), VerticalAlignment = VerticalAlignment.Center });
+        root.Children.Add(statusHeader);
+
+        var statusGrid = new UniformGrid { Columns = 4, Rows = 1 };
+        statusGrid.Children.Add(BuildStatusCard("WSL 2", "WSL", "Windows Linux ortamı"));
         statusGrid.Children.Add(BuildStatusCard("Ubuntu", "Ubuntu", "Derleme dağıtımı"));
-        statusGrid.Children.Add(BuildStatusCard("Docker Engine", "Docker", "Konteyner motoru"));
-        statusGrid.Children.Add(BuildStatusCard("NFSU2 sunucusu", "Server", "Web sunucusu / oyun modülü"));
+        statusGrid.Children.Add(BuildStatusCard("Docker Engine", "Docker", "Container motoru"));
+        statusGrid.Children.Add(BuildStatusCard("NFSU2 Server", "Server", "Kurulum / sağlık durumu"));
         root.Children.Add(statusGrid);
 
-        var accessCard = MakeCard("ERİŞİM BİLGİLERİ", "Sunucu adresini aç, kopyala veya paylaşım profilini yönet.");
-        var accessGrid = new Grid();
-        accessGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.1, GridUnitType.Star) });
-        accessGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.9, GridUnitType.Star) });
-        var left = NewStack(8);
-        left.Children.Add(MutedLabel("AKTİF SUNUCU ADRESİ"));
-        _dashboardUrl = new TextBlock { Text = "http://localhost:9093/", FontSize = 17, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#4DD1C7"), TextWrapping = TextWrapping.Wrap };
-        left.Children.Add(_dashboardUrl);
-        var quick = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 7, 0, 0) };
-        quick.Children.Add(MakeButton("Tarayıcıda aç", "ModernButton", OpenBrowser_Click));
-        quick.Children.Add(MakeButton("Adresi kopyala", "SecondaryButton", (_, _) => { try { var url = GetActiveServerUrl(); Clipboard.SetText(url); AppendLog("Aktif sunucu adresi panoya kopyalandı: " + url, "OK"); } catch (Exception ex) { AppendLog("Adres kopyalanamadı: " + ex.Message, "HATA"); } }, new Thickness(10, 0, 0, 0)));
-        quick.Children.Add(MakeButton("Erişim ayarları", "SecondaryButton", (_, _) => ShowPage("Access"), new Thickness(10, 0, 0, 0)));
-        left.Children.Add(quick);
-        Grid.SetColumn(left, 0); accessGrid.Children.Add(left);
-        var right = NewStack(8); Grid.SetColumn(right, 1);
-        right.Children.Add(MutedLabel("AKTİF LAN ADRESİ"));
-        _dashboardLan = new TextBlock { Text = "Denetleniyor...", FontSize = 13, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
-        right.Children.Add(_dashboardLan);
-        right.Children.Add(MutedLabel("PUBLIC TUNNEL / HTTPS"));
-        _dashboardPublic = new TextBlock { Text = "Aktif değil", FontSize = 13, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap };
-        right.Children.Add(_dashboardPublic);
-        right.Children.Add(MakeButton("Bağlantıları yenile", "SecondaryButton", async (_, _) => await RefreshStatusAsync(true), new Thickness(0, 6, 0, 0)));
-        accessGrid.Children.Add(right); AddCardChild(accessCard, accessGrid); root.Children.Add(accessCard);
+        var lifecycle = MakeCard("DOCKER SERVİS YAŞAM DÖNGÜSÜ", "Yalnızca Control Center tarafından kurulan NFSU2 Compose servisini başlatır, durdurur veya yeniden başlatır. Diğer Docker projeleri hedeflenmez.");
+        var lifecycleActions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+        lifecycleActions.Children.Add(MakeButton("▶  Başlat", "ModernButton", async (_, _) => await ManageServerAsync("up -d")));
+        lifecycleActions.Children.Add(MakeButton("■  Durdur", "DangerButton", async (_, _) => await ManageServerAsync("stop"), new Thickness(9, 0, 0, 0)));
+        lifecycleActions.Children.Add(MakeButton("↻  Yeniden başlat", "SecondaryButton", async (_, _) => await ManageServerAsync("restart"), new Thickness(9, 0, 0, 0)));
+        lifecycleActions.Children.Add(MakeButton("İşlem günlükleri", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(9, 0, 0, 0)));
+        AddCardChild(lifecycle, lifecycleActions);
+        root.Children.Add(lifecycle);
 
-        var quickCard = MakeCard("HIZLI İŞLEMLER", "Sık kullanılan işlemler. Uzun görevler arka planda çalışır; aşamalar ilerledikçe toplam ilerleme göstergesi güncellenir.");
-        var actions = new UniformGrid { Columns = 5 };
-        actions.Children.Add(QuickAction("Sunucuyu yönet", "Sunucuyu başlat, durdur, yeniden başlat; günlüklerini izle ve GitHub sürümünü uygula.", "Sunucu Yönetimi", () => ShowPage("Server")));
-        actions.Children.Add(QuickAction("Kurulumu başlat", "Kod deposunu hazırlar, bağımlılıkları kurar, oyun modülünü derler ve sunucuyu başlatır.", "Tek Tık Kurulum", () => ShowPage("Install")));
-        actions.Children.Add(QuickAction("Sistem denetimi", "WSL, Ubuntu, Docker Engine, port ve oyun dosyalarını kontrol eder.", "Tanılama ve Bakım", () => ShowPage("Diagnostics")));
-        actions.Children.Add(QuickAction("Dosyaları düzenle", "Compose, ortam, Docker ve Rust sunucu dosyalarını yedekleyerek düzenle.", "Dosya Yöneticisi", () => ShowPage("Files")));
-        actions.Children.Add(QuickAction("Canlı günlük", "PowerShell ve WSL çıktılarını tek akışta izle.", "İşlem Günlüğü", () => ShowPage("Logs")));
-        AddCardChild(quickCard, actions); root.Children.Add(quickCard);
+        var actionsCard = MakeCard("HIZLI ERİŞİM", "Kurulum ve altyapı bakımının temel adımları.");
+        var actions = new UniformGrid { Columns = 3 };
+        actions.Children.Add(QuickAction("Tek tık kurulum", "WSL, Ubuntu, Docker ve proje bağımlılıklarını hazırla; Rust + React sunucusunu oluştur.", "Kurulum sihirbazı", () => ShowPage("Install")));
+        actions.Children.Add(QuickAction("GitHub güncellemesi", "main dalını çek; Python, Node.js, Rust, WASI, React, WASM ve Docker çıktısını güncelle.", "Güncellemeyi aç", () => ShowPage("Update")));
+        actions.Children.Add(QuickAction("Güvenli kaldırma", "NFSU2 container ve imajını kaldır. Kalıcı veriler ve paylaşılan altyapı varsayılan olarak korunur.", "Kaldırma merkezi", () => ShowPage("Uninstall")));
+        AddCardChild(actionsCard, actions);
+        root.Children.Add(actionsCard);
         return WrapScrollable(root);
     }
 
@@ -678,15 +681,17 @@ public partial class MainWindow : Window
     private UIElement BuildInstallPage()
     {
         var root = NewStack(16);
-        root.Children.Add(Heading("NFSU2 Web kurulumu", "Sunucu bileşenleri tek tıkla hazırlanır. Oyun dosyaları indirme bağlantısından veya bilgisayarındaki ZIP arşivinden alınır; doğrulama geçmeden sunucu kurulumu başlamaz."));
-        var card = MakeCard("KURULUM AYARLARI", "Kurulum başlamadan önce oyun sürümü, SPEED2.EXE SHA-256 değeri ve temel oyun klasörleri hem Windows hem WSL tarafında doğrulanır. Doğrulama başarısızsa WSL/Docker adımları çalıştırılmaz.");
+        root.Children.Add(Heading("NFSU2 Web sunucu kurulumu", "Windows üzerinde WSL 2, Ubuntu, Docker ve güncel React + Rust sunucu bileşenlerini tek kurulum akışıyla hazırla."));
+        var card = MakeCard("KURULUM ÖN HAZIRLIĞI", "Oyun verisi doğrulanır; doğrulama tamamlanmadan WSL veya Docker kurulumu başlatılmaz. Ayrıntılar için soru işaretlerinin üzerine gel.");
         var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) });
-        AddGridRow(grid, 0, "HTTP portu", out var portCell);
+        AddGridRow(grid, 0, "HTTP portu", out var portCell,
+            "Yerel NFSU2 Web HTTP portu. Varsayılan değer 9093'tür. Başka bir uygulama bu portu kullanıyorsa boş bir port seç.");
         _portBox = new TextBox { Text = "9093", Width = 130, HorizontalAlignment = HorizontalAlignment.Left }; _portBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
         portCell.Children.Add(_portBox);
-        AddGridRow(grid, 1, "Oyun klasörü", out var gameCell);
+        AddGridRow(grid, 1, "Oyun klasörü", out var gameCell,
+            "SPEED2.EXE ile CARS, FRONTEND, GLOBAL ve TRACKS klasörlerini içeren NFS Underground 2 kök klasörü gerekir. Desteklenen oyun sürümü ve SHA-256 doğrulaması tamamlanmadan altyapı kurulumu başlamaz.");
         var gamePanel = NewStack(8);
         _gameDirBox = new TextBox { Text = Path.Combine(RootDir, "game"), MinWidth = 320, ToolTip = "SPEED2.EXE ve temel oyun klasörlerini içeren NFS Underground 2 kök klasörü" };
         _gameDirBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
@@ -732,30 +737,70 @@ public partial class MainWindow : Window
         };
         sourceLinkText.Inlines.Add(sourceLink);
         gamePanel.Children.Add(sourceLinkText);
-        gamePanel.Children.Add(new TextBlock
-        {
-            Text = "Arşivde desteklenen Kuzey Amerika 1.2 oyun sürümü aranır. ZIP önce geçici klasöre açılır; SPEED2.EXE boyutu / SHA-256 değeri ve CARS / FRONTEND / GLOBAL / TRACKS klasörleri doğrulanır. Yalnızca kontrol başarılıysa oyun C:\\nfsu2\\game konumuna taşınır; mevcut klasör gerekirse yedeklenir.",
-            Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap, MaxWidth = 680
-        });
         gameCell.Children.Add(gamePanel);
-        AddGridRow(grid, 2, "Kurulum sonrası erişim", out var accessCell);
-        _installAccessCombo = new ComboBox { Width = 340, HorizontalAlignment = HorizontalAlignment.Left, SelectedIndex = 0 };
-        _installAccessCombo.SetResourceReference(FrameworkElement.StyleProperty, "DarkComboBox");
-        _installAccessCombo.Items.Add(new ComboBoxItem { Content = "Yalnızca bu bilgisayar (Local)", Tag = "local" });
-        _installAccessCombo.Items.Add(new ComboBoxItem { Content = "Yerel ağ (LAN / HTTPS)", Tag = "lan" });
-        _installAccessCombo.Items.Add(new ComboBoxItem { Content = "Herkese açık geçici tünel", Tag = "public" });
-        accessCell.Children.Add(_installAccessCombo);
-        AddGridRow(grid, 3, "Bilgi", out var infoCell);
-        infoCell.Children.Add(new TextBlock { Text = "WSL/Ubuntu, Docker Desktop ve .NET ayrı bileşenlerdir. İlk kurulumda Ubuntu WSL 2 ve Docker Desktop WSL Integration otomatik yapılandırılır; ayarı uygulamak için Docker Desktop yeniden başlatılabilir ve çalışan containerlar geçici olarak durabilir. Ubuntu ilk açılışında Linux hesabı oluşturman istenebilir.", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("MutedBrush"), FontSize = 11, MaxWidth = 650 });
+        AddGridRow(grid, 2, "Kurulum kapsamı", out var scopeCell,
+            "Windows WSL 2 ve Ubuntu, Docker Desktop WSL entegrasyonu, GitHub main kaynakları, Python, Node.js 24, Rust stable, WASI SDK, React bağımlılıkları, Rust Cargo bağımlılıkları, WASM üretimi ve Docker image derlemesi.");
+        scopeCell.Children.Add(new TextBlock { Text = "WSL 2 · Ubuntu · Docker · GitHub · Python · Node.js · Rust · WASI · React · WASM", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("TextBrush"), FontSize = 10, MaxWidth = 680 });
+        AddGridRow(grid, 3, "İlk çalıştırma", out var infoCell,
+            "İlk Ubuntu açılışında Linux kullanıcı adı ve parola oluşturman istenebilir. Docker Desktop WSL Integration ayarı uygulanırken Docker Desktop yeniden başlatılabilir. Varsayılan erişim profili yalnızca bu bilgisayardır.");
+        infoCell.Children.Add(new TextBlock { Text = "Yerel profil · WSL 2 · Ubuntu · Docker Desktop · React + Rust", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, MaxWidth = 680 });
         AddCardChild(card, grid);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 18, 0, 0) };
         _installButton = MakeButton("Kurulumu başlat", "ModernButton", Install_Click); actions.Children.Add(_installButton);
-        actions.Children.Add(MakeButton("Sistem denetimi", "SecondaryButton", async (_, _) => await RunDiagnosticsAsync(), new Thickness(10, 0, 0, 0)));
+        actions.Children.Add(MakeButton("Altyapı güncelleme", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(10, 0, 0, 0)));
         actions.Children.Add(MakeButton("Canlı günlüğü aç", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(10, 0, 0, 0)));
         AddCardChild(card, actions);
         _installState = new TextBlock { Text = "Hazır. Kurulum başlatılmadı.", Foreground = (Brush)FindResource("MutedBrush"), Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap };
         AddCardChild(card, _installState);
         root.Children.Add(card);
+        return WrapScrollable(root);
+    }
+
+    private UIElement BuildUpdatePage()
+    {
+        var root = NewStack(17);
+        root.Children.Add(Heading("Altyapı güncelleme", "NFSU2-Web deposunun main dalını ve bu projeyi derleyen WSL / Docker araç zincirini güncel tut."));
+
+        var hero = new Border
+        {
+            CornerRadius = new CornerRadius(16), Padding = new Thickness(22),
+            BorderThickness = new Thickness(1), BorderBrush = BrushHex("#315F81"),
+            Background = new LinearGradientBrush(BrushHex("#142B45").Color, BrushHex("#101C30").Color, 0)
+        };
+        var heroContent = NewStack(8);
+        heroContent.Children.Add(MutedLabel("SOURCE UPDATE  /  GITHUB MAIN"));
+        heroContent.Children.Add(new TextBlock { Text = "Tek işlemle güncel sürüme geç.", FontSize = 22, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#F1F7FF") });
+        heroContent.Children.Add(new TextBlock
+        {
+            Text = "Kaynak kodunu indir, WSL paketlerini ve derleme araçlarını yenile, WASM modülünü üret, React bağımlılıklarını ve Rust sunucusunu Docker içinde derle. Yeni servis sağlıklı başlamazsa önceki sürüme geri dön.",
+            FontSize = 11, Foreground = BrushHex("#A9BED1"), TextWrapping = TextWrapping.Wrap, MaxWidth = 850
+        });
+        var actionRow = new WrapPanel { Margin = new Thickness(0, 9, 0, 0) };
+        actionRow.Children.Add(MakeButton("↻  GitHub'dan indir ve tüm altyapıyı güncelle", "ModernButton", async (_, _) => await UpdateServerAsync()));
+        actionRow.Children.Add(MakeButton("İşlem günlüklerini aç", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(10, 0, 0, 0)));
+        heroContent.Children.Add(actionRow);
+        hero.Child = heroContent;
+        root.Children.Add(hero);
+
+        var steps = new UniformGrid { Columns = 2 };
+        steps.Children.Add(MakeCard("01  /  KAYNAK KODU", "trpolaris/NFSU2-Web deposunun main dalı fast-forward güvenliğiyle güncellenir. Yerel değişiklikler korunur."));
+        steps.Children.Add(MakeCard("02  /  WSL ARAÇ ZİNCİRİ", "Ubuntu paketleri, Python bağımlılıkları, Node.js 24, Rust stable ve WASI SDK hazırlanır veya güncellenir."));
+        steps.Children.Add(MakeCard("03  /  REACT + RUST + WASM", "React için kilitli npm bağımlılıkları, Rust için Cargo.lock ve oyun verilerinden WASM modülü yeniden üretilir."));
+        steps.Children.Add(MakeCard("04  /  DOCKER DAĞITIMI", "Yeni Docker imajı oluşturulur, NFSU2 servisi yeniden kurulur ve health kontrolü yapılır."));
+        root.Children.Add(steps);
+
+        var safety = MakeCard("VERİ KORUMA VE GERİ DÖNÜŞ", "Güncelleme sırasında mevcut Docker imajı ve WASM modülü geri dönüş için saklanır.");
+        AddCardChild(safety, new TextBlock
+        {
+            Text = "Oyun verisi ve kalıcı state volume'leri silinmez. docker compose down -v kullanılmaz. Güncelleme başarısız olursa önceki imaj ve modül geri yüklenerek servis tekrar başlatılmaya çalışılır.",
+            FontSize = 11, Foreground = BrushHex("#B8CBDD"), TextWrapping = TextWrapping.Wrap
+        });
+        AddCardChild(safety, new TextBlock
+        {
+            Text = "Güncelleme sırasında yalnızca doğrulanmış NFSU2 Compose projesi hedeflenir. Diğer Docker projeleri ve Windows üzerinde kurulu Docker Desktop uygulaması kaldırılmaz.",
+            FontSize = 10, Foreground = BrushHex("#FFCA78"), TextWrapping = TextWrapping.Wrap
+        });
+        root.Children.Add(safety);
         return WrapScrollable(root);
     }
 
@@ -1836,6 +1881,55 @@ export DOCKER_CONFIG="$safe_config"
         return string.Join("\n\n", rows);
     }
 
+    public async Task<bool> RunStartupUpdateCheckAsync(Action<int, string, string?> reportProgress)
+    {
+        try
+        {
+            reportProgress(8, "Güncellemeler denetleniyor", "GitHub üzerinde yayımlanan kararlı Control Center sürümü kontrol ediliyor.");
+            await Task.Delay(150);
+            using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(18));
+            var release = await GetLatestControlCenterReleaseAsync(startupTimeout.Token);
+            if (release is null)
+            {
+                AppendLog("Başlangıç denetimi: yayımlanmış kararlı bir Control Center güncellemesi bulunamadı.", "INFO", "APP");
+                reportProgress(78, "Yeni güncelleme bulunmadı", $"Kurulu sürüm v{ControlCenterCurrentVersion} kullanılıyor.");
+                await Task.Delay(220);
+                reportProgress(84, "Güncelleme kontrolü tamamlandı", "Control Center mevcut sürümle açılmaya hazır.");
+                return false;
+            }
+
+            var current = ParseVersionOrZero(ControlCenterCurrentVersion);
+            var latest = ParseVersionOrZero(release.Version);
+            if (latest <= current)
+            {
+                AppendLog($"Başlangıç denetimi tamamlandı. Control Center güncel: v{ControlCenterCurrentVersion}.", "OK", "APP");
+                reportProgress(82, "Control Center güncel", $"Yüklü v{ControlCenterCurrentVersion} · GitHub v{release.Version}");
+                await Task.Delay(220);
+                reportProgress(84, "Güncelleme kontrolü tamamlandı", "Yeni sürüm gerekmiyor. Kurulu sürüm kullanılacak.");
+                return false;
+            }
+
+            AppendLog($"Başlangıçta yeni Control Center sürümü bulundu: v{release.Version}. Otomatik güncelleme başlatılıyor.", "OK", "APP");
+            reportProgress(48, "Yeni sürüm bulundu", $"v{ControlCenterCurrentVersion} → v{release.Version} · {FormatBytes(release.AssetSize)}");
+            await DownloadAndApplyControlCenterUpdateAsync(release, reportProgress, automatic: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                string staged = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "updates", ControlCenterExeName + ".download");
+                if (File.Exists(staged)) File.Delete(staged);
+            }
+            catch { /* A stale staged file is harmless; the running EXE remains untouched. */ }
+            AppendLog("Başlangıç güncelleme denetimi tamamlanamadı; kurulu sürüm korunuyor: " + ex.Message, "UYARI", "APP");
+            reportProgress(86, "Güncelleme denetlenemedi", "Mevcut sürüm değiştirilmedi. Bağlantı daha sonra tekrar denetlenebilir.");
+            await Task.Delay(400);
+            reportProgress(86, "Güncelleme kontrolü tamamlandı", "Mevcut Control Center sürümüyle devam ediliyor.");
+            return false;
+        }
+    }
+
     private async void CheckAppUpdates_Click(object sender, RoutedEventArgs e)
     {
         await CheckControlCenterUpdatesAsync(sender as Button);
@@ -1899,13 +1993,13 @@ export DOCKER_CONFIG="$safe_config"
         }
     }
 
-    private async Task<ControlCenterRelease?> GetLatestControlCenterReleaseAsync()
+    private async Task<ControlCenterRelease?> GetLatestControlCenterReleaseAsync(CancellationToken cancellationToken = default)
     {
-        using var response = await UpdateHttp.GetAsync(GitHubLatestReleaseApi, HttpCompletionOption.ResponseHeadersRead);
+        using var response = await UpdateHttp.GetAsync(GitHubLatestReleaseApi, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var root = document.RootElement;
         if (root.TryGetProperty("draft", out var draft) && draft.GetBoolean()) return null;
         if (root.TryGetProperty("prerelease", out var prerelease) && prerelease.GetBoolean()) return null;
@@ -1937,10 +2031,10 @@ export DOCKER_CONFIG="$safe_config"
         }
 
         string manifestUrl = GetJsonString(manifestAssetElement, "browser_download_url");
-        using var manifestResponse = await UpdateHttp.GetAsync(manifestUrl, HttpCompletionOption.ResponseHeadersRead);
+        using var manifestResponse = await UpdateHttp.GetAsync(manifestUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         manifestResponse.EnsureSuccessStatusCode();
-        await using var manifestStream = await manifestResponse.Content.ReadAsStreamAsync();
-        using var manifestDocument = await JsonDocument.ParseAsync(manifestStream);
+        await using var manifestStream = await manifestResponse.Content.ReadAsStreamAsync(cancellationToken);
+        using var manifestDocument = await JsonDocument.ParseAsync(manifestStream, cancellationToken: cancellationToken);
         var manifest = manifestDocument.RootElement;
         string manifestProduct = GetJsonString(manifest, "product");
         string manifestVersion = GetJsonString(manifest, "version").TrimStart('v', 'V');
@@ -1966,7 +2060,7 @@ export DOCKER_CONFIG="$safe_config"
         return new ControlCenterRelease(tag, name, body, htmlUrl, version.ToString(), assetUrl, ControlCenterExeName, sha256, size, published);
     }
 
-    private async Task DownloadAndApplyControlCenterUpdateAsync(ControlCenterRelease release)
+    private async Task DownloadAndApplyControlCenterUpdateAsync(ControlCenterRelease release, Action<int, string, string?>? progress = null, bool automatic = false)
     {
         string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "updates");
         Directory.CreateDirectory(appData);
@@ -1988,6 +2082,7 @@ export DOCKER_CONFIG="$safe_config"
         }
         string updater = ExtractResource(UpdaterResource, "ControlCenterUpdater.ps1");
         FooterStatus.Text = $"v{release.Version} indiriliyor...";
+        progress?.Invoke(54, "Yeni sürüm indiriliyor", $"v{release.Version} · {FormatBytes(release.AssetSize)}");
         AppendLog($"Control Center v{release.Version} indiriliyor ({FormatBytes(release.AssetSize)}).", "INFO", "APP");
 
         using (var response = await UpdateHttp.GetAsync(release.AssetUrl, HttpCompletionOption.ResponseHeadersRead))
@@ -2000,17 +2095,25 @@ export DOCKER_CONFIG="$safe_config"
             await using var output = new FileStream(downloaded, FileMode.Create, FileAccess.Write, FileShare.None, 128 * 1024, useAsync: true);
             var buffer = new byte[128 * 1024];
             long total = 0;
+            DateTime lastProgressUpdate = DateTime.MinValue;
             int read;
             while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
             {
                 total += read;
                 if (total > 500L * 1024 * 1024 || total > release.AssetSize) throw new InvalidDataException("İndirilen dosya beklenenden büyük.");
                 await output.WriteAsync(buffer.AsMemory(0, read));
+                if (progress is not null && (DateTime.UtcNow - lastProgressUpdate).TotalMilliseconds >= 120)
+                {
+                    int downloadPercent = 54 + (int)Math.Round(34d * total / release.AssetSize);
+                    progress(downloadPercent, "Yeni sürüm indiriliyor", $"{FormatBytes(total)} / {FormatBytes(release.AssetSize)}");
+                    lastProgressUpdate = DateTime.UtcNow;
+                }
             }
             await output.FlushAsync();
             if (total != release.AssetSize) throw new InvalidDataException($"İndirilen dosya boyutu uyuşmuyor. Beklenen: {release.AssetSize}; alınan: {total}.");
         }
 
+        progress?.Invoke(91, "İndirme tamamlandı", "Dosyanın bütünlüğü SHA-256 ile doğrulanıyor.");
         string actualHash;
         await using (var file = File.OpenRead(downloaded))
         {
@@ -2022,9 +2125,13 @@ export DOCKER_CONFIG="$safe_config"
 
         AppendLog($"Control Center v{release.Version} indirildi ve SHA-256 doğrulandı: {actualHash}.", "OK", "APP");
         FooterStatus.Text = "Güncelleme doğrulandı; uygulama yeniden başlatılacak.";
-        MessageBox.Show(this,
-            $"Yeni sürüm indirildi ve SHA-256 doğrulaması başarılı.\n\nUygulama kapatılıp güncellenecek, ardından otomatik yeniden açılacak.\n\nv{ControlCenterCurrentVersion} → v{release.Version}",
-            "Güncelleme hazır", MessageBoxButton.OK, MessageBoxImage.Information);
+        progress?.Invoke(96, "Güncelleme doğrulandı", "Yeni uygulama güvenli biçimde devreye alınacak.");
+        if (!automatic)
+        {
+            MessageBox.Show(this,
+                $"Yeni sürüm indirildi ve SHA-256 doğrulaması başarılı.\n\nUygulama kapatılıp güncellenecek, ardından otomatik yeniden açılacak.\n\nv{ControlCenterCurrentVersion} → v{release.Version}",
+                "Güncelleme hazır", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
 
         int parentPid = Environment.ProcessId;
         var psi = new ProcessStartInfo
@@ -2050,6 +2157,7 @@ export DOCKER_CONFIG="$safe_config"
         psi.ArgumentList.Add("-BackupExe");
         psi.ArgumentList.Add(targetExe + ".previous");
         _ = Process.Start(psi) ?? throw new InvalidOperationException("Güncelleme yardımcı süreci başlatılamadı.");
+        progress?.Invoke(99, "Uygulama güncelleniyor", "Güncelleme yardımcısı başlatıldı. Yeni sürüm doğrulandıktan sonra açılacak.");
         AppendLog("Güncelleme yardımcısı başlatıldı; Control Center kapatılıyor.", "OK", "APP");
         _diskLogTimer?.Change(Timeout.Infinite, Timeout.Infinite);
         FlushPendingDiskLogs();
@@ -2062,7 +2170,7 @@ export DOCKER_CONFIG="$safe_config"
         {
             Timeout = TimeSpan.FromMinutes(15)
         };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("TRPOLARIS-Control-Center/1.6.6");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TRPOLARIS-Control-Center/1.7.1");
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return client;
     }
@@ -2099,7 +2207,7 @@ export DOCKER_CONFIG="$safe_config"
             await RefreshStatusAsync(true);
             CompleteOperationProgress(true, "GitHub, Python/WASI, React, Rust, WASM ve Docker güncellemesi tamamlandı");
             AppendLog("GitHub main indirildi; Python/WASI bağımlılıkları ve WASM modülü yenilendi; Docker içinde npm ci + Rust Cargo derlemesi yapıldı. Yeni container healthy oldu. Oyun ve /state volume'leri korundu; geri dönüş image etiketi oluşturuldu.", "OK", "WSL");
-            ShowPage("Server");
+            ShowPage("Update");
         }
         catch (Exception ex) { CompleteOperationProgress(false, "Güncelleme başarısız; mevcut veriler korundu", GetOperationFailureCode(ex)); AppendLog("NFSU2 güncellemesi başarısız: " + ex.Message, "HATA", "WSL"); MessageBox.Show(this, ex.Message, "Güncelleme hatası", MessageBoxButton.OK, MessageBoxImage.Error); }
         finally { _operationBusy = false; }
@@ -2114,9 +2222,9 @@ export DOCKER_CONFIG="$safe_config"
         warning.Child = new TextBlock { Text = "Güvenlik: Public profil, internete geçici HTTPS adresi açar. Gizli oyun verilerini paylaşma; kalıcı üretim için erişim kontrolü ve kendi alan adına sahip bir proxy tercih et.", Foreground = BrushHex("#FFD7D7"), TextWrapping = TextWrapping.Wrap, FontSize = 11 };
         AddCardChild(card, warning);
         var grid = new Grid(); grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) }); grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        AddGridRow(grid, 0, "Sunucu HTTP portu", out var portCell); var port = new TextBox { Text = "9093", Width = 130, HorizontalAlignment = HorizontalAlignment.Left }; port.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox"); portCell.Children.Add(port);
-        AddGridRow(grid, 1, "LAN IPv4 adresi", out var ipCell); _lanIpBox = new TextBox { Text = GetPrimaryLanIPv4(), Width = 220, HorizontalAlignment = HorizontalAlignment.Left }; _lanIpBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox"); ipCell.Children.Add(_lanIpBox);
-        AddGridRow(grid, 2, "LAN HTTPS portu", out var lanPortCell); _lanPortBox = new TextBox { Text = FindAvailableLanPort().ToString(), Width = 130, HorizontalAlignment = HorizontalAlignment.Left }; _lanPortBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox"); lanPortCell.Children.Add(_lanPortBox);
+        AddGridRow(grid, 0, "Sunucu HTTP portu", out var portCell, "Bu bilgisayardaki yerel HTTP erişim portu."); var port = new TextBox { Text = "9093", Width = 130, HorizontalAlignment = HorizontalAlignment.Left }; port.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox"); portCell.Children.Add(port);
+        AddGridRow(grid, 1, "LAN IPv4 adresi", out var ipCell, "Aynı yerel ağdaki cihazların bağlanacağı bu bilgisayarın IPv4 adresi."); _lanIpBox = new TextBox { Text = GetPrimaryLanIPv4(), Width = 220, HorizontalAlignment = HorizontalAlignment.Left }; _lanIpBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox"); ipCell.Children.Add(_lanIpBox);
+        AddGridRow(grid, 2, "LAN HTTPS portu", out var lanPortCell, "Yerel ağ HTTPS bağlantısı için ayrılan port. Güvenlik duvarı izni gerekebilir."); _lanPortBox = new TextBox { Text = FindAvailableLanPort().ToString(), Width = 130, HorizontalAlignment = HorizontalAlignment.Left }; _lanPortBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox"); lanPortCell.Children.Add(_lanPortBox);
         AddCardChild(card, grid);
         var profiles = new UniformGrid { Columns = 3, Margin = new Thickness(0, 16, 0, 14) };
         profiles.Children.Add(ProfileCard("LOCAL", "Bu bilgisayardan erişim", "http://localhost:PORT/", "local"));
@@ -2169,21 +2277,67 @@ export DOCKER_CONFIG="$safe_config"
 
     private UIElement BuildUninstallPage()
     {
-        var root = NewStack(16); root.Children.Add(Heading("Kaldırma merkezi", "Yalnızca NFSU2'ye ait kaynaklar hedeflenir. Docker Desktop, Ubuntu/WSL ve başka projeler varsayılan olarak korunur."));
-        var card = MakeCard("KALDIRILACAK KAYNAKLAR", "Kayıt hacmi oyun kayıtlarını barındırabilir. Hacmi silmeden önce ayrıca onay isteyeceğiz.");
-        var removeContainers = new CheckBox { Content = "NFSU2 konteynerlerini durdur ve kaldır", IsChecked = true }; removeContainers.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        var removeImages = new CheckBox { Content = "NFSU2 sunucu imajlarını kaldır", IsChecked = true }; removeImages.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        var removeTunnel = new CheckBox { Content = "NFSU2 Local / Public tünel süreçlerini kapat ve erişim kaydını temizle", IsChecked = true }; removeTunnel.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        var removeVolume = new CheckBox { Content = "NFSU2 kayıt hacmini sil (oyun kayıtları kaybolur)", IsChecked = false }; removeVolume.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        var removeProject = new CheckBox { Content = "C:\\nfsu2 içindeki NFSU2 kaynak kodu, modül ve ayarları sil", IsChecked = false }; removeProject.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        var removeGame = new CheckBox { Content = "C:\\nfsu2\\game içindeki oyun dosyalarını da sil", IsChecked = false }; removeGame.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        var removeUbuntu = new CheckBox { Content = "Ubuntu WSL dağıtımını kaldır (Linux dosyaları kalıcı silinir)", IsChecked = false }; removeUbuntu.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        var removeDockerDesktop = new CheckBox { Content = "Docker Desktop uygulamasını kaldır (diğer Docker projeleri etkilenir)", IsChecked = false }; removeDockerDesktop.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
-        AddCardChild(card, removeContainers); AddCardChild(card, removeImages); AddCardChild(card, removeTunnel); AddCardChild(card, removeVolume); AddCardChild(card, removeProject); AddCardChild(card, removeGame); AddCardChild(card, removeUbuntu); AddCardChild(card, removeDockerDesktop);
-        var warning = new TextBlock { Text = "Docker Desktop ve Ubuntu kaldırma seçenekleri varsayılan olarak kapalıdır. Bunları açarsan ek bir onay daha istenir; başka Docker projeleri hedeflenmez.", Foreground = BrushHex("#F8C45C"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 12), FontSize = 11 };
-        AddCardChild(card, warning);
-        AddCardChild(card, MakeButton("Seçilen bileşenleri kaldır", "DangerButton", async (_, _) => await UninstallAsync(removeContainers.IsChecked == true, removeImages.IsChecked == true, removeTunnel.IsChecked == true, removeVolume.IsChecked == true, removeProject.IsChecked == true, removeGame.IsChecked == true, removeUbuntu.IsChecked == true, removeDockerDesktop.IsChecked == true)));
-        root.Children.Add(card); return WrapScrollable(root);
+        var root = NewStack(17);
+        root.Children.Add(Heading("Sunucuyu kaldır", "NFSU2 Web sunucu bileşenlerini Windows üzerinden kaldır. Paylaşılan WSL ve Docker altyapısı varsayılan olarak korunur."));
+
+        var card = MakeCard("NFSU2 SUNUCU BİLEŞENLERİ", "Varsayılan seçimler yalnızca bu projeye ait container, Docker imajı ve tünel işlemlerini kaldırır. Oyun kayıtları, oyun dosyaları ve diğer projeler korunur.");
+        var removeContainers = new CheckBox { Content = "NFSU2 container'ını durdur ve kaldır", IsChecked = true };
+        removeContainers.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        var removeImages = new CheckBox { Content = "NFSU2 sunucu Docker imajlarını kaldır", IsChecked = true };
+        removeImages.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        var removeTunnel = new CheckBox { Content = "NFSU2 tarafından başlatılan geçici tünel süreçlerini kapat", IsChecked = true };
+        removeTunnel.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        AddCardChild(card, removeContainers);
+        AddCardChild(card, removeImages);
+        AddCardChild(card, removeTunnel);
+
+        var advancedOptions = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 7, 0, 0) };
+        var removeVolume = new CheckBox { Content = "Kalıcı state / oyun kayıt volume'ünü sil (geri alınamaz)", IsChecked = false };
+        removeVolume.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        var removeProject = new CheckBox { Content = "C:\\nfsu2 içindeki NFSU2 kaynak kodu, modül ve ayarlarını sil", IsChecked = false };
+        removeProject.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        var removeGame = new CheckBox { Content = "C:\\nfsu2\\game içindeki oyun dosyalarını sil", IsChecked = false };
+        removeGame.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        var removeUbuntu = new CheckBox { Content = "Ubuntu WSL dağıtımını kaldır (Linux dosyaları kalıcı silinir)", IsChecked = false };
+        removeUbuntu.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        var removeDockerDesktop = new CheckBox { Content = "Docker Desktop uygulamasını kaldır (diğer projeleri de etkiler)", IsChecked = false };
+        removeDockerDesktop.SetResourceReference(FrameworkElement.StyleProperty, "DarkCheckBox");
+        foreach (var option in new[] { removeVolume, removeProject, removeGame, removeUbuntu, removeDockerDesktop })
+            advancedOptions.Children.Add(option);
+
+        var advanced = new Expander
+        {
+            Header = "Gelişmiş kaldırma seçenekleri  ·  dikkatli kullan",
+            IsExpanded = false,
+            Foreground = BrushHex("#FFCA78"),
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 11,
+            Margin = new Thickness(0, 12, 0, 0),
+            Content = advancedOptions
+        };
+        AddCardChild(card, advanced);
+        AddCardChild(card, new TextBlock
+        {
+            Text = "Ubuntu WSL ve Docker Desktop kaldırma seçenekleri özellikle varsayılan olarak kapalıdır. Bunlar NFSU2 dışındaki geliştirme ortamlarını ve Docker projelerini etkileyebilir.",
+            Foreground = BrushHex("#FFCA78"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 9, 0, 6), FontSize = 10
+        });
+
+        var removeButton = MakeButton("Seçilen NFSU2 bileşenlerini kaldır", "DangerButton", async (_, _) =>
+            await UninstallAsync(removeContainers.IsChecked == true, removeImages.IsChecked == true,
+                removeTunnel.IsChecked == true, removeVolume.IsChecked == true, removeProject.IsChecked == true,
+                removeGame.IsChecked == true, removeUbuntu.IsChecked == true, removeDockerDesktop.IsChecked == true));
+        removeButton.Margin = new Thickness(0, 9, 0, 0);
+        AddCardChild(card, removeButton);
+        root.Children.Add(card);
+
+        var note = MakeCard("KALICI VERİ GÜVENLİĞİ", "Bir bileşeni kaldırmak, onunla ilişkili bütün verilerin silinmesi anlamına gelmez.");
+        AddCardChild(note, new TextBlock
+        {
+            Text = "Kalıcı state ve oyun verisi volume'leri yalnızca gelişmiş seçeneklerden ayrıca işaretlenirse silinir. Docker Desktop ve Ubuntu WSL de diğer projeler tarafından kullanılıyorsa kurulu bırakılmalıdır.",
+            FontSize = 11, Foreground = BrushHex("#B8CBDD"), TextWrapping = TextWrapping.Wrap
+        });
+        root.Children.Add(note);
+        return WrapScrollable(root);
     }
 
     private UIElement BuildLogsPage()
@@ -2579,32 +2733,59 @@ export DOCKER_CONFIG="$safe_config"
         _ => true
     };
 
-    private void AddGridRow(Grid grid, int rowIndex, string label, out StackPanel cell)
+    private void AddGridRow(Grid grid, int rowIndex, string label, out StackPanel cell, string? help = null)
     {
         while (grid.RowDefinitions.Count <= rowIndex) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var labelBlock = MutedLabel(label); labelBlock.Margin = new Thickness(0, 7, 16, 7); labelBlock.VerticalAlignment = VerticalAlignment.Top;
-        Grid.SetRow(labelBlock, rowIndex); Grid.SetColumn(labelBlock, 0); grid.Children.Add(labelBlock);
+        var labelRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 7, 12, 7) };
+        var labelBlock = MutedLabel(label); labelBlock.VerticalAlignment = VerticalAlignment.Center;
+        labelRow.Children.Add(labelBlock);
+        if (!string.IsNullOrWhiteSpace(help))
+        {
+            var helpBadge = new Border
+            {
+                Width = 17, Height = 17, CornerRadius = new CornerRadius(9),
+                Background = BrushHex("#18364A"), BorderBrush = BrushHex("#39758A"), BorderThickness = new Thickness(1),
+                Margin = new Thickness(7, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                Cursor = System.Windows.Input.Cursors.Help,
+                Child = new TextBlock { Text = "?", FontSize = 10, FontWeight = FontWeights.Bold, Foreground = BrushHex("#8CEDE2"),
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Center }
+            };
+            var tip = new ToolTip
+            {
+                Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, MaxWidth = 360, FontSize = 11, Foreground = BrushHex("#EAF4FF") },
+                Background = BrushHex("#102237"), BorderBrush = BrushHex("#3B7189"), BorderThickness = new Thickness(1),
+                Padding = new Thickness(11), Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse
+            };
+            helpBadge.ToolTip = tip;
+            ToolTipService.SetInitialShowDelay(helpBadge, 250);
+            ToolTipService.SetShowDuration(helpBadge, 30000);
+            labelRow.Children.Add(helpBadge);
+        }
+        Grid.SetRow(labelRow, rowIndex); Grid.SetColumn(labelRow, 0); grid.Children.Add(labelRow);
         cell = NewStack(4); cell.Margin = new Thickness(0, 3, 0, 8); Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, 1); grid.Children.Add(cell);
     }
 
     private void AddCardHover(Border card, string normalBackground, string hoverBackground)
     {
-        // Local brushes keep hover effects independent from shared XAML styles.
-        var normalBrush = BrushHex(normalBackground);
-        var hoverBrush = BrushHex(hoverBackground);
-        var originalBorderBrush = card.BorderBrush;
-        var hoverBorderBrush = BrushHex("#42C9C0");
-        card.Background = normalBrush;
-        card.Cursor = System.Windows.Input.Cursors.Hand;
+        var normalColor = (Color)ColorConverter.ConvertFromString(normalBackground);
+        var hoverColor = (Color)ColorConverter.ConvertFromString(hoverBackground);
+        var normalBorder = card.BorderBrush is SolidColorBrush sb ? sb.Color : (Color)ColorConverter.ConvertFromString("#29465E");
+        var hoverBorder = (Color)ColorConverter.ConvertFromString("#3D8292");
+        card.Background = new SolidColorBrush(normalColor);
+        card.BorderBrush = new SolidColorBrush(normalBorder);
         card.MouseEnter += (_, _) =>
         {
-            card.Background = hoverBrush;
-            card.BorderBrush = hoverBorderBrush;
+            if (card.Background is SolidColorBrush background)
+                background.BeginAnimation(SolidColorBrush.ColorProperty, new System.Windows.Media.Animation.ColorAnimation(hoverColor, TimeSpan.FromMilliseconds(180)));
+            if (card.BorderBrush is SolidColorBrush border)
+                border.BeginAnimation(SolidColorBrush.ColorProperty, new System.Windows.Media.Animation.ColorAnimation(hoverBorder, TimeSpan.FromMilliseconds(180)));
         };
         card.MouseLeave += (_, _) =>
         {
-            card.Background = normalBrush;
-            card.BorderBrush = originalBorderBrush;
+            if (card.Background is SolidColorBrush background)
+                background.BeginAnimation(SolidColorBrush.ColorProperty, new System.Windows.Media.Animation.ColorAnimation(normalColor, TimeSpan.FromMilliseconds(210)));
+            if (card.BorderBrush is SolidColorBrush border)
+                border.BeginAnimation(SolidColorBrush.ColorProperty, new System.Windows.Media.Animation.ColorAnimation(normalBorder, TimeSpan.FromMilliseconds(210)));
         };
     }
 
@@ -2650,24 +2831,24 @@ export DOCKER_CONFIG="$safe_config"
 
     private StackPanel Heading(string title, string subtitle)
     {
-        var s = NewStack(5); s.Children.Add(new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextBrush") });
-        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 11, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap }); return s;
+        var s = NewStack(6); s.Children.Add(new TextBlock { Text = title, FontSize = 25, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextBrush") });
+        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 12, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 920 }); return s;
     }
 
-    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap };
+    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#70CFC8"), TextWrapping = TextWrapping.Wrap };
 
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
-        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 34 };
+        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 40, Padding = new Thickness(15, 9, 15, 9) };
         b.SetResourceReference(FrameworkElement.StyleProperty, style); b.Click += handler; return b;
     }
 
     private Border QuickAction(string title, string description, string buttonText, Action action)
     {
         var border = new Border { Background = BrushHex("#141F2A"), BorderBrush = BrushHex("#2B3A47"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(11), Margin = new Thickness(0, 0, 8, 0) };
-        var s = NewStack(8); s.Children.Add(new TextBlock { Text = title, FontSize = 12, FontWeight = FontWeights.SemiBold });
-        s.Children.Add(new TextBlock { Text = description, FontSize = 10, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MinHeight = 40 });
-        s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action())); border.Child = s; AddCardHover(border, "#141F2A", "#1B2B36"); return border;
+        var s = NewStack(8); s.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#EAF3FD") });
+        s.Children.Add(new TextBlock { Text = description, FontSize = 10.5, Foreground = BrushHex("#9CB1C6"), TextWrapping = TextWrapping.Wrap, MinHeight = 48 });
+        s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action())); border.Child = s; AddCardHover(border, "#122438", "#19334A"); return border;
     }
 
     private UIElement WrapScrollable(UIElement element) => new ScrollViewer { Content = element, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
@@ -3294,7 +3475,7 @@ export DOCKER_CONFIG="$safe_config"
                 try
                 {
                 using var request = new HttpRequestMessage(HttpMethod.Get, GameArchiveDownloadUrl);
-                request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.6.6");
+                request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.7.1");
                 request.Headers.AcceptEncoding.Clear();
                 request.Headers.AcceptEncoding.ParseAdd("identity");
                 if (offset > 0)

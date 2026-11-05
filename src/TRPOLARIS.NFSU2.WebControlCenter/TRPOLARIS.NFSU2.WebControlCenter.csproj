@@ -9,7 +9,7 @@
     <ApplicationIcon>Assets\TRPOLARIS-NFSU2.ico</ApplicationIcon>
     <AssemblyName>TRPOLARIS.NFSU2.WebControlCenter</AssemblyName>
     <RootNamespace>TRPOLARIS.NFSU2.WebControlCenter</RootNamespace>
-    <Version>1.6.6</Version>
+    <Version>1.7.1</Version>
     <Product>TRPOLARIS NFSU2 Web Server Control Center</Product>
     <Authors>TRPOLARIS</Authors>
     <Description>Native WPF control center for the browser-playable Need for Speed Underground 2 web server.</Description>

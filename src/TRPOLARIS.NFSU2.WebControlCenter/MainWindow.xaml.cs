@@ -36,7 +36,7 @@ public partial class MainWindow : Window
     private const string UpdaterResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.ControlCenterUpdater.ps1";
     private const string ControlCenterCurrentVersion = "1.7.1";
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest";
-    private const string GameArchiveDownloadUrl = "https://download946.mediafire.com/fe7ib77eqhxgTG6mSV85tsKnmdib9EBhv_kOYHPn3CfUrE8DtulmcE2m8MqLLeUToqjNU4yACOkvJLo65YTFY1hgXq9jC2OmUZ-uL1dopna79G7_eXtZC9_rLqPwHQEPKN5UsC_PgDSQXKTHO-ucx617PXk-GQatGjv8H4APkKo/a6eug3g6v1duw8f/Need+For+Speed+Underground+2.zip";
+    private const string GameArchiveDownloadUrl = "https://download938.mediafire.com/mx7g8vs33jeg0V_t4F5UZJPrgX8ctsn7N2xSFzUFj_hdmmIvChJLispk-Zwh863xQe4redTD5RQMrrMyVEdBK0R7SATfcze5DSfEdXXAmzmbI24bEaFQQ2f7b8eRAv1UQjXRqxgM89xfa5RciNGEqiW3_aoMaEoNohzq4wYRf_M/rlvg6fi4lxlla97/Need+For+Speed+Underground+2.zip";
     private const long MaxGameArchiveDownloadBytes = 20L * 1024 * 1024 * 1024;
     private const long SupportedGameExeSize = 4_800_512;
     private const string SupportedGameExeSha256 = "f9dd86c054878ce6276beb07c1fd61874f7a1e4bf1f241b084c65b73e24168a7";
@@ -698,11 +698,14 @@ public partial class MainWindow : Window
         _gameDirBox.LostFocus += (_, _) => RefreshGameFolderValidation();
         gamePanel.Children.Add(_gameDirBox);
         var gameActions = new WrapPanel();
-        _gameDownloadStartButton = MakeButton("Oyunu sunucudan indir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
-        _gameDownloadStartButton.ToolTip = GameArchiveDownloadUrl;
+        _gameDownloadStartButton = MakeButton("İndir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
+        _gameDownloadStartButton.ToolTip = "ZIP arşivini Control Center üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
         gameActions.Children.Add(_gameDownloadStartButton);
         gameActions.Children.Add(MakeButton("Bilgisayardaki ZIP arşivini içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
         gameActions.Children.Add(MakeButton("Klasörü doğrula", "SecondaryButton", VerifyGameFolder_Click, new Thickness(8, 0, 0, 0)));
+        var browserDownloadButton = MakeButton("Oyunu indir", "ModernButton", OpenGameArchiveInBrowser_Click, new Thickness(8, 0, 0, 0));
+        browserDownloadButton.ToolTip = "NFS Underground 2 ZIP arşivini MediaFire üzerinden varsayılan tarayıcıda indir.";
+        gameActions.Children.Add(browserDownloadButton);
         gamePanel.Children.Add(gameActions);
         _gameValidationStatus = new TextBlock { Text = "Oyun klasörü henüz doğrulanmadı.", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap };
         gamePanel.Children.Add(_gameValidationStatus);
@@ -722,21 +725,7 @@ public partial class MainWindow : Window
         downloadControlRow.Children.Add(_gameDownloadCancelButton);
         gamePanel.Children.Add(downloadControlRow);
         SetGameDownloadControls(active: _gameArchiveBusy, paused: _gameDownloadPaused);
-        gamePanel.Children.Add(new TextBlock { Text = "MediaFire indirme kaynağı:", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap, MaxWidth = 680 });
-        var sourceLinkText = new TextBlock { FontSize = 10, Margin = new Thickness(0, -6, 0, 0) };
-        var sourceLink = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("NFS Underground 2 ZIP dosyasını tarayıcıda indir"))
-        {
-            NavigateUri = new Uri(GameArchiveDownloadUrl),
-            Foreground = BrushHex("#86C8FF")
-        };
-        sourceLink.RequestNavigate += (_, args) =>
-        {
-            try { Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) { UseShellExecute = true }); }
-            catch (Exception ex) { AppendLog("MediaFire bağlantısı açılamadı: " + ex.Message, "HATA"); }
-            args.Handled = true;
-        };
-        sourceLinkText.Inlines.Add(sourceLink);
-        gamePanel.Children.Add(sourceLinkText);
+
         gameCell.Children.Add(gamePanel);
         AddGridRow(grid, 2, "Kurulum kapsamı", out var scopeCell,
             "Windows WSL 2 ve Ubuntu, Docker Desktop WSL entegrasyonu, GitHub main kaynakları, Python, Node.js 24, Rust stable, WASI SDK, React bağımlılıkları, Rust Cargo bağımlılıkları, WASM üretimi ve Docker image derlemesi.");
@@ -3373,6 +3362,22 @@ export DOCKER_CONFIG="$safe_config"
             return;
         }
         await ImportGameArchiveAsync();
+    }
+
+    private void OpenGameArchiveInBrowser_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(GameArchiveDownloadUrl) { UseShellExecute = true });
+            AppendLog("NFS Underground 2 ZIP arşivi varsayılan tarayıcıda açıldı: " + GameArchiveDownloadUrl, "OK", "APP");
+        }
+        catch (Exception ex)
+        {
+            AppendLog("NFS Underground 2 tarayıcı indirme bağlantısı açılamadı: " + ex.Message, "HATA", "APP");
+            MessageBox.Show(this,
+                "Varsayılan tarayıcı açılamadı. Aşağıdaki MediaFire adresini elle açabilirsin:\n\n" + GameArchiveDownloadUrl + "\n\n" + ex.Message,
+                "Oyunu indir", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private async void DownloadGameArchive_Click(object sender, RoutedEventArgs e)

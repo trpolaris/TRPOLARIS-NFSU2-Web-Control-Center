@@ -50,56 +50,6 @@ Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar 
   <img src="docs/screenshots/control-center-tour.gif" alt="TRPOLARIS Control Center v1.7.1 arayüz ekran turu" width="900">
 </p>
 
-<table>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/00-startup-splash.png"><img src="docs/screenshots/00-startup-splash.png" alt="Başlangıç ve güncelleme kontrolü" width="100%"></a>
-      <b>🚀 Başlangıç ekranı</b><br>
-      <sub>Uygulama açılışı, GitHub sürüm kontrolü ve yüzde ilerlemesi.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/01-dashboard.png"><img src="docs/screenshots/01-dashboard.png" alt="Altyapı kontrol merkezi genel bakış" width="100%"></a>
-      <b>📊 Genel bakış</b><br>
-      <sub>WSL, Ubuntu, Docker ve NFSU2 servis durumunu tek ekranda izleme.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/02-server-setup.png"><img src="docs/screenshots/02-server-setup.png" alt="NFSU2 Web sunucu kurulumu" width="100%"></a>
-      <b>📥 Sunucu kurulumu</b><br>
-      <sub>Oyun arşivini indirme veya içe aktarma, doğrulama ve kurulum akışı.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/03-infrastructure-update.png"><img src="docs/screenshots/03-infrastructure-update.png" alt="GitHub ve altyapı güncellemesi" width="100%"></a>
-      <b>🔄 Altyapı güncelleme</b><br>
-      <sub>Kaynak kodu, araç zinciri, WASM, React, Rust ve Docker imajını yenileme.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/04-file-manager.png"><img src="docs/screenshots/04-file-manager.png" alt="WSL proje dosya yöneticisi" width="100%"></a>
-      <b>🗂️ Dosya yöneticisi</b><br>
-      <sub>WSL proje klasöründe gezinme ve kaynak dosyalarıyla çalışma.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/05-access-sharing.png"><img src="docs/screenshots/05-access-sharing.png" alt="Erişim profilleri ve paylaşım" width="100%"></a>
-      <b>🌐 Erişim ve paylaşım</b><br>
-      <sub>Local, yerel ağ üzerinden HTTPS ve geçici tünel profilleri.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/06-uninstall-center.png"><img src="docs/screenshots/06-uninstall-center.png" alt="Kontrollü sunucu kaldırma merkezi" width="100%"></a>
-      <b>🧹 Kaldırma merkezi</b><br>
-      <sub>Sunucu bileşenlerini seçerek kaldırma ve kalıcı verileri koruma seçenekleri.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="docs/screenshots/07-operation-logs.png"><img src="docs/screenshots/07-operation-logs.png" alt="Canlı işlem günlükleri" width="100%"></a>
-      <b>📋 İşlem günlükleri</b><br>
-      <sub>Canlı komut çıktıları, işlem aşamaları, ilerleme ve hata kayıtları.</sub>
-    </td>
-  </tr>
-</table>
 
 ## ⚙️ Nasıl çalışır?
 

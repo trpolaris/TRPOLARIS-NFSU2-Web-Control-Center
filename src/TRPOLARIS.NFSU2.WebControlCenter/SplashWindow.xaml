@@ -5,7 +5,7 @@
         Width="620" Height="390" ResizeMode="NoResize" WindowStyle="None"
         AllowsTransparency="True" Background="Transparent" ShowInTaskbar="False"
         WindowStartupLocation="CenterScreen" Topmost="True">
-    <Grid>
+    <Grid Background="Transparent" MouseLeftButtonDown="SplashSurface_MouseLeftButtonDown">
         <Border CornerRadius="22" Background="#081523" BorderBrush="#2A5269" BorderThickness="1"
                 Padding="30" ClipToBounds="True">
             <Border.Effect>

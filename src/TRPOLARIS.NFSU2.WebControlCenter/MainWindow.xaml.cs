@@ -3252,7 +3252,7 @@ export DOCKER_CONFIG="$safe_config"
 
         // Keep text contrast explicit even when theme resources or local styles change.
         if (style.Equals("ModernButton", StringComparison.OrdinalIgnoreCase))
-            b.Foreground = BrushHex("#05272D");
+            b.Foreground = BrushHex("#F7FFFF");
         else if (style.Equals("SecondaryButton", StringComparison.OrdinalIgnoreCase))
             b.Foreground = BrushHex("#D4E1EC");
         else if (style.Equals("DangerButton", StringComparison.OrdinalIgnoreCase))

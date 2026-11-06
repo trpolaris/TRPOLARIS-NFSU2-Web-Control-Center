@@ -9,6 +9,12 @@ public partial class SplashWindow : Window
         InitializeComponent();
     }
 
+    private void SplashSurface_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+            DragMove();
+    }
+
     public void ReportProgress(int percent, string status, string? detail = null)
     {
         void Apply()

@@ -136,7 +136,6 @@ public partial class MainWindow : Window
     private CheckBox? _autoApplyProjectChangesCheckBox;
     private bool _autoApplyProjectChanges = true;
     private string _projectCurrentRelativePath = string.Empty;
-    private string? _projectUncRoot;
     private string? _projectWatcherRoot;
     private FileSystemWatcher? _projectWatcher;
     private DispatcherTimer? _projectChangeDebounceTimer;
@@ -939,23 +938,7 @@ public partial class MainWindow : Window
         return string.Join("/", parts);
     }
 
-    private static string GetProjectUncRoot(WslProjectLocation location, bool legacy = false)
-    {
-        string share = legacy ? @"\\wsl$\" : @"\\wsl.localhost\";
-        return share + location.Distro + location.ProjectDirectory.Replace('/', '\\');
-    }
-
-    private string GetProjectUncPath(string relative)
-    {
-        if (string.IsNullOrWhiteSpace(_projectUncRoot)) throw new InvalidOperationException("GitHub proje klasörü henüz eşlenmedi.");
-        relative = NormalizeProjectRelativePath(relative);
-        string path = string.IsNullOrEmpty(relative) ? _projectUncRoot : Path.Combine(_projectUncRoot, relative.Replace('/', Path.DirectorySeparatorChar));
-        string root = Path.GetFullPath(_projectUncRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        string full = Path.GetFullPath(path);
-        if (!full.Equals(root, StringComparison.OrdinalIgnoreCase) && !full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Dosya yolu GitHub proje klasörünün dışına çıkamaz.");
-        return full;
-    }
+    private static string QuoteBashArgument(string value) => "'" + value.Replace("'", "'\''", StringComparison.Ordinal) + "'";
 
     private async Task RefreshProjectDirectoryAsync(string? relativePath)
     {
@@ -963,53 +946,54 @@ public partial class MainWindow : Window
         try
         {
             var location = await ResolveWslProjectAsync(true);
-            string root = GetProjectUncRoot(location);
-            if (!Directory.Exists(root)) root = GetProjectUncRoot(location, true);
-            if (!Directory.Exists(root))
-                throw new DirectoryNotFoundException("WSL Git deposu bulundu ancak Windows dosya erişimi açılamadı. VS Code için Remote - WSL uzantısını kullan veya WSL UNC yolunu kontrol et: " + GetProjectUncRoot(location));
-            if (!string.Equals(_projectUncRoot, root, StringComparison.OrdinalIgnoreCase))
-            {
-                _projectSnapshotInitialized = false;
-                _projectSnapshot.Clear();
-            }
-            _projectUncRoot = root;
-            EnsureProjectWatcher(root);
-            await PollProjectSnapshotAsync(); // Establish the baseline before the user can open/edit listed files.
             string relative = NormalizeProjectRelativePath(relativePath);
-            string directory = GetProjectUncPath(relative);
-            if (!Directory.Exists(directory)) throw new DirectoryNotFoundException("Klasör bulunamadı: " + relative);
+            string absolute = string.IsNullOrEmpty(relative) ? location.ProjectDirectory : location.ProjectDirectory.TrimEnd('/') + "/" + relative;
+            const string script = "target=\"$1\"; [[ -d \"$target\" ]] || { echo NFSU2_FILE_MANAGER_DIRECTORY_MISSING; exit 20; }; find \"$target\" -mindepth 1 -maxdepth 1 ! -name .git ! -name .nfsu2-manager-backups -printf '%y\\t%s\\t%T@\\t%f\\n' | LC_ALL=C sort -k1,1 -k4";
+            string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(script));
+            string shell = "printf '%s' " + QuoteBashArgument(encoded) + " | base64 -d | bash -s -- " + QuoteBashArgument(absolute);
+            var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
+            var result = await RunCommandAsync(wsl,
+                new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "LC_ALL=C.UTF-8",
+                        "bash", "--noprofile", "--norc", "-c", shell },
+                TimeSpan.FromSeconds(45), RootDir, logOutput: true, logCategory: "WSL");
+            if (result.ExitCode != 0) throw new IOException("WSL dosya listeleme başarısız (kod " + result.ExitCode + "): " + TailText(result.Output, 2500));
+
             _projectCurrentRelativePath = relative;
             if (_projectPathBox is not null) _projectPathBox.Text = "/" + relative;
             _projectFileList.Items.Clear();
-            var entries = Directory.EnumerateFileSystemEntries(directory)
-                .Where(path => !Path.GetFileName(path).Equals(".git", StringComparison.OrdinalIgnoreCase))
-                .Where(path => !Path.GetFileName(path).Equals(".nfsu2-manager-backups", StringComparison.OrdinalIgnoreCase))
-                .Select(path =>
-                {
-                    var attributes = File.GetAttributes(path);
-                    bool isDirectory = attributes.HasFlag(FileAttributes.Directory);
-                    long length = 0;
-                    DateTime modified = DateTime.MinValue;
-                    try { if (!isDirectory) length = new FileInfo(path).Length; modified = isDirectory ? Directory.GetLastWriteTimeUtc(path) : File.GetLastWriteTimeUtc(path); } catch { }
-                    string name = Path.GetFileName(path);
-                    string rel = string.IsNullOrEmpty(relative) ? name : relative + "/" + name;
-                    return new ProjectFileEntry(name, rel, isDirectory, length, modified);
-                })
-                .OrderByDescending(x => x.IsDirectory)
-                .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-            foreach (var entry in entries) _projectFileList.Items.Add(entry);
+            foreach (string row in result.Output.Replace("\0", "", StringComparison.Ordinal).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (row == "NFSU2_FILE_MANAGER_DIRECTORY_MISSING") throw new DirectoryNotFoundException("WSL proje klasörü bulunamadı: " + absolute);
+                var fields = row.Split('\t', 4);
+                if (fields.Length != 4) continue;
+                bool isDirectory = fields[0] == "d";
+                long.TryParse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long length);
+                double.TryParse(fields[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double epoch);
+                DateTime modified = DateTime.MinValue;
+                if (epoch > 0) { try { modified = DateTimeOffset.FromUnixTimeMilliseconds((long)(epoch * 1000)).UtcDateTime; } catch (ArgumentOutOfRangeException) { } }
+                string name = fields[3];
+                string rel = string.IsNullOrEmpty(relative) ? name : relative + "/" + name;
+                _projectFileList.Items.Add(new ProjectFileEntry(name, rel, isDirectory, isDirectory ? 0 : length, modified));
+            }
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = $"{location.Distro}:{absolute} · {_projectFileList.Items.Count} öğe · WSL doğrudan erişim";
+            AppendLog($"GitHub proje klasörü WSL üzerinden açıldı: /{relative} ({_projectFileList.Items.Count} öğe).", "OK", "WSL");
+            if (!_projectSnapshotTimer.IsEnabled)
+            {
+                _projectSnapshotInitialized = false;
+                _projectSnapshot.Clear();
+                _projectSnapshotTimer.Start();
+            }
+            await PollProjectSnapshotAsync();
             if (_projectFileExplorerStatus is not null)
-                _projectFileExplorerStatus.Text = $"{location.Distro}:{location.ProjectDirectory}/{relative} · {entries.Length} öğe · Dosyalar doğrudan WSL deposunda";
-            AppendLog($"GitHub proje klasörü açıldı: /{relative} ({entries.Length} öğe).", "OK", "WSL");
+                _projectFileExplorerStatus.Text += " · WSL kaynak taraması etkin";
         }
         catch (Exception ex)
         {
             if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message;
+            _projectFileList.Items.Clear();
             AppendLog("GitHub dosya yöneticisi klasörü açamadı: " + ex.Message, "HATA", "WSL");
         }
     }
-
     private async Task NavigateProjectParentAsync()
     {
         var parts = NormalizeProjectRelativePath(_projectCurrentRelativePath).Split('/', StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -1034,27 +1018,36 @@ public partial class MainWindow : Window
         try
         {
             var location = await ResolveWslProjectAsync(false);
-            string unc = GetProjectUncPath(entry.RelativePath);
-            if (!File.Exists(unc)) throw new FileNotFoundException("Seçilen dosya artık bulunmuyor.", unc);
-            if (editor == "notepad")
+            string linuxPath = location.ProjectDirectory.TrimEnd('/') + "/" + NormalizeProjectRelativePath(entry.RelativePath);
+            if (editor.Equals("notepad", StringComparison.OrdinalIgnoreCase))
             {
-                Process.Start(new ProcessStartInfo { FileName = "notepad.exe", ArgumentList = { unc }, UseShellExecute = false });
+                var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
+                var pathResult = await RunCommandAsync(wsl,
+                    new[] { "-d", location.Distro, "--", "wslpath", "-w", linuxPath },
+                    TimeSpan.FromSeconds(15), RootDir, logOutput: false, logCategory: "WSL");
+                if (pathResult.ExitCode != 0 || string.IsNullOrWhiteSpace(pathResult.Output))
+                    throw new IOException("Dosyanın Windows yolu WSL tarafından çözümlenemedi: " + TailText(pathResult.Output, 1200));
+                string windowsPath = pathResult.Output.Trim();
+                var notepad = new ProcessStartInfo { FileName = "notepad.exe", UseShellExecute = false };
+                notepad.ArgumentList.Add(windowsPath);
+                Process.Start(notepad);
+                if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Dosya Not Defteri ile açıldı: " + entry.RelativePath;
+                AppendLog("Proje dosyası Not Defteri ile açıldı: " + entry.RelativePath, "OK", "WSL");
             }
             else
             {
-                string code = FindVsCodeExecutable() ?? throw new InvalidOperationException("VS Code bulunamadı. VS Code kurulumunu veya PATH içindeki code.exe yolunu kontrol et. Not Defteri seçeneğini de kullanabilirsin.");
+                string code = FindVsCodeExecutable() ?? throw new InvalidOperationException("VS Code bulunamadı. Remote - WSL uzantısını ve code.exe yolunu kontrol et.");
                 var psi = new ProcessStartInfo { FileName = code, UseShellExecute = false };
                 psi.ArgumentList.Add("--remote");
                 psi.ArgumentList.Add("wsl+" + location.Distro);
-                psi.ArgumentList.Add(location.ProjectDirectory + "/" + entry.RelativePath);
+                psi.ArgumentList.Add(linuxPath);
                 Process.Start(psi);
+                if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Dosya VS Code Remote - WSL ile açıldı: " + entry.RelativePath;
+                AppendLog("Proje dosyası VS Code Remote - WSL ile açıldı: " + entry.RelativePath, "OK", "WSL");
             }
-            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Düzenleme açıldı: " + entry.RelativePath + " · Kaydettiğinde otomatik izleme devreye girer.";
-            AppendLog("Proje dosyası dış editörde açıldı: " + entry.RelativePath, "OK", "WSL");
         }
         catch (Exception ex) { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message; AppendLog("Dış editör açılamadı: " + ex.Message, "HATA", "APP"); }
     }
-
     private async Task OpenProjectInVsCodeAsync()
     {
         try
@@ -1075,13 +1068,13 @@ public partial class MainWindow : Window
     {
         try
         {
-            var location = await ResolveWslProjectAsync(false);
-            string root = GetProjectUncRoot(location);
-            if (!Directory.Exists(root)) root = GetProjectUncRoot(location, true);
-            if (!Directory.Exists(root)) throw new DirectoryNotFoundException("WSL proje klasörü Windows tarafından açılamadı: " + root);
-            Process.Start(new ProcessStartInfo { FileName = "explorer.exe", ArgumentList = { root }, UseShellExecute = false });
+            var result = await RunWslProjectCommandAsync("explorer.exe .", TimeSpan.FromSeconds(20), false);
+            if (result.ExitCode != 0)
+                throw new IOException("Windows Dosya Gezgini WSL klasörünü açamadı: " + TailText(result.Output, 1200));
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Proje Windows Dosya Gezgini ile açıldı.";
+            AppendLog("WSL proje klasörü Windows Dosya Gezgini ile açıldı.", "OK", "WSL");
         }
-        catch (Exception ex) { AppendLog("Windows dosya gezgini açılamadı: " + ex.Message, "HATA", "APP"); }
+        catch (Exception ex) { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message; AppendLog("WSL proje klasörü açılamadı: " + ex.Message, "HATA", "APP"); }
     }
 
     private static string? FindVsCodeExecutable()
@@ -1104,31 +1097,67 @@ public partial class MainWindow : Window
         {
             var dialog = new OpenFileDialog { Title = "GitHub projesine yüklenecek dosyaları seç", Multiselect = true, CheckFileExists = true };
             if (dialog.ShowDialog(this) != true) return;
-            string targetDirectory = GetProjectUncPath(_projectCurrentRelativePath);
+            var location = await ResolveWslProjectAsync(false);
             foreach (string source in dialog.FileNames)
             {
-                string target = Path.Combine(targetDirectory, Path.GetFileName(source));
-                if (File.Exists(target) && MessageBox.Show(this, Path.GetFileName(source) + " zaten var. Üzerine yazılsın mı?", "Dosya yükleme", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) continue;
-                File.Copy(source, target, true);
-                AppendLog("Dosya GitHub çalışma kopyasına yüklendi: " + _projectCurrentRelativePath + "/" + Path.GetFileName(source), "OK", "APP");
+                string leaf = Path.GetFileName(source);
+                ValidateProjectLeafName(leaf);
+                string relative = string.IsNullOrEmpty(_projectCurrentRelativePath) ? leaf : _projectCurrentRelativePath + "/" + leaf;
+                string linuxTarget = location.ProjectDirectory.TrimEnd('/') + "/" + relative;
+                var exists = await RunWslProjectCommandAsync("test -e " + QuoteBashArgument(linuxTarget), TimeSpan.FromSeconds(15), false);
+                if (exists.ExitCode == 0 &&
+                    MessageBox.Show(this, leaf + " zaten var. Üzerine yazılsın mı?", "Dosya yükleme", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                    continue;
+
+                // Stage the file in the Windows-mounted drive, then copy it inside WSL.
+                string temp = Path.Combine(RootDir, "upload-" + Guid.NewGuid().ToString("N") + "-" + leaf);
+                File.Copy(source, temp, true);
+                try
+                {
+                    string linuxTemp = "/mnt/c/nfsu2/" + Path.GetFileName(temp);
+                    string command = "install -D -m 0644 " + QuoteBashArgument(linuxTemp) + " " + QuoteBashArgument(linuxTarget);
+                    var copied = await RunCommandAsync(FindWslExe()!,
+                        new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "bash", "--noprofile", "--norc", "-c", command },
+                        TimeSpan.FromMinutes(2), RootDir, logOutput: true, logCategory: "WSL");
+                    if (copied.ExitCode != 0) throw new IOException("Dosya WSL'ye aktarılamadı: " + TailText(copied.Output, 1500));
+                }
+                finally { try { File.Delete(temp); } catch { } }
+                AppendLog("Dosya WSL GitHub çalışma kopyasına yüklendi: " + relative, "OK", "WSL");
             }
             await RefreshProjectDirectoryAsync(_projectCurrentRelativePath);
         }
-        catch (Exception ex) { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message; AppendLog("Dosya yüklenemedi: " + ex.Message, "HATA", "APP"); }
+        catch (Exception ex)
+        {
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message;
+            AppendLog("Dosya yüklenemedi: " + ex.Message, "HATA", "APP");
+        }
     }
 
     private async Task DownloadSelectedProjectFileAsync()
     {
         var entry = GetSelectedProjectEntry();
         if (entry is null || entry.IsDirectory) { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "İndirmek için bir dosya seç."; return; }
+        string temp = Path.Combine(RootDir, "download-" + Guid.NewGuid().ToString("N") + "-" + entry.Name);
         try
         {
-            string source = GetProjectUncPath(entry.RelativePath);
             var dialog = new SaveFileDialog { FileName = entry.Name, Title = "Proje dosyasını bilgisayara indir", OverwritePrompt = true };
-            if (dialog.ShowDialog(this) == true) { File.Copy(source, dialog.FileName, true); if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "İndirildi: " + dialog.FileName; }
+            if (dialog.ShowDialog(this) != true) return;
+            var location = await ResolveWslProjectAsync(false);
+            string linuxPath = location.ProjectDirectory.TrimEnd('/') + "/" + NormalizeProjectRelativePath(entry.RelativePath);
+            string command = "cat -- " + QuoteBashArgument(linuxPath) + " > " + QuoteBashArgument("/mnt/c/nfsu2/" + Path.GetFileName(temp));
+            var result = await RunCommandAsync(FindWslExe()!,
+                new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "bash", "--noprofile", "--norc", "-c", command },
+                TimeSpan.FromMinutes(3), RootDir, logOutput: true, logCategory: "WSL");
+            if (result.ExitCode != 0) throw new IOException("Dosya WSL'den indirilemedi: " + TailText(result.Output, 1800));
+            File.Copy(temp, dialog.FileName, true);
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "İndirildi: " + dialog.FileName;
         }
-        catch (Exception ex) { AppendLog("Proje dosyası indirilemedi: " + ex.Message, "HATA", "APP"); }
-        await Task.CompletedTask;
+        catch (Exception ex)
+        {
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message;
+            AppendLog("Proje dosyası indirilemedi: " + ex.Message, "HATA", "WSL");
+        }
+        finally { try { File.Delete(temp); } catch { } }
     }
 
     private async Task CreateProjectFolderAsync()
@@ -1138,7 +1167,11 @@ public partial class MainWindow : Window
         try
         {
             ValidateProjectLeafName(name);
-            Directory.CreateDirectory(Path.Combine(GetProjectUncPath(_projectCurrentRelativePath), name));
+            var location = await ResolveWslProjectAsync(false);
+            string parent = string.IsNullOrEmpty(_projectCurrentRelativePath) ? "" : "/" + _projectCurrentRelativePath;
+            string target = location.ProjectDirectory.TrimEnd('/') + parent + "/" + name;
+            var created = await RunWslProjectCommandAsync("mkdir -p -- " + QuoteBashArgument(target), TimeSpan.FromSeconds(30));
+            if (created.ExitCode != 0) throw new IOException("WSL klasörü oluşturulamadı: " + TailText(created.Output, 1500));
             await RefreshProjectDirectoryAsync(_projectCurrentRelativePath);
         }
         catch (Exception ex) { AppendLog("Proje klasörü oluşturulamadı: " + ex.Message, "HATA", "APP"); }
@@ -1153,13 +1186,23 @@ public partial class MainWindow : Window
         try
         {
             ValidateProjectLeafName(name);
-            string source = GetProjectUncPath(entry.RelativePath);
-            string target = Path.Combine(Path.GetDirectoryName(source)!, name);
-            if (File.Exists(target) || Directory.Exists(target)) throw new IOException("Bu adla başka bir dosya veya klasör zaten var.");
-            if (entry.IsDirectory) Directory.Move(source, target); else File.Move(source, target);
+            var location = await ResolveWslProjectAsync(false);
+            string oldRelative = NormalizeProjectRelativePath(entry.RelativePath);
+            string parent = oldRelative.Contains('/') ? oldRelative[..oldRelative.LastIndexOf('/')] : "";
+            string newRelative = string.IsNullOrEmpty(parent) ? name : parent + "/" + name;
+            string oldPath = location.ProjectDirectory.TrimEnd('/') + "/" + oldRelative;
+            string newPath = location.ProjectDirectory.TrimEnd('/') + "/" + newRelative;
+            string renameCommand = "if [[ -e " + QuoteBashArgument(newPath) + " || -L " + QuoteBashArgument(newPath) + " ]]; then echo NFSU2_RENAME_TARGET_EXISTS; exit 21; fi; mv -- " + QuoteBashArgument(oldPath) + " " + QuoteBashArgument(newPath);
+            var result = await RunWslProjectCommandAsync(renameCommand, TimeSpan.FromSeconds(30));
+            if (result.ExitCode == 21) throw new IOException("Bu adla başka bir dosya veya klasör zaten var.");
+            if (result.ExitCode != 0) throw new IOException("WSL yeniden adlandırma başarısız: " + TailText(result.Output, 1500));
             await RefreshProjectDirectoryAsync(_projectCurrentRelativePath);
         }
-        catch (Exception ex) { AppendLog("Proje öğesi yeniden adlandırılamadı: " + ex.Message, "HATA", "APP"); }
+        catch (Exception ex)
+        {
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message;
+            AppendLog("Proje öğesi yeniden adlandırılamadı: " + ex.Message, "HATA", "WSL");
+        }
     }
 
     private async Task DeleteSelectedProjectEntryAsync()
@@ -1172,12 +1215,20 @@ public partial class MainWindow : Window
         if (answer != MessageBoxResult.Yes) return;
         try
         {
-            string path = GetProjectUncPath(entry.RelativePath);
-            if (entry.IsDirectory) Directory.Delete(path, true); else File.Delete(path);
-            AppendLog("Proje öğesi silindi: " + entry.RelativePath, "UYARI", "APP");
+            var location = await ResolveWslProjectAsync(false);
+            string relative = NormalizeProjectRelativePath(entry.RelativePath);
+            string path = location.ProjectDirectory.TrimEnd('/') + "/" + relative;
+            string operation = entry.IsDirectory ? "rm -rf -- " : "rm -f -- ";
+            var result = await RunWslProjectCommandAsync(operation + QuoteBashArgument(path), TimeSpan.FromMinutes(1));
+            if (result.ExitCode != 0) throw new IOException("WSL silme işlemi başarısız: " + TailText(result.Output, 1500));
+            AppendLog("Proje öğesi silindi: " + entry.RelativePath, "UYARI", "WSL");
             await RefreshProjectDirectoryAsync(_projectCurrentRelativePath);
         }
-        catch (Exception ex) { AppendLog("Proje öğesi silinemedi: " + ex.Message, "HATA", "APP"); }
+        catch (Exception ex)
+        {
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message;
+            AppendLog("Proje öğesi silinemedi: " + ex.Message, "HATA", "WSL");
+        }
     }
 
     private static void ValidateProjectLeafName(string name)
@@ -1378,8 +1429,8 @@ done
         try
         {
             var location = await ResolveWslProjectAsync(true);
-            string projectRoot = _projectUncRoot ?? GetProjectUncRoot(location);
-            if (!File.Exists(Path.Combine(projectRoot, "compose.local.yml")) || !File.Exists(Path.Combine(projectRoot, ".env.local")))
+            var environmentReady = await RunWslProjectCommandAsync("test -f compose.local.yml && test -f .env.local", TimeSpan.FromSeconds(20), false);
+            if (environmentReady.ExitCode != 0)
             {
                 foreach (string changed in changes) _pendingProjectChanges.Add(changed);
                 AppendLog("Dosya GitHub deposuna kaydedildi ancak kurulumun Compose ortamı henüz hazır değil. Değişiklikler kuyrukta korundu; kurulum tamamlanınca yeniden uygulanabilir.", "UYARI", "WSL");

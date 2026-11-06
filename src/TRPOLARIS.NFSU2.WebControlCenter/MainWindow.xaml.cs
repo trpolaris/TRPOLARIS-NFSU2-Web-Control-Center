@@ -139,7 +139,6 @@ public partial class MainWindow : Window
     private CheckBox? _autoApplyProjectChangesCheckBox;
     private bool _autoApplyProjectChanges = true;
     private string _projectCurrentRelativePath = string.Empty;
-    private string? _projectUncRoot;
     private string? _projectWatcherRoot;
     private FileSystemWatcher? _projectWatcher;
     private DispatcherTimer? _projectChangeDebounceTimer;

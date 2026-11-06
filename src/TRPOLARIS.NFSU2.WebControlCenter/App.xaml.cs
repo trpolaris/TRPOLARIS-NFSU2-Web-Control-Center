@@ -31,7 +31,7 @@ public partial class App : Application
             ShutdownMode = ShutdownMode.OnMainWindowClose;
             splash.Close();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             splash.ReportProgress(84, "Mevcut sürümle devam ediliyor", "Başlangıç denetimi tamamlanamadı; kurulu dosyalar korunuyor.");
             await KeepSplashVisibleAsync(splash, startupClock, minimumDuration: TimeSpan.FromMilliseconds(5600));

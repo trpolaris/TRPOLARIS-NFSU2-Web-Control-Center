@@ -126,9 +126,6 @@ public partial class MainWindow : Window
     private TextBox? _lanIpBox;
     private TextBox? _lanPortBox;
     private TextBlock? _accessStateLabel;
-    private TextBlock? _dashboardUrl;
-    private TextBlock? _dashboardLan;
-    private TextBlock? _dashboardPublic;
     private Button? _installButton;
     private TextBlock? _installState;
     private TextBlock? _serverProjectLabel;
@@ -3684,16 +3681,6 @@ export DOCKER_CONFIG="$safe_config"
             ? $"{dockerSummary} · {(s.HttpReachable ? "Sunucu çevrimiçi" : "Sunucu kontrol bekliyor")}"
             : $"{dockerSummary} · Engine bağlantısı yok";
         FooterStatus.ToolTip = dockerSummary;
-        if (_dashboardUrl is not null) _dashboardUrl.Text = s.ActiveUrl;
-        if (_dashboardLan is not null)
-        {
-            _dashboardLan.Text = s.AccessMode == "lan"
-                ? s.ActiveUrl
-                : s.AccessMode == "local"
-                    ? "LAN profili etkin değil. Diğer cihazlar için Erişim ayarları → LAN / HTTPS profilini uygula."
-                    : string.IsNullOrWhiteSpace(s.LocalIp) ? "Aktif IPv4 bulunamadı" : $"LAN profili etkin değil ({s.LocalIp}).";
-        }
-        if (_dashboardPublic is not null) _dashboardPublic.Text = s.AccessMode == "public" ? s.ActiveUrl : "Aktif değil";
         if (_accessStateLabel is not null)
             _accessStateLabel.Text = $"Aktif profil: {s.AccessMode.ToUpperInvariant()} · {(s.HttpReachable ? "Sağlık kontrolü başarılı" : "Sağlık kontrolü başarısız")} · Kontrol: {s.ProbeUrl} · Adres: {s.ActiveUrl}";
     }
@@ -3706,11 +3693,6 @@ export DOCKER_CONFIG="$safe_config"
             var color = level == "success" ? "#38D996" : level == "warning" ? "#F8C45C" : "#FF687D";
             item.State.Foreground = BrushHex(color); item.Dot.Background = BrushHex(color);
         }
-    }
-
-    private void UpdateAccessLabels()
-    {
-        if (_dashboardUrl is not null) _dashboardUrl.Text = GetActiveServerUrl();
     }
 
     private async void RefreshStatus_Click(object sender, RoutedEventArgs e) => await RefreshStatusAsync(true);

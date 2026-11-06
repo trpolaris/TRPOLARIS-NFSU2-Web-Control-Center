@@ -169,6 +169,13 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 
 ## 🆕 Sürüm notları
 
+### v1.7.2 · Arayüz, indirme ve kullanım iyileştirmeleri
+- 🎨 Güncelleme denetimi penceresi Night Circuit tasarımına taşındı; güncel sürüm bilgisi sadeleştirildi.
+- 🟢 Buton yazıları için kontrast ve metin gölgesi iyileştirildi; bilgi ipuçları koyu ve okunaklı hale getirildi.
+- 🖱️ Açılış Splash Screen penceresi fareyle taşınabilir.
+- 📥 Oyun arşivi için **Oyunu indir** tarayıcı düğmesi eklendi ve MediaFire indirme adresi yenilendi.
+- 🧹 Kullanılmayan alanlar ve derleme uyarısı oluşturan kod temizlendi.
+
 ### v1.7.1 · Arayüz ve açılış iyileştirmeleri
 - 🎯 Üst çubuk ikonları ve daha kompakt durum eylemleri.
 - 💡 Kurulum ekranında soru işaretli bilgi ipuçları ve sadeleştirilmiş yerleşim.
@@ -206,7 +213,7 @@ Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme ar
 
 <div align="center">
 
-**TRPOLARIS** · NFSU2 Web Control Center · **v1.7.1**
+**TRPOLARIS** · NFSU2 Web Control Center · **v1.7.2**
 
 *Install · Update · Maintain · Remove*
 

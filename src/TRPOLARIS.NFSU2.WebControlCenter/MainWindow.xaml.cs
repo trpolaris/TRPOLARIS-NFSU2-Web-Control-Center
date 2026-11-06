@@ -955,8 +955,6 @@ public partial class MainWindow : Window
 
     private static string QuoteBashArgument(string value) => "'" + value.Replace("'", "'\''", StringComparison.Ordinal) + "'";
 
-    private static string QuoteBashArgument(string value) => "'" + value.Replace("'", "'\''", StringComparison.Ordinal) + "'";
-
     private async Task RefreshProjectDirectoryAsync(string? relativePath)
     {
         if (_projectFileList is null) return;

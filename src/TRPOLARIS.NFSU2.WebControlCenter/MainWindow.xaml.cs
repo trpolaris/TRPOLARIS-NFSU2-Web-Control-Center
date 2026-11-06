@@ -955,6 +955,8 @@ public partial class MainWindow : Window
 
     private static string QuoteBashArgument(string value) => "'" + value.Replace("'", "'\''", StringComparison.Ordinal) + "'";
 
+    private static string QuoteBashArgument(string value) => "'" + value.Replace("'", "'\''", StringComparison.Ordinal) + "'";
+
     private async Task RefreshProjectDirectoryAsync(string? relativePath)
     {
         if (_projectFileList is null) return;
@@ -962,9 +964,7 @@ public partial class MainWindow : Window
         {
             var location = await ResolveWslProjectAsync(true);
             string relative = NormalizeProjectRelativePath(relativePath);
-            string absolute = string.IsNullOrEmpty(relative)
-                ? location.ProjectDirectory
-                : location.ProjectDirectory.TrimEnd('/') + "/" + relative;
+            string absolute = string.IsNullOrEmpty(relative) ? location.ProjectDirectory : location.ProjectDirectory.TrimEnd('/') + "/" + relative;
             const string script = "target=\"$1\"; [[ -d \"$target\" ]] || { echo NFSU2_FILE_MANAGER_DIRECTORY_MISSING; exit 20; }; find \"$target\" -mindepth 1 -maxdepth 1 ! -name .git ! -name .nfsu2-manager-backups -printf '%y\\t%s\\t%T@\\t%f\\n' | LC_ALL=C sort -k1,1r -k4";
             string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(script));
             string shell = "printf '%s' " + QuoteBashArgument(encoded) + " | base64 -d | bash -s -- " + QuoteBashArgument(absolute);
@@ -973,43 +973,35 @@ public partial class MainWindow : Window
                 new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "LC_ALL=C.UTF-8",
                         "bash", "--noprofile", "--norc", "-c", shell },
                 TimeSpan.FromSeconds(45), RootDir, logOutput: true, logCategory: "WSL");
-            if (result.ExitCode != 0)
-                throw new IOException("WSL dosya listeleme başarısız (kod " + result.ExitCode + "): " + TailText(result.Output, 2500));
+            if (result.ExitCode != 0) throw new IOException("WSL dosya listeleme başarısız (kod " + result.ExitCode + "): " + TailText(result.Output, 2500));
+
             _projectCurrentRelativePath = relative;
             if (_projectPathBox is not null) _projectPathBox.Text = "/" + relative;
             _projectFileList.Items.Clear();
-            foreach (string row in result.Output.Replace("\0", "", StringComparison.Ordinal)
-                         .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (string row in result.Output.Replace("\0", "", StringComparison.Ordinal).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                if (row == "NFSU2_FILE_MANAGER_DIRECTORY_MISSING")
-                    throw new DirectoryNotFoundException("WSL proje klasörü bulunamadı: " + absolute);
+                if (row == "NFSU2_FILE_MANAGER_DIRECTORY_MISSING") throw new DirectoryNotFoundException("WSL proje klasörü bulunamadı: " + absolute);
                 var fields = row.Split('\t', 4);
                 if (fields.Length != 4) continue;
                 bool isDirectory = fields[0] == "d";
                 long.TryParse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long length);
                 double.TryParse(fields[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double epoch);
                 DateTime modified = DateTime.MinValue;
-                if (epoch > 0)
-                {
-                    try { modified = DateTimeOffset.FromUnixTimeMilliseconds((long)(epoch * 1000)).UtcDateTime; }
-                    catch (ArgumentOutOfRangeException) { }
-                }
+                if (epoch > 0) { try { modified = DateTimeOffset.FromUnixTimeMilliseconds((long)(epoch * 1000)).UtcDateTime; } catch (ArgumentOutOfRangeException) { } }
                 string name = fields[3];
                 string rel = string.IsNullOrEmpty(relative) ? name : relative + "/" + name;
                 _projectFileList.Items.Add(new ProjectFileEntry(name, rel, isDirectory, isDirectory ? 0 : length, modified));
             }
-            if (_projectFileExplorerStatus is not null)
-                _projectFileExplorerStatus.Text = $"{location.Distro}:{absolute} · {_projectFileList.Items.Count} öğe · WSL doğrudan erişim";
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = $"{location.Distro}:{absolute} · {_projectFileList.Items.Count} öğe · WSL doğrudan erişim";
             AppendLog($"GitHub proje klasörü WSL üzerinden açıldı: /{relative} ({_projectFileList.Items.Count} öğe).", "OK", "WSL");
         }
         catch (Exception ex)
         {
             if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message;
-            if (_projectFileList is not null) _projectFileList.Items.Clear();
+            _projectFileList.Items.Clear();
             AppendLog("GitHub dosya yöneticisi klasörü açamadı: " + ex.Message, "HATA", "WSL");
         }
     }
-
     private async Task NavigateProjectParentAsync()
     {
         var parts = NormalizeProjectRelativePath(_projectCurrentRelativePath).Split('/', StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -1045,7 +1037,6 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message; AppendLog("Dış editör açılamadı: " + ex.Message, "HATA", "APP"); }
     }
-
     private async Task OpenProjectInVsCodeAsync()
     {
         try

@@ -962,7 +962,7 @@ public partial class MainWindow : Window
             var location = await ResolveWslProjectAsync(true);
             string relative = NormalizeProjectRelativePath(relativePath);
             string absolute = string.IsNullOrEmpty(relative) ? location.ProjectDirectory : location.ProjectDirectory.TrimEnd('/') + "/" + relative;
-            const string script = "target=\"$1\"; [[ -d \"$target\" ]] || { echo NFSU2_FILE_MANAGER_DIRECTORY_MISSING; exit 20; }; find \"$target\" -mindepth 1 -maxdepth 1 ! -name .git ! -name .nfsu2-manager-backups -printf '%y\\t%s\\t%T@\\t%f\\n' | LC_ALL=C sort -k1,1r -k4";
+            const string script = "target=\"$1\"; [[ -d \"$target\" ]] || { echo NFSU2_FILE_MANAGER_DIRECTORY_MISSING; exit 20; }; find \"$target\" -mindepth 1 -maxdepth 1 ! -name .git ! -name .nfsu2-manager-backups -printf '%y\\t%s\\t%T@\\t%f\\n' | LC_ALL=C sort -k1,1 -k4";
             string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(script));
             string shell = "printf '%s' " + QuoteBashArgument(encoded) + " | base64 -d | bash -s -- " + QuoteBashArgument(absolute);
             var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
@@ -991,6 +991,15 @@ public partial class MainWindow : Window
             }
             if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = $"{location.Distro}:{absolute} · {_projectFileList.Items.Count} öğe · WSL doğrudan erişim";
             AppendLog($"GitHub proje klasörü WSL üzerinden açıldı: /{relative} ({_projectFileList.Items.Count} öğe).", "OK", "WSL");
+            if (!_projectSnapshotTimer.IsEnabled)
+            {
+                _projectSnapshotInitialized = false;
+                _projectSnapshot.Clear();
+                _projectSnapshotTimer.Start();
+            }
+            await PollProjectSnapshotAsync();
+            if (_projectFileExplorerStatus is not null)
+                _projectFileExplorerStatus.Text += " · WSL kaynak taraması etkin";
         }
         catch (Exception ex)
         {
@@ -1023,14 +1032,33 @@ public partial class MainWindow : Window
         try
         {
             var location = await ResolveWslProjectAsync(false);
-            string code = FindVsCodeExecutable() ?? throw new InvalidOperationException("VS Code bulunamadı. Remote - WSL uzantısını ve code.exe yolunu kontrol et.");
-            var psi = new ProcessStartInfo { FileName = code, UseShellExecute = false };
-            psi.ArgumentList.Add("--remote");
-            psi.ArgumentList.Add("wsl+" + location.Distro);
-            psi.ArgumentList.Add(location.ProjectDirectory + "/" + entry.RelativePath);
-            Process.Start(psi);
-            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Dosya VS Code Remote - WSL ile açıldı: " + entry.RelativePath;
-            AppendLog("Proje dosyası VS Code Remote - WSL ile açıldı: " + entry.RelativePath, "OK", "WSL");
+            string linuxPath = location.ProjectDirectory.TrimEnd('/') + "/" + NormalizeProjectRelativePath(entry.RelativePath);
+            if (editor.Equals("notepad", StringComparison.OrdinalIgnoreCase))
+            {
+                var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
+                var pathResult = await RunCommandAsync(wsl,
+                    new[] { "-d", location.Distro, "--", "wslpath", "-w", linuxPath },
+                    TimeSpan.FromSeconds(15), RootDir, logOutput: false, logCategory: "WSL");
+                if (pathResult.ExitCode != 0 || string.IsNullOrWhiteSpace(pathResult.Output))
+                    throw new IOException("Dosyanın Windows yolu WSL tarafından çözümlenemedi: " + TailText(pathResult.Output, 1200));
+                string windowsPath = pathResult.Output.Trim();
+                var notepad = new ProcessStartInfo { FileName = "notepad.exe", UseShellExecute = false };
+                notepad.ArgumentList.Add(windowsPath);
+                Process.Start(notepad);
+                if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Dosya Not Defteri ile açıldı: " + entry.RelativePath;
+                AppendLog("Proje dosyası Not Defteri ile açıldı: " + entry.RelativePath, "OK", "WSL");
+            }
+            else
+            {
+                string code = FindVsCodeExecutable() ?? throw new InvalidOperationException("VS Code bulunamadı. Remote - WSL uzantısını ve code.exe yolunu kontrol et.");
+                var psi = new ProcessStartInfo { FileName = code, UseShellExecute = false };
+                psi.ArgumentList.Add("--remote");
+                psi.ArgumentList.Add("wsl+" + location.Distro);
+                psi.ArgumentList.Add(linuxPath);
+                Process.Start(psi);
+                if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Dosya VS Code Remote - WSL ile açıldı: " + entry.RelativePath;
+                AppendLog("Proje dosyası VS Code Remote - WSL ile açıldı: " + entry.RelativePath, "OK", "WSL");
+            }
         }
         catch (Exception ex) { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message; AppendLog("Dış editör açılamadı: " + ex.Message, "HATA", "APP"); }
     }
@@ -1054,14 +1082,11 @@ public partial class MainWindow : Window
     {
         try
         {
-            var location = await ResolveWslProjectAsync(false);
-            string code = FindVsCodeExecutable() ?? throw new InvalidOperationException("VS Code bulunamadı. Remote - WSL uzantısı kurulmalı.");
-            var psi = new ProcessStartInfo { FileName = code, UseShellExecute = false };
-            psi.ArgumentList.Add("--remote");
-            psi.ArgumentList.Add("wsl+" + location.Distro);
-            psi.ArgumentList.Add(location.ProjectDirectory);
-            Process.Start(psi);
-            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Proje VS Code Remote - WSL ile açıldı.";
+            var result = await RunWslProjectCommandAsync("explorer.exe .", TimeSpan.FromSeconds(20), false);
+            if (result.ExitCode != 0)
+                throw new IOException("Windows Dosya Gezgini WSL klasörünü açamadı: " + TailText(result.Output, 1200));
+            if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Proje Windows Dosya Gezgini ile açıldı.";
+            AppendLog("WSL proje klasörü Windows Dosya Gezgini ile açıldı.", "OK", "WSL");
         }
         catch (Exception ex) { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message; AppendLog("WSL proje klasörü açılamadı: " + ex.Message, "HATA", "APP"); }
     }
@@ -1181,7 +1206,9 @@ public partial class MainWindow : Window
             string newRelative = string.IsNullOrEmpty(parent) ? name : parent + "/" + name;
             string oldPath = location.ProjectDirectory.TrimEnd('/') + "/" + oldRelative;
             string newPath = location.ProjectDirectory.TrimEnd('/') + "/" + newRelative;
-            var result = await RunWslProjectCommandAsync("mv -- " + QuoteBashArgument(oldPath) + " " + QuoteBashArgument(newPath), TimeSpan.FromSeconds(30));
+            string renameCommand = "if [[ -e " + QuoteBashArgument(newPath) + " || -L " + QuoteBashArgument(newPath) + " ]]; then echo NFSU2_RENAME_TARGET_EXISTS; exit 21; fi; mv -- " + QuoteBashArgument(oldPath) + " " + QuoteBashArgument(newPath);
+            var result = await RunWslProjectCommandAsync(renameCommand, TimeSpan.FromSeconds(30));
+            if (result.ExitCode == 21) throw new IOException("Bu adla başka bir dosya veya klasör zaten var.");
             if (result.ExitCode != 0) throw new IOException("WSL yeniden adlandırma başarısız: " + TailText(result.Output, 1500));
             await RefreshProjectDirectoryAsync(_projectCurrentRelativePath);
         }

@@ -2285,7 +2285,7 @@ export DOCKER_CONFIG="$safe_config"
             Content = updateAvailable ? "Şimdi güncelle" : "Tamam",
             MinWidth = updateAvailable ? 132 : 110,
             IsDefault = true,
-            Foreground = BrushHex("#05272D")
+            Foreground = BrushHex("#F7FFFF")
         };
         primaryButton.SetResourceReference(FrameworkElement.StyleProperty, "ModernButton");
         primaryButton.Click += (_, _) => dialog.DialogResult = true;

@@ -34,9 +34,9 @@ public partial class MainWindow : Window
     private const string ControlCenterRepo = "trpolaris/TRPOLARIS-NFSU2-Web-Control-Center";
     private const string ControlCenterExeName = "TRPOLARIS.NFSU2.WebControlCenter.exe";
     private const string UpdaterResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.ControlCenterUpdater.ps1";
-    private const string ControlCenterCurrentVersion = "1.7.1";
+    private const string ControlCenterCurrentVersion = "1.7.2";
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest";
-    private const string GameArchiveDownloadUrl = "https://download946.mediafire.com/fe7ib77eqhxgTG6mSV85tsKnmdib9EBhv_kOYHPn3CfUrE8DtulmcE2m8MqLLeUToqjNU4yACOkvJLo65YTFY1hgXq9jC2OmUZ-uL1dopna79G7_eXtZC9_rLqPwHQEPKN5UsC_PgDSQXKTHO-ucx617PXk-GQatGjv8H4APkKo/a6eug3g6v1duw8f/Need+For+Speed+Underground+2.zip";
+    private const string GameArchiveDownloadUrl = "https://download938.mediafire.com/mx7g8vs33jeg0V_t4F5UZJPrgX8ctsn7N2xSFzUFj_hdmmIvChJLispk-Zwh863xQe4redTD5RQMrrMyVEdBK0R7SATfcze5DSfEdXXAmzmbI24bEaFQQ2f7b8eRAv1UQjXRqxgM89xfa5RciNGEqiW3_aoMaEoNohzq4wYRf_M/rlvg6fi4lxlla97/Need+For+Speed+Underground+2.zip";
     private const long MaxGameArchiveDownloadBytes = 20L * 1024 * 1024 * 1024;
     private const long SupportedGameExeSize = 4_800_512;
     private const string SupportedGameExeSha256 = "f9dd86c054878ce6276beb07c1fd61874f7a1e4bf1f241b084c65b73e24168a7";
@@ -126,9 +126,6 @@ public partial class MainWindow : Window
     private TextBox? _lanIpBox;
     private TextBox? _lanPortBox;
     private TextBlock? _accessStateLabel;
-    private TextBlock? _dashboardUrl;
-    private TextBlock? _dashboardLan;
-    private TextBlock? _dashboardPublic;
     private Button? _installButton;
     private TextBlock? _installState;
     private TextBlock? _serverProjectLabel;
@@ -202,7 +199,7 @@ public partial class MainWindow : Window
         _diskLogTimer = new System.Threading.Timer(_ => FlushPendingDiskLogs(), null, 150, 150);
         _logUiTimer.Start();
         ShowPage("Dashboard");
-        AppendLog("TRPOLARIS Control Center v1.7.1 başlatıldı. WSL, Docker ve NFSU2 kurulum durumu denetleniyor.", "OK");
+        AppendLog("TRPOLARIS Control Center v1.7.2 başlatıldı. WSL, Docker ve NFSU2 kurulum durumu denetleniyor.", "OK");
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -698,11 +695,14 @@ public partial class MainWindow : Window
         _gameDirBox.LostFocus += (_, _) => RefreshGameFolderValidation();
         gamePanel.Children.Add(_gameDirBox);
         var gameActions = new WrapPanel();
-        _gameDownloadStartButton = MakeButton("Oyunu sunucudan indir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
-        _gameDownloadStartButton.ToolTip = GameArchiveDownloadUrl;
+        _gameDownloadStartButton = MakeButton("İndir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
+        _gameDownloadStartButton.ToolTip = "ZIP arşivini Control Center üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
         gameActions.Children.Add(_gameDownloadStartButton);
         gameActions.Children.Add(MakeButton("Bilgisayardaki ZIP arşivini içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
         gameActions.Children.Add(MakeButton("Klasörü doğrula", "SecondaryButton", VerifyGameFolder_Click, new Thickness(8, 0, 0, 0)));
+        var browserDownloadButton = MakeButton("Oyunu indir", "ModernButton", OpenGameArchiveInBrowser_Click, new Thickness(8, 0, 0, 0));
+        browserDownloadButton.ToolTip = "NFS Underground 2 ZIP arşivini MediaFire üzerinden varsayılan tarayıcıda indir.";
+        gameActions.Children.Add(browserDownloadButton);
         gamePanel.Children.Add(gameActions);
         _gameValidationStatus = new TextBlock { Text = "Oyun klasörü henüz doğrulanmadı.", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap };
         gamePanel.Children.Add(_gameValidationStatus);
@@ -722,21 +722,7 @@ public partial class MainWindow : Window
         downloadControlRow.Children.Add(_gameDownloadCancelButton);
         gamePanel.Children.Add(downloadControlRow);
         SetGameDownloadControls(active: _gameArchiveBusy, paused: _gameDownloadPaused);
-        gamePanel.Children.Add(new TextBlock { Text = "MediaFire indirme kaynağı:", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap, MaxWidth = 680 });
-        var sourceLinkText = new TextBlock { FontSize = 10, Margin = new Thickness(0, -6, 0, 0) };
-        var sourceLink = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("NFS Underground 2 ZIP dosyasını tarayıcıda indir"))
-        {
-            NavigateUri = new Uri(GameArchiveDownloadUrl),
-            Foreground = BrushHex("#86C8FF")
-        };
-        sourceLink.RequestNavigate += (_, args) =>
-        {
-            try { Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) { UseShellExecute = true }); }
-            catch (Exception ex) { AppendLog("MediaFire bağlantısı açılamadı: " + ex.Message, "HATA"); }
-            args.Handled = true;
-        };
-        sourceLinkText.Inlines.Add(sourceLink);
-        gamePanel.Children.Add(sourceLinkText);
+
         gameCell.Children.Add(gamePanel);
         AddGridRow(grid, 2, "Kurulum kapsamı", out var scopeCell,
             "Windows WSL 2 ve Ubuntu, Docker Desktop WSL entegrasyonu, GitHub main kaynakları, Python, Node.js 24, Rust stable, WASI SDK, React bağımlılıkları, Rust Cargo bağımlılıkları, WASM üretimi ve Docker image derlemesi.");
@@ -1930,6 +1916,390 @@ export DOCKER_CONFIG="$safe_config"
         }
     }
 
+    private MessageBoxResult ShowModernUpdateDialog(
+        string heading,
+        string description,
+        string statusLabel,
+        string installedVersion,
+        string publishedVersion,
+        string releaseName,
+        string releaseNotes,
+        bool updateAvailable)
+    {
+        var dialog = new Window
+        {
+            Title = "TRPOLARIS Control Center · Update Center",
+            Owner = this,
+            Width = 590,
+            Height = updateAvailable ? 690 : 475,
+            MinWidth = 590,
+            MinHeight = updateAvailable ? 690 : 475,
+            WindowStyle = WindowStyle.None,
+            ResizeMode = ResizeMode.NoResize,
+            AllowsTransparency = true,
+            Background = Brushes.Transparent,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ShowInTaskbar = false,
+            FontFamily = this.FontFamily,
+            Foreground = BrushHex("#EDF4FC"),
+            Icon = this.Icon
+        };
+
+        var frame = new Border
+        {
+            Background = BrushHex("#07111E"),
+            BorderBrush = BrushHex("#31516B"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(15),
+            ClipToBounds = true
+        };
+
+        var layout = new Grid();
+        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(50) });
+        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(76) });
+        frame.Child = layout;
+        dialog.Content = frame;
+
+        var titleBar = new Border
+        {
+            Background = BrushHex("#091625"),
+            BorderBrush = BrushHex("#20384F"),
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Padding = new Thickness(17, 0, 9, 0)
+        };
+        var titleGrid = new Grid();
+        titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var titleBrand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        titleBrand.Children.Add(new Image
+        {
+            Source = Application.Current.Resources["AppIconDrawing"] as ImageSource,
+            Width = 25,
+            Height = 25,
+            Stretch = Stretch.Uniform,
+            Margin = new Thickness(0, 0, 10, 0)
+        });
+
+        var titleText = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        titleText.Children.Add(new TextBlock
+        {
+            Text = "TRPOLARIS",
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            Foreground = BrushHex("#EAF5FF")
+        });
+        titleText.Children.Add(new TextBlock
+        {
+            Text = "CONTROL CENTER  /  UPDATE CENTER",
+            FontSize = 8,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = BrushHex("#7896B2"),
+            Margin = new Thickness(0, 2, 0, 0)
+        });
+        titleBrand.Children.Add(titleText);
+        titleGrid.Children.Add(titleBrand);
+
+        var closeButton = new Button
+        {
+            Content = "×",
+            Width = 35,
+            Height = 32,
+            Padding = new Thickness(0),
+            FontSize = 19,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        closeButton.SetResourceReference(FrameworkElement.StyleProperty, "WindowCloseButton");
+        closeButton.Click += (_, _) => dialog.DialogResult = false;
+        Grid.SetColumn(closeButton, 1);
+        titleGrid.Children.Add(closeButton);
+        titleBar.Child = titleGrid;
+        titleBar.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                dialog.DragMove();
+        };
+        Grid.SetRow(titleBar, 0);
+        layout.Children.Add(titleBar);
+
+        var contentScroll = new ScrollViewer
+        {
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Padding = new Thickness(0)
+        };
+        var content = new StackPanel { Margin = new Thickness(25, 22, 25, 18) };
+        contentScroll.Content = content;
+        Grid.SetRow(contentScroll, 1);
+        layout.Children.Add(contentScroll);
+
+        var stateBadge = new Border
+        {
+            Background = BrushHex(updateAvailable ? "#3A2B19" : "#12332F"),
+            BorderBrush = BrushHex(updateAvailable ? "#80603A" : "#286D62"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(9, 4, 9, 4),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 0, 14)
+        };
+        stateBadge.Child = new TextBlock
+        {
+            Text = statusLabel.ToUpperInvariant(),
+            FontSize = 8,
+            FontWeight = FontWeights.Bold,
+            Foreground = BrushHex(updateAvailable ? "#FFC875" : "#6FE3C1")
+        };
+        content.Children.Add(stateBadge);
+
+        var hero = new Grid { Margin = new Thickness(0, 0, 0, 20) };
+        hero.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(62) });
+        hero.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var heroIcon = new Border
+        {
+            Width = 48,
+            Height = 48,
+            CornerRadius = new CornerRadius(15),
+            Background = BrushHex(updateAvailable ? "#342A1C" : "#103B3A"),
+            BorderBrush = BrushHex(updateAvailable ? "#715331" : "#286C68"),
+            BorderThickness = new Thickness(1),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        heroIcon.Child = new TextBlock
+        {
+            Text = updateAvailable ? "↻" : "✓",
+            FontSize = updateAvailable ? 27 : 25,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = BrushHex(updateAvailable ? "#FFD28A" : "#63E7D2"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextAlignment = TextAlignment.Center
+        };
+        hero.Children.Add(heroIcon);
+
+        var heroText = new StackPanel { Margin = new Thickness(4, 0, 0, 0) };
+        heroText.Children.Add(new TextBlock
+        {
+            Text = heading,
+            FontSize = 23,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = BrushHex("#F1F7FF"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        heroText.Children.Add(new TextBlock
+        {
+            Text = description,
+            FontSize = 11,
+            Foreground = BrushHex("#9CB1C6"),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 6, 0, 0)
+        });
+        Grid.SetColumn(heroText, 1);
+        hero.Children.Add(heroText);
+        content.Children.Add(hero);
+
+        bool isUpToDate = !updateAvailable && statusLabel.Equals("EN GÜNCEL SÜRÜM", StringComparison.OrdinalIgnoreCase);
+        bool showPublishedVersion = !isUpToDate
+            && !string.IsNullOrWhiteSpace(publishedVersion)
+            && !publishedVersion.Equals("Erişilemiyor", StringComparison.OrdinalIgnoreCase);
+        var versionGrid = new Grid { Margin = new Thickness(0, 0, 0, 15) };
+        versionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        if (showPublishedVersion)
+            versionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        Border CreateVersionCard(string label, string version, bool highlight)
+        {
+            var card = new Border
+            {
+                Background = BrushHex(highlight ? "#102C35" : "#101F30"),
+                BorderBrush = BrushHex(highlight ? "#286D70" : "#2A435A"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(14, 12, 14, 12),
+                Margin = new Thickness(highlight ? 7 : 0, 0, highlight ? 0 : 7, 0)
+            };
+            var stack = new StackPanel();
+            stack.Children.Add(new TextBlock
+            {
+                Text = label,
+                FontSize = 8,
+                FontWeight = FontWeights.Bold,
+                Foreground = BrushHex(highlight ? "#77DCD1" : "#829CB4")
+            });
+            stack.Children.Add(new TextBlock
+            {
+                Text = version,
+                FontSize = 22,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = BrushHex(highlight ? "#65E8D6" : "#EEF5FC"),
+                Margin = new Thickness(0, 5, 0, 0)
+            });
+            card.Child = stack;
+            return card;
+        }
+
+        versionGrid.Children.Add(CreateVersionCard(isUpToDate ? "KURULU SÜRÜM" : "YÜKLÜ SÜRÜM", "v" + installedVersion, false));
+        if (showPublishedVersion)
+        {
+            var remoteCard = CreateVersionCard("YENİ SÜRÜM",
+                "v" + publishedVersion, true);
+            Grid.SetColumn(remoteCard, 1);
+            versionGrid.Children.Add(remoteCard);
+        }
+        content.Children.Add(versionGrid);
+
+        var releaseCard = new Border
+        {
+            Background = BrushHex("#0C1A29"),
+            BorderBrush = BrushHex("#263E55"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(15),
+            Margin = new Thickness(0, 0, 0, 2)
+        };
+        var releaseStack = new StackPanel();
+        releaseStack.Children.Add(new TextBlock
+        {
+            Text = isUpToDate ? "GÜNCELLEME DURUMU" : "YAYIN BİLGİSİ",
+            FontSize = 8,
+            FontWeight = FontWeights.Bold,
+            Foreground = BrushHex("#6BCFC7")
+        });
+        releaseStack.Children.Add(new TextBlock
+        {
+            Text = isUpToDate
+                ? "En güncel sürümü kullanıyorsunuz"
+                : string.IsNullOrWhiteSpace(releaseName) ? "Kararlı sürüm bilgisi bekleniyor" : releaseName,
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = BrushHex("#EAF3FD"),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 6, 0, 0)
+        });
+
+        if (isUpToDate)
+        {
+            releaseStack.Children.Add(new TextBlock
+            {
+                Text = "TRPOLARIS Control Center güncel. Yeni bir kararlı sürüm yayımlandığında uygulama açılışında otomatik olarak kontrol edilir.",
+                FontSize = 10,
+                LineHeight = 17,
+                Foreground = BrushHex("#AFC0D2"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 7, 0, 0)
+            });
+        }
+
+        if (!isUpToDate && !string.IsNullOrWhiteSpace(releaseNotes))
+        {
+            var notesScroll = new ScrollViewer
+            {
+                MaxHeight = 150,
+                Margin = new Thickness(0, 9, 0, 0),
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            };
+            notesScroll.Content = new TextBlock
+            {
+                Text = releaseNotes,
+                FontSize = 10,
+                LineHeight = 17,
+                Foreground = BrushHex("#AFC0D2"),
+                TextWrapping = TextWrapping.Wrap
+            };
+            releaseStack.Children.Add(notesScroll);
+        }
+
+        if (!string.IsNullOrWhiteSpace(releaseNotes) && updateAvailable)
+        {
+            releaseStack.Children.Add(new TextBlock
+            {
+                Text = "İndirme sonrası EXE SHA-256 ile doğrulanır. Uygulama güvenli biçimde kapatılıp yedekli olarak güncellenir.",
+                FontSize = 9,
+                Foreground = BrushHex("#829CB4"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 10, 0, 0)
+            });
+        }
+        releaseCard.Child = releaseStack;
+        content.Children.Add(releaseCard);
+
+        var footer = new Border
+        {
+            Background = BrushHex("#091625"),
+            BorderBrush = BrushHex("#20384F"),
+            BorderThickness = new Thickness(0, 1, 0, 0),
+            Padding = new Thickness(20, 12, 20, 12)
+        };
+        var footerGrid = new Grid();
+        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var hostLabel = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        hostLabel.Children.Add(new TextBlock
+        {
+            Text = "WINDOWS HOST  /  WSL 2  /  DOCKER DESKTOP",
+            FontSize = 8,
+            FontWeight = FontWeights.Bold,
+            Foreground = BrushHex("#7793AB")
+        });
+        hostLabel.Children.Add(new TextBlock
+        {
+            Text = "TRPOLARIS  ·  NIGHT CIRCUIT",
+            FontSize = 8,
+            Foreground = BrushHex("#516D85"),
+            Margin = new Thickness(0, 4, 0, 0)
+        });
+        footerGrid.Children.Add(hostLabel);
+
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        if (updateAvailable)
+        {
+            var laterButton = new Button
+            {
+                Content = "Daha sonra",
+                MinWidth = 104,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            laterButton.SetResourceReference(FrameworkElement.StyleProperty, "SecondaryButton");
+            laterButton.IsCancel = true;
+            laterButton.Click += (_, _) => dialog.DialogResult = false;
+            buttons.Children.Add(laterButton);
+        }
+
+        var primaryButton = new Button
+        {
+            Content = updateAvailable ? "Şimdi güncelle" : "Tamam",
+            MinWidth = updateAvailable ? 132 : 110,
+            IsDefault = true,
+            Foreground = BrushHex("#F7FFFF")
+        };
+        primaryButton.SetResourceReference(FrameworkElement.StyleProperty, "ModernButton");
+        primaryButton.Click += (_, _) => dialog.DialogResult = true;
+        buttons.Children.Add(primaryButton);
+
+        Grid.SetColumn(buttons, 1);
+        footerGrid.Children.Add(buttons);
+        footer.Child = footerGrid;
+        Grid.SetRow(footer, 2);
+        layout.Children.Add(footer);
+
+        bool? accepted = dialog.ShowDialog();
+        return accepted == true
+            ? updateAvailable ? MessageBoxResult.Yes : MessageBoxResult.OK
+            : MessageBoxResult.No;
+    }
+
     private async void CheckAppUpdates_Click(object sender, RoutedEventArgs e)
     {
         await CheckControlCenterUpdatesAsync(sender as Button);
@@ -1939,8 +2309,15 @@ export DOCKER_CONFIG="$safe_config"
     {
         if (_operationBusy)
         {
-            MessageBox.Show(this, "Başka bir kurulum veya sunucu işlemi devam ediyor. İşlem tamamlandıktan sonra tekrar dene.",
-                "Güncelleme denetimi", MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowModernUpdateDialog(
+                "Bir işlem devam ediyor",
+                "Güncelleme denetimi, çalışan kurulum veya sunucu işlemi tamamlandıktan sonra yapılabilir.",
+                "İŞLEM DEVAM EDİYOR",
+                ControlCenterCurrentVersion,
+                "Beklemede",
+                "Güncelleme denetimi başlatılmadı",
+                "Çalışan işlem durdurulmadı ve uygulama dosyaları değiştirilmedi.",
+                false);
             return;
         }
 
@@ -1954,9 +2331,15 @@ export DOCKER_CONFIG="$safe_config"
             {
                 FooterStatus.Text = "GitHub'da yayımlanmış Control Center güncellemesi yok.";
                 AppendLog("GitHub deposunda yayımlanmış kararlı Control Center Release bulunamadı. İlk v* etiketi yayımlandığında denetim etkinleşecek.", "UYARI", "APP");
-                MessageBox.Show(this,
-                    "Control Center deposuna henüz yayımlanmış bir kararlı Release eklenmemiş.\n\nİlk v* etiketiyle EXE ve latest.json yayımlandığında uygulama içinden otomatik güncelleme kullanılabilecek.",
-                    "Güncelleme bulunamadı", MessageBoxButton.OK, MessageBoxImage.Information);
+                ShowModernUpdateDialog(
+                    "Henüz bir yayın yok",
+                    "GitHub deposunda şu anda yayımlanmış kararlı bir uygulama sürümü bulunamadı.",
+                    "RELEASE YAYINLANMADI",
+                    ControlCenterCurrentVersion,
+                    "",
+                    "Kararlı Release bekleniyor",
+                    "İlk kararlı v* etiketi ve güncelleme paketi yayımlandığında uygulama içinden güncelleme denetimi kullanılabilir olacak.",
+                    false);
                 return;
             }
 
@@ -1966,17 +2349,31 @@ export DOCKER_CONFIG="$safe_config"
             {
                 FooterStatus.Text = $"Control Center güncel · v{ControlCenterCurrentVersion}";
                 AppendLog($"Control Center güncel. Yüklü=v{ControlCenterCurrentVersion}; GitHub=v{release.Version}.", "OK", "APP");
-                MessageBox.Show(this,
-                    $"Uygulama güncel.\n\nYüklü sürüm: v{ControlCenterCurrentVersion}\nGitHub sürümü: v{release.Version}\n\n{release.Name}",
-                    "Güncelleme denetimi", MessageBoxButton.OK, MessageBoxImage.Information);
+                ShowModernUpdateDialog(
+                    "Her şey güncel",
+                    "TRPOLARIS Control Center'ın en güncel sürümünü kullanıyorsunuz.",
+                    "EN GÜNCEL SÜRÜM",
+                    ControlCenterCurrentVersion,
+                    "",
+                    "En güncel sürümü kullanıyorsunuz",
+                    "",
+                    false);
                 return;
             }
 
             string notes = string.IsNullOrWhiteSpace(release.Body) ? "Bu sürüm için açıklama yayımlanmamış." : release.Body.Trim();
             if (notes.Length > 5000) notes = notes[..5000] + "\n\n(Notlar kısaltıldı.)";
-            var answer = MessageBox.Show(this,
-                $"Yeni Control Center sürümü bulundu.\n\nYüklü sürüm: v{ControlCenterCurrentVersion}\nYeni sürüm: v{release.Version}\nDosya: {release.AssetName}\nBoyut: {FormatBytes(release.AssetSize)}\n\nSürüm notları:\n{notes}\n\nEXE GitHub'dan indirilecek, SHA-256 doğrulamasından geçirilecek ve uygulama kapandıktan sonra yedekli biçimde değiştirilecek. Güncelleme yapılsın mı?",
-                "Control Center güncellemesi", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            notes += "\n\nPaket: " + release.AssetName + "\nBoyut: " + FormatBytes(release.AssetSize);
+
+            var answer = ShowModernUpdateDialog(
+                "Yeni sürüm hazır",
+                "Control Center için yeni bir Windows uygulama sürümü bulundu. İndirme ve doğrulama başlatılsın mı?",
+                "YENİ SÜRÜM BULUNDU",
+                ControlCenterCurrentVersion,
+                release.Version,
+                release.Name,
+                notes,
+                true);
             if (answer != MessageBoxResult.Yes) return;
 
             await DownloadAndApplyControlCenterUpdateAsync(release);
@@ -1985,7 +2382,15 @@ export DOCKER_CONFIG="$safe_config"
         {
             FooterStatus.Text = "Control Center güncellemesi denetlenemedi.";
             AppendLog("Control Center güncelleme denetimi başarısız: " + ex.Message, "HATA", "APP");
-            MessageBox.Show(this, ex.Message, "Güncelleme hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowModernUpdateDialog(
+                "Güncelleme denetlenemedi",
+                ex.Message,
+                "BAĞLANTI / DENETİM HATASI",
+                ControlCenterCurrentVersion,
+                "Erişilemiyor",
+                "Mevcut uygulama korunuyor",
+                "GitHub sürüm bilgisi alınamadı. Yüklü Control Center dosyası değiştirilmedi.",
+                false);
         }
         finally
         {
@@ -2170,7 +2575,7 @@ export DOCKER_CONFIG="$safe_config"
         {
             Timeout = TimeSpan.FromMinutes(15)
         };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("TRPOLARIS-Control-Center/1.7.1");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TRPOLARIS-Control-Center/1.7.2");
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return client;
     }
@@ -2840,7 +3245,18 @@ export DOCKER_CONFIG="$safe_config"
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
         var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 40, Padding = new Thickness(15, 9, 15, 9) };
-        b.SetResourceReference(FrameworkElement.StyleProperty, style); b.Click += handler; return b;
+        b.SetResourceReference(FrameworkElement.StyleProperty, style);
+
+        // Keep text contrast explicit even when theme resources or local styles change.
+        if (style.Equals("ModernButton", StringComparison.OrdinalIgnoreCase))
+            b.Foreground = BrushHex("#F7FFFF");
+        else if (style.Equals("SecondaryButton", StringComparison.OrdinalIgnoreCase))
+            b.Foreground = BrushHex("#D4E1EC");
+        else if (style.Equals("DangerButton", StringComparison.OrdinalIgnoreCase))
+            b.Foreground = BrushHex("#FFE6EA");
+
+        b.Click += handler;
+        return b;
     }
 
     private Border QuickAction(string title, string description, string buttonText, Action action)
@@ -3265,16 +3681,6 @@ export DOCKER_CONFIG="$safe_config"
             ? $"{dockerSummary} · {(s.HttpReachable ? "Sunucu çevrimiçi" : "Sunucu kontrol bekliyor")}"
             : $"{dockerSummary} · Engine bağlantısı yok";
         FooterStatus.ToolTip = dockerSummary;
-        if (_dashboardUrl is not null) _dashboardUrl.Text = s.ActiveUrl;
-        if (_dashboardLan is not null)
-        {
-            _dashboardLan.Text = s.AccessMode == "lan"
-                ? s.ActiveUrl
-                : s.AccessMode == "local"
-                    ? "LAN profili etkin değil. Diğer cihazlar için Erişim ayarları → LAN / HTTPS profilini uygula."
-                    : string.IsNullOrWhiteSpace(s.LocalIp) ? "Aktif IPv4 bulunamadı" : $"LAN profili etkin değil ({s.LocalIp}).";
-        }
-        if (_dashboardPublic is not null) _dashboardPublic.Text = s.AccessMode == "public" ? s.ActiveUrl : "Aktif değil";
         if (_accessStateLabel is not null)
             _accessStateLabel.Text = $"Aktif profil: {s.AccessMode.ToUpperInvariant()} · {(s.HttpReachable ? "Sağlık kontrolü başarılı" : "Sağlık kontrolü başarısız")} · Kontrol: {s.ProbeUrl} · Adres: {s.ActiveUrl}";
     }
@@ -3287,11 +3693,6 @@ export DOCKER_CONFIG="$safe_config"
             var color = level == "success" ? "#38D996" : level == "warning" ? "#F8C45C" : "#FF687D";
             item.State.Foreground = BrushHex(color); item.Dot.Background = BrushHex(color);
         }
-    }
-
-    private void UpdateAccessLabels()
-    {
-        if (_dashboardUrl is not null) _dashboardUrl.Text = GetActiveServerUrl();
     }
 
     private async void RefreshStatus_Click(object sender, RoutedEventArgs e) => await RefreshStatusAsync(true);
@@ -3373,6 +3774,22 @@ export DOCKER_CONFIG="$safe_config"
             return;
         }
         await ImportGameArchiveAsync();
+    }
+
+    private void OpenGameArchiveInBrowser_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(GameArchiveDownloadUrl) { UseShellExecute = true });
+            AppendLog("NFS Underground 2 ZIP arşivi varsayılan tarayıcıda açıldı: " + GameArchiveDownloadUrl, "OK", "APP");
+        }
+        catch (Exception ex)
+        {
+            AppendLog("NFS Underground 2 tarayıcı indirme bağlantısı açılamadı: " + ex.Message, "HATA", "APP");
+            MessageBox.Show(this,
+                "Varsayılan tarayıcı açılamadı. Aşağıdaki MediaFire adresini elle açabilirsin:\n\n" + GameArchiveDownloadUrl + "\n\n" + ex.Message,
+                "Oyunu indir", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private async void DownloadGameArchive_Click(object sender, RoutedEventArgs e)
@@ -3475,7 +3892,7 @@ export DOCKER_CONFIG="$safe_config"
                 try
                 {
                 using var request = new HttpRequestMessage(HttpMethod.Get, GameArchiveDownloadUrl);
-                request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.7.1");
+                request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.7.2");
                 request.Headers.AcceptEncoding.Clear();
                 request.Headers.AcceptEncoding.ParseAdd("identity");
                 if (offset > 0)

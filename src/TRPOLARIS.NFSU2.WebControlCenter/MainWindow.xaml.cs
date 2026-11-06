@@ -2105,9 +2105,14 @@ export DOCKER_CONFIG="$safe_config"
         hero.Children.Add(heroText);
         content.Children.Add(hero);
 
+        bool isUpToDate = !updateAvailable && statusLabel.Equals("EN GÜNCEL SÜRÜM", StringComparison.OrdinalIgnoreCase);
+        bool showPublishedVersion = !isUpToDate
+            && !string.IsNullOrWhiteSpace(publishedVersion)
+            && !publishedVersion.Equals("Erişilemiyor", StringComparison.OrdinalIgnoreCase);
         var versionGrid = new Grid { Margin = new Thickness(0, 0, 0, 15) };
         versionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        versionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        if (showPublishedVersion)
+            versionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         Border CreateVersionCard(string label, string version, bool highlight)
         {
@@ -2140,11 +2145,14 @@ export DOCKER_CONFIG="$safe_config"
             return card;
         }
 
-        versionGrid.Children.Add(CreateVersionCard("YÜKLÜ SÜRÜM", "v" + installedVersion, false));
-        var remoteCard = CreateVersionCard("GITHUB SÜRÜMÜ",
-            string.IsNullOrWhiteSpace(publishedVersion) ? "—" : "v" + publishedVersion, true);
-        Grid.SetColumn(remoteCard, 1);
-        versionGrid.Children.Add(remoteCard);
+        versionGrid.Children.Add(CreateVersionCard(isUpToDate ? "KURULU SÜRÜM" : "YÜKLÜ SÜRÜM", "v" + installedVersion, false));
+        if (showPublishedVersion)
+        {
+            var remoteCard = CreateVersionCard("YENİ SÜRÜM",
+                "v" + publishedVersion, true);
+            Grid.SetColumn(remoteCard, 1);
+            versionGrid.Children.Add(remoteCard);
+        }
         content.Children.Add(versionGrid);
 
         var releaseCard = new Border
@@ -2159,14 +2167,16 @@ export DOCKER_CONFIG="$safe_config"
         var releaseStack = new StackPanel();
         releaseStack.Children.Add(new TextBlock
         {
-            Text = "YAYIN BİLGİSİ",
+            Text = isUpToDate ? "GÜNCELLEME DURUMU" : "YAYIN BİLGİSİ",
             FontSize = 8,
             FontWeight = FontWeights.Bold,
             Foreground = BrushHex("#6BCFC7")
         });
         releaseStack.Children.Add(new TextBlock
         {
-            Text = string.IsNullOrWhiteSpace(releaseName) ? "Kararlı sürüm bilgisi bekleniyor" : releaseName,
+            Text = isUpToDate
+                ? "En güncel sürümü kullanıyorsunuz"
+                : string.IsNullOrWhiteSpace(releaseName) ? "Kararlı sürüm bilgisi bekleniyor" : releaseName,
             FontSize = 12,
             FontWeight = FontWeights.SemiBold,
             Foreground = BrushHex("#EAF3FD"),
@@ -2174,7 +2184,20 @@ export DOCKER_CONFIG="$safe_config"
             Margin = new Thickness(0, 6, 0, 0)
         });
 
-        if (!string.IsNullOrWhiteSpace(releaseNotes))
+        if (isUpToDate)
+        {
+            releaseStack.Children.Add(new TextBlock
+            {
+                Text = "TRPOLARIS Control Center güncel. Yeni bir kararlı sürüm yayımlandığında uygulama açılışında otomatik olarak kontrol edilir.",
+                FontSize = 10,
+                LineHeight = 17,
+                Foreground = BrushHex("#AFC0D2"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 7, 0, 0)
+            });
+        }
+
+        if (!isUpToDate && !string.IsNullOrWhiteSpace(releaseNotes))
         {
             var notesScroll = new ScrollViewer
             {
@@ -2261,7 +2284,8 @@ export DOCKER_CONFIG="$safe_config"
         {
             Content = updateAvailable ? "Şimdi güncelle" : "Tamam",
             MinWidth = updateAvailable ? 132 : 110,
-            IsDefault = true
+            IsDefault = true,
+            Foreground = BrushHex("#05272D")
         };
         primaryButton.SetResourceReference(FrameworkElement.StyleProperty, "ModernButton");
         primaryButton.Click += (_, _) => dialog.DialogResult = true;
@@ -2329,13 +2353,13 @@ export DOCKER_CONFIG="$safe_config"
                 FooterStatus.Text = $"Control Center güncel · v{ControlCenterCurrentVersion}";
                 AppendLog($"Control Center güncel. Yüklü=v{ControlCenterCurrentVersion}; GitHub=v{release.Version}.", "OK", "APP");
                 ShowModernUpdateDialog(
-                    "Uygulama güncel",
-                    "Bu Windows bilgisayarındaki Control Center en son yayımlanan kararlı sürümü kullanıyor.",
-                    "SİSTEM GÜNCEL",
+                    "Her şey güncel",
+                    "TRPOLARIS Control Center'ın en güncel sürümünü kullanıyorsunuz.",
+                    "EN GÜNCEL SÜRÜM",
                     ControlCenterCurrentVersion,
-                    release.Version,
-                    release.Name,
-                    "Uygulama sürümünde yeni bir güncelleme gerekmiyor. WSL 2 ve Docker Desktop altyapısı mevcut haliyle kullanılmaya devam ediyor.",
+                    "",
+                    "En güncel sürümü kullanıyorsunuz",
+                    "",
                     false);
                 return;
             }
@@ -3224,7 +3248,18 @@ export DOCKER_CONFIG="$safe_config"
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
         var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 40, Padding = new Thickness(15, 9, 15, 9) };
-        b.SetResourceReference(FrameworkElement.StyleProperty, style); b.Click += handler; return b;
+        b.SetResourceReference(FrameworkElement.StyleProperty, style);
+
+        // Keep text contrast explicit even when theme resources or local styles change.
+        if (style.Equals("ModernButton", StringComparison.OrdinalIgnoreCase))
+            b.Foreground = BrushHex("#05272D");
+        else if (style.Equals("SecondaryButton", StringComparison.OrdinalIgnoreCase))
+            b.Foreground = BrushHex("#D4E1EC");
+        else if (style.Equals("DangerButton", StringComparison.OrdinalIgnoreCase))
+            b.Foreground = BrushHex("#FFE6EA");
+
+        b.Click += handler;
+        return b;
     }
 
     private Border QuickAction(string title, string description, string buttonText, Action action)

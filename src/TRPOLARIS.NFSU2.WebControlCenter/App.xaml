@@ -82,7 +82,7 @@
         </Style>
 
         <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#061B20" />
+            <Setter Property="Foreground" Value="#05272D" />
             <Setter Property="Background" Value="{StaticResource AccentBrush}" />
             <Setter Property="BorderBrush" Value="#71F3E3" />
             <Setter Property="BorderThickness" Value="1" />
@@ -125,7 +125,7 @@
         </Style>
 
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Foreground" Value="#D4E1EC" />
             <Setter Property="Background" Value="#172B40" />
             <Setter Property="BorderBrush" Value="#35536F" />
             <Setter Property="FontWeight" Value="SemiBold" />

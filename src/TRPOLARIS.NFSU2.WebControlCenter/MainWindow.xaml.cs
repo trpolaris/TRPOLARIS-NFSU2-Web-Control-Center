@@ -4899,7 +4899,9 @@ export DOCKER_CONFIG="$safe_config"
             if (_accessStateLabel is not null) _accessStateLabel.Text = "Profil uygulanıyor: " + mode;
             _accessProcess?.Dispose();
             var psi = new ProcessStartInfo { FileName = wslExe, UseShellExecute = false, CreateNoWindow = false, WindowStyle = ProcessWindowStyle.Normal, WorkingDirectory = RootDir };
-            foreach (var arg in new[] { "-d", distro, "-u", "root", "--", "env", "HOME=/root", "NFSU2_CONTROL_ROOT=" + "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2", "NFSU2_INSTALL_HOME=" + userHome, "NFSU2_PROJECT_DIR=" + projectDirectory, "SUDO_USER=" + (installUser ?? ""), "NFSU2_STOP_REQUEST_FILE=" + "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/logs/.nfsu2-safe-stop.request", "bash", "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/nfsu2-access.sh", mode, port.ToString(), ip, lanPort.ToString() }) psi.ArgumentList.Add(arg);
+            string windowsDrive = (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant();
+            string controlRoot = "/mnt/" + windowsDrive + "/nfsu2";
+            foreach (var arg in new[] { "-d", distro, "-u", "root", "--", "env", "HOME=/root", "NFSU2_CONTROL_ROOT=" + controlRoot, "NFSU2_INSTALL_HOME=" + userHome, "NFSU2_PROJECT_DIR=" + projectDirectory, "SUDO_USER=" + (installUser ?? ""), "NFSU2_STOP_REQUEST_FILE=" + controlRoot + "/logs/.nfsu2-safe-stop.request", "bash", controlRoot + "/nfsu2-access.sh", mode, port.ToString(), ip, lanPort.ToString() }) psi.ArgumentList.Add(arg);
             _accessProcess = Process.Start(psi) ?? throw new InvalidOperationException("WSL erişim komutu başlatılamadı.");
             _accessLogTimer.Start();
             await _accessProcess.WaitForExitAsync(cancellationToken);

@@ -152,6 +152,7 @@ internal static class NativeUpdateHelper
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "TRPOLARIS", "ControlCenter", "logs", "native-updater.log");
         HelperRequest? request = null;
+        bool replacementCompleted = false;
         try
         {
             byte[] json = Convert.FromBase64String(args[1]);
@@ -192,6 +193,7 @@ internal static class NativeUpdateHelper
 
             // No .previous/.bak copy is created. The verified staged file atomically replaces the target.
             File.Move(staged, request.TargetPath, overwrite: true);
+            replacementCompleted = true;
             if (!string.IsNullOrWhiteSpace(request.LegacyPath) &&
                 !Path.GetFullPath(request.LegacyPath).Equals(Path.GetFullPath(request.TargetPath), StringComparison.OrdinalIgnoreCase))
                 TryDelete(request.LegacyPath);
@@ -245,7 +247,8 @@ internal static class NativeUpdateHelper
         {
             WriteLog(logPath, "GÜNCELLEME HATASI: " + ex);
             if (request is not null)
-                UpdateEngine.RecordHistory(request.FromVersion, request.Version, request.Channel, "failed-before-replace", request.ExpectedSha256);
+                UpdateEngine.RecordHistory(request.FromVersion, request.Version, request.Channel,
+                    replacementCompleted ? "installed-start-failed" : "failed-before-replace", request.ExpectedSha256);
             return 1;
         }
     }

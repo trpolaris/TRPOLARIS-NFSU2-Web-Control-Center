@@ -43,7 +43,7 @@ public partial class MainWindow : Window
     private const long MaxGameArchiveExpandedBytes = 20L * 1024 * 1024 * 1024;
     private const int MaxGameArchiveEntries = 150_000;
     private const string AppLogFolder = "TRPOLARIS\\NFSU2-Web-Control-Center";
-    private static readonly string RootDir = @"C:\\nfsu2";
+    private static readonly string RootDir = Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\", "nfsu2");
     private static readonly string SafeStopRequestPath = Path.Combine(RootDir, "logs", ".nfsu2-safe-stop.request");
     private static readonly string LogsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "logs");
     private static readonly string RuntimeDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "runtime");

@@ -13,7 +13,7 @@
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
-    <Product>TRPOLARIS NFSU2 Web Server Control Center</Product>
+    <Product>TRPOLARIS Control Center</Product>
     <Authors>TRPOLARIS</Authors>
     <Description>Native WPF control center for the browser-playable Need for Speed Underground 2 web server.</Description>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

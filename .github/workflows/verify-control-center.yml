@@ -36,13 +36,13 @@ jobs:
               "src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1"
           ).read_text(encoding="utf-8")
           matches = re.findall(
-              r"(?ms)^[ \\t]*\\$BashScript[ \\t]*=[ \\t]*@'\\r?\\n(.*?)^[ \\t]*'@[ \\t]*$",
+              r"(?ms)^[ \t]*\$BashScript[ \t]*=[ \t]*@'\r?\n(.*?)^[ \t]*'@[ \t]*$",
               source,
           )
           if len(matches) != 1:
               raise SystemExit(f"Expected one embedded Bash here-string, found {len(matches)}")
           target = pathlib.Path(os.environ["RUNNER_TEMP"]) / "nfsu2-one-click-wsl.sh"
-          target.write_text(matches[0].replace("\\r\\n", "\\n"), encoding="utf-8")
+          target.write_text(matches[0].replace("\r\n", "\n"), encoding="utf-8")
           print(f"Extracted {len(matches[0].splitlines())} embedded Bash lines to {target}")
           PY
           bash -n "$RUNNER_TEMP/nfsu2-one-click-wsl.sh"

@@ -13,6 +13,16 @@ function Write-UpdateLog([string]$Message) {
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     Add-Content -LiteralPath $log -Value ("[{0}] {1}" -f (Get-Date -Format o), $Message) -Encoding UTF8
 }
+function Schedule-UpdaterSelfCleanup {
+    try {
+        $self = [IO.Path]::GetFullPath($PSCommandPath)
+        $cleanupCommand = 'ping 127.0.0.1 -n 3 > nul & del /f /q "' + $self + '"'
+        Start-Process -FilePath $env:ComSpec -ArgumentList @('/c', $cleanupCommand) -WindowStyle Hidden
+    }
+    catch {
+        Write-UpdateLog ("Temporary updater script cleanup could not be scheduled: " + $_.Exception.Message)
+    }
+}
 try {
     Write-UpdateLog 'Updater started.'
     $target = [IO.Path]::GetFullPath($TargetExe)
@@ -38,6 +48,7 @@ try {
     Move-Item -LiteralPath $staged -Destination $target -Force
     Write-UpdateLog "Updated $target successfully. SHA256=$actual"
     Start-Process -FilePath $target -WorkingDirectory $dir
+    Schedule-UpdaterSelfCleanup
     exit 0
 }
 catch {
@@ -49,5 +60,6 @@ catch {
         }
         if (Test-Path -LiteralPath $TargetExe) { Start-Process -FilePath $TargetExe -WorkingDirectory (Split-Path -Parent $TargetExe) }
     } catch { Write-UpdateLog ("Rollback failed: " + $_.Exception.Message) }
+    Schedule-UpdaterSelfCleanup
     exit 1
 }

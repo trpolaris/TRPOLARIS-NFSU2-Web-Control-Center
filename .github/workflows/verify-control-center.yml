@@ -31,13 +31,18 @@ jobs:
       - name: Validate embedded PowerShell syntax
         shell: pwsh
         run: |
-          $script = 'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1'
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | Format-List *
-            throw 'Installer PowerShell syntax validation failed.'
+          $scripts = @(
+            'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1',
+            'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/ControlCenterUpdater.ps1'
+          )
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List *
+              throw "PowerShell syntax validation failed: $script"
+            }
           }
 
       - name: Restore

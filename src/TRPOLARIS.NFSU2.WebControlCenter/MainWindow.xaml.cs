@@ -203,7 +203,7 @@ public partial class MainWindow : Window
         _diskLogTimer = new System.Threading.Timer(_ => FlushPendingDiskLogs(), null, 150, 150);
         _logUiTimer.Start();
         ShowPage("Dashboard");
-        AppendLog("TRPOLARIS Control Center v1.7.2 başlatıldı. WSL, Docker ve NFSU2 kurulum durumu denetleniyor.", "OK");
+        AppendLog("TRPOLARIS Control Center v1.7.3 başlatıldı. WSL, Docker ve NFSU2 kurulum durumu denetleniyor.", "OK");
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -2738,7 +2738,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             Timeout = TimeSpan.FromMinutes(15)
         };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("TRPOLARIS-Control-Center/1.7.2");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TRPOLARIS-Control-Center/1.7.3");
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return client;
     }
@@ -4059,7 +4059,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 try
                 {
                 using var request = new HttpRequestMessage(HttpMethod.Get, GameArchiveDownloadUrl);
-                request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.7.2");
+                request.Headers.UserAgent.ParseAdd("TRPOLARIS-NFSU2-ControlCenter/1.7.3");
                 request.Headers.AcceptEncoding.Clear();
                 request.Headers.AcceptEncoding.ParseAdd("identity");
                 if (offset > 0)

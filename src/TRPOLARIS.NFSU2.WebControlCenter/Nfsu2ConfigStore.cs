@@ -172,22 +172,17 @@ internal static class Nfsu2ConfigStore
             }
         }
 
-        // Old releases extracted these helper scripts into the root. Move them to runtime/.
+        // All helper scripts are embedded or generated from embedded templates.
+        // Remove stale copies from previous versions; the app extracts fresh copies
+        // into runtime/ only for the duration of the operation that needs them.
         foreach (string name in new[]
         {
             "nfsu2-access.sh", "nfsu2-git-update.sh", "nfsu2-project-lookup.sh",
             "nfsu2-one-click-wsl.sh", "nfsu2-stop-owned-tunnel.sh", "nfsu2-remove-verified-project.sh"
         })
         {
-            string oldPath = Path.Combine(root, name);
-            string newPath = Path.Combine(runtime, name);
-            if (!File.Exists(oldPath)) continue;
-            try
-            {
-                if (!File.Exists(newPath)) File.Move(oldPath, newPath);
-                else TryDelete(oldPath);
-            }
-            catch { }
+            TryDelete(Path.Combine(root, name));
+            TryDelete(Path.Combine(runtime, name));
         }
 
         try

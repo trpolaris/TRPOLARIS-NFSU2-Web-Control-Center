@@ -55,7 +55,7 @@
                     </StackPanel>
                     <Border Grid.Column="2" Background="#102D40" BorderBrush="#27566D" BorderThickness="1"
                             CornerRadius="8" Padding="10,6" VerticalAlignment="Center">
-                        <TextBlock Text="v1.7.2" FontSize="9" FontWeight="Bold" Foreground="#85B9FF" />
+                        <TextBlock x:Name="SplashVersionText" Text="" FontSize="9" FontWeight="Bold" Foreground="#85B9FF" />
                     </Border>
                 </Grid>
 

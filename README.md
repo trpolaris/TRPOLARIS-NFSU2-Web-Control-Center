@@ -154,10 +154,14 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 
     git clone https://github.com/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center.git
     Set-Location TRPOLARIS-NFSU2-Web-Control-Center
-    dotnet restore .\src\TRPOLARIS.NFSU2.WebControlCenter\TRPOLARIS.NFSU2.WebControlCenter.csproj -r win-x64
-    .\Publish-SingleFile.ps1
 
-Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir. Betik tek dosyalı Windows x64 EXE çıktısını `publish` klasörüne yazar.
+    dotnet restore .\src\TRPOLARIS.NFSU2.WebControlCenter\TRPOLARIS.NFSU2.WebControlCenter.csproj -r win-x64
+
+    dotnet publish .\src\TRPOLARIS.NFSU2.WebControlCenter\TRPOLARIS.NFSU2.WebControlCenter.csproj -c Release -r win-x64 --self-contained true -o .\publish
+
+Tek dosyalı yayın ayarları doğrudan `TRPOLARIS.NFSU2.WebControlCenter.csproj` içinde tanımlıdır. Ayrı bir yayın PowerShell betiği gerekmez. WPF arayüzü, uygulama kodu ve kurulum/güncelleme otomasyon kaynakları tek Windows x64 EXE dosyasına gömülür.
+
+Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir. Çıktı `publish\TRPOLARIS.NFSU2.WebControlCenter.exe` konumuna yazılır.
 
 ## 🔗 Bağlantılar
 

@@ -28,21 +28,16 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Validate embedded PowerShell syntax
+      - name: Validate embedded installer PowerShell syntax
         shell: pwsh
         run: |
-          $scripts = @(
-            'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1',
-            'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/ControlCenterUpdater.ps1'
-          )
-          foreach ($script in $scripts) {
-            $tokens = $null
-            $errors = $null
-            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
-            if ($errors.Count -gt 0) {
-              $errors | Format-List *
-              throw "PowerShell syntax validation failed: $script"
-            }
+          $script = 'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1'
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List *
+            throw "PowerShell syntax validation failed: $script"
           }
 
       - name: Restore
@@ -52,26 +47,31 @@ jobs:
           dotnet restore $project -r win-x64
           if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
 
-      - name: Publish single-file executable
+      - name: Publish native single-file application
         shell: pwsh
         run: |
           $project = 'src/TRPOLARIS.NFSU2.WebControlCenter/TRPOLARIS.NFSU2.WebControlCenter.csproj'
-          # Single-file publish settings are owned by the project file.
           dotnet publish $project -c Release -r win-x64 --self-contained true -o publish
           if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
-          $exe = 'publish/TRPOLARIS.NFSU2.WebControlCenter.exe'
-          if (-not (Test-Path $exe)) { throw 'Published EXE not found.' }
+
+          $exe = 'publish/TRPOLARIS.ControlCenter.exe'
+          if (-not (Test-Path $exe)) { throw 'Published Control Center executable not found.' }
+
           $sidecarScripts = @(Get-ChildItem 'publish' -Recurse -File -Filter '*.ps1')
           if ($sidecarScripts.Count -gt 0) {
-            $sidecarScripts | ForEach-Object { Write-Error "External PowerShell file found in publish output: $($_.FullName)" }
-            throw 'PowerShell automation must be embedded in the single-file executable.'
+            $sidecarScripts | ForEach-Object { Write-Error "Unexpected external script: $($_.FullName)" }
+            throw 'Runtime updater/installer scripts must not be published as sidecar files.'
           }
-          Get-FileHash $exe -Algorithm SHA256
+
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "EXE=$exe"
+          "SHA256=$hash"
+          "SIZE=$((Get-Item $exe).Length)"
 
       - name: Upload single-file executable
         uses: actions/upload-artifact@v4
         with:
-          name: TRPOLARIS-Control-Center-v1.7.3-win-x64
-          path: publish/TRPOLARIS.NFSU2.WebControlCenter.exe
+          name: TRPOLARIS-ControlCenter-v1.8.0-win-x64
+          path: publish/TRPOLARIS.ControlCenter.exe
           if-no-files-found: error
           retention-days: 30

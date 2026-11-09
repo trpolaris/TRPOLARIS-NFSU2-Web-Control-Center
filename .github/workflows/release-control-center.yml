@@ -39,7 +39,7 @@ jobs:
             throw 'The single-file release must not contain external PowerShell sidecars.'
           }
 
-      - name: Validate version and create legacy compatibility asset
+      - name: Validate release version and collect package metadata
         id: assets
         shell: pwsh
         run: |
@@ -54,26 +54,11 @@ jobs:
           }
 
           $exe = 'publish/TRPOLARIS.ControlCenter.exe'
-          $legacyExe = 'publish/TRPOLARIS.NFSU2.WebControlCenter.exe'
-          Copy-Item -LiteralPath $exe -Destination $legacyExe -Force
-
           $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $size = (Get-Item -LiteralPath $exe).Length
           $channel = if ($version -match '-') { 'beta' } else { 'stable' }
           $publishedAt = (Get-Date).ToUniversalTime().ToString('o')
-          $minimumSupportedVersion = '1.7.3'
-
-          # Compatibility manifest for already-installed v1.7.3 clients.
-          $legacyManifest = [ordered]@{
-            product = 'TRPOLARIS NFSU2 Web Control Center'
-            version = $version
-            tag = $tag
-            asset = 'TRPOLARIS.NFSU2.WebControlCenter.exe'
-            sha256 = $hash
-            architecture = 'win-x64'
-            publishedAt = $publishedAt
-          }
-          $legacyManifest | ConvertTo-Json -Depth 5 | Set-Content 'publish/latest.json' -Encoding utf8
+          $minimumSupportedVersion = '1.8.0'
 
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
@@ -177,6 +162,4 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             publish/TRPOLARIS.ControlCenter.exe
-            publish/TRPOLARIS.NFSU2.WebControlCenter.exe
             publish/update-manifest.json
-            publish/latest.json

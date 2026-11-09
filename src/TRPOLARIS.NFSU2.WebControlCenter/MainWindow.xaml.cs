@@ -623,7 +623,7 @@ public partial class MainWindow : Window
         });
         heroText.Children.Add(new TextBlock
         {
-            Text = "Control Center yalnızca Windows kurulumunu, kaldırmayı ve WSL–Docker güncelleme zincirini yönetir. Web sitesinin veya oyunun iç yönetim ekranlarına müdahale etmez.",
+            Text = "NFSU2 Server control yalnızca Windows kurulumunu, kaldırmayı ve WSL–Docker güncelleme zincirini yönetir. Web sitesinin veya oyunun iç yönetim ekranlarına müdahale etmez.",
             FontSize = 11, Foreground = BrushHex("#A9BED1"), TextWrapping = TextWrapping.Wrap, MaxWidth = 610
         });
         heroGrid.Children.Add(heroText);
@@ -647,7 +647,7 @@ public partial class MainWindow : Window
         statusGrid.Children.Add(BuildStatusCard("NFSU2 Server", "Server", "Kurulum / sağlık durumu"));
         root.Children.Add(statusGrid);
 
-        var lifecycle = MakeCard("DOCKER SERVİS YAŞAM DÖNGÜSÜ", "Yalnızca Control Center tarafından kurulan NFSU2 Compose servisini başlatır, durdurur veya yeniden başlatır. Diğer Docker projeleri hedeflenmez.");
+        var lifecycle = MakeCard("DOCKER SERVİS YAŞAM DÖNGÜSÜ", "Yalnızca NFSU2 Server control tarafından kurulan NFSU2 Compose servisini başlatır, durdurur veya yeniden başlatır. Diğer Docker projeleri hedeflenmez.");
         var lifecycleActions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
         lifecycleActions.Children.Add(MakeButton("▶  Başlat", "ModernButton", async (_, _) => await ManageServerAsync("up -d")));
         lifecycleActions.Children.Add(MakeButton("■  Durdur", "DangerButton", async (_, _) => await ManageServerAsync("stop"), new Thickness(9, 0, 0, 0)));
@@ -703,7 +703,7 @@ public partial class MainWindow : Window
         gamePanel.Children.Add(_gameDirBox);
         var gameActions = new WrapPanel();
         _gameDownloadStartButton = MakeButton("İndir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
-        _gameDownloadStartButton.ToolTip = "ZIP arşivini Control Center üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
+        _gameDownloadStartButton.ToolTip = "ZIP arşivini NFSU2 Server control üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
         gameActions.Children.Add(_gameDownloadStartButton);
         gameActions.Children.Add(MakeButton("Bilgisayardaki ZIP arşivini içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
         gameActions.Children.Add(MakeButton("Klasörü doğrula", "SecondaryButton", VerifyGameFolder_Click, new Thickness(8, 0, 0, 0)));
@@ -1811,16 +1811,16 @@ done
         // the project lookup); avoid wslpath, which fails in some WSL configurations.
         string windowsRoot = Path.GetFullPath(RootDir);
         string driveRoot = Path.GetPathRoot(windowsRoot) ?? throw new OperationFailureException(
-            "Control Center Windows sürücü kökü çözümlenemedi: " + windowsRoot,
+            "NFSU2 Server control Windows sürücü kökü çözümlenemedi: " + windowsRoot,
             "WINDOWS_CONTROL_ROOT_INVALID");
         string drive = driveRoot.TrimEnd('\\', ':');
         if (drive.Length != 1 || !char.IsLetter(drive[0]))
-            throw new OperationFailureException("Control Center sürücü harfi çözümlenemedi: " + windowsRoot,
+            throw new OperationFailureException("NFSU2 Server control sürücü harfi çözümlenemedi: " + windowsRoot,
                 "WINDOWS_CONTROL_ROOT_INVALID");
         string relativeRoot = windowsRoot[driveRoot.Length..].Replace('\\', '/').Trim('/');
         string controlRoot = "/mnt/" + char.ToLowerInvariant(drive[0]) + "/" + relativeRoot;
         if (string.IsNullOrWhiteSpace(relativeRoot))
-            throw new OperationFailureException("Control Center kök klasörü boş çözümlendi.", "WINDOWS_CONTROL_ROOT_INVALID");
+            throw new OperationFailureException("NFSU2 Server control kök klasörü boş çözümlendi.", "WINDOWS_CONTROL_ROOT_INVALID");
 
         // Verify the exact mapped directory before invoking the updater or Docker.
         var rootCheck = await RunCommandAsync(wsl,
@@ -1828,11 +1828,11 @@ done
             TimeSpan.FromSeconds(15), RootDir, logOutput: false, logCategory: "WSL");
         if (rootCheck.ExitCode != 0)
             throw new OperationFailureException(
-                "Control Center klasörü WSL içinde bulunamadı. Windows: " + windowsRoot +
+                "NFSU2 Server control klasörü WSL içinde bulunamadı. Windows: " + windowsRoot +
                 "; beklenen WSL yolu: " + controlRoot +
                 ". WSL automount /mnt ayarını veya bu klasörün erişimini kontrol et.",
                 "WSL_CONTROL_ROOT_NOT_MOUNTED");
-        AppendLog("Control Center WSL yolu doğrulandı: " + controlRoot, "OK", "WSL");
+        AppendLog("NFSU2 Server control WSL yolu doğrulandı: " + controlRoot, "OK", "WSL");
 
         // Prepare Docker Desktop's isolated CLI config without a shell mkdir target.
         const string dockerConfigPython = """
@@ -2048,7 +2048,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             reportProgress(8, "Güncellemeler denetleniyor",
                 settings.Channel == UpdateChannel.Beta
                     ? "Kararlı ve beta yayınları SemVer sırasına göre kontrol ediliyor."
-                    : "Yayımlanmış kararlı Control Center sürümü kontrol ediliyor.");
+                    : "Yayımlanmış kararlı NFSU2 Server control sürümü kontrol ediliyor.");
             await Task.Delay(150);
             using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
             var release = await GetLatestControlCenterReleaseAsync(startupTimeout.Token);
@@ -2056,7 +2056,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             {
                 AppendLog($"Başlangıç denetimi tamamlandı. Kurulu sürüm v{ControlCenterCurrentVersion}; kanal={settings.Channel}.",
                     "OK", "APP");
-                reportProgress(82, "Control Center güncel",
+                reportProgress(82, "NFSU2 Server control güncel",
                     $"Yüklü v{ControlCenterCurrentVersion} · {settings.Channel} kanalı");
                 await Task.Delay(220);
                 reportProgress(84, "Güncelleme kontrolü tamamlandı", "Yeni sürüm gerekmiyor. Kurulu sürüm kullanılacak.");
@@ -2077,7 +2077,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             reportProgress(86, "Güncelleme denetlenemedi",
                 "Mevcut sürüm değiştirilmedi. Bağlantı daha sonra tekrar denetlenebilir.");
             await Task.Delay(400);
-            reportProgress(86, "Güncelleme kontrolü tamamlandı", "Mevcut Control Center sürümüyle devam ediliyor.");
+            reportProgress(86, "Güncelleme kontrolü tamamlandı", "Mevcut NFSU2 Server control sürümüyle devam ediliyor.");
             return false;
         }
     }
@@ -2504,8 +2504,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         }
 
         if (checkButton is not null) checkButton.IsEnabled = false;
-        FooterStatus.Text = "Control Center güncellemeleri denetleniyor...";
-        AppendLog($"Control Center güncellemesi denetleniyor. Kaynak: https://github.com/{UpdateEngine.Repository}",
+        FooterStatus.Text = "NFSU2 Server control güncellemeleri denetleniyor...";
+        AppendLog($"NFSU2 Server control güncellemesi denetleniyor. Kaynak: https://github.com/{UpdateEngine.Repository}",
             "INFO", "APP");
         try
         {
@@ -2529,8 +2529,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             bool mandatory = UpdateEngine.IsMandatoryUpdate(ControlCenterCurrentVersion, release.MinimumSupportedVersion);
             if (!updateAvailable && !mandatory)
             {
-                FooterStatus.Text = $"Control Center güncel · v{ControlCenterCurrentVersion}";
-                AppendLog($"Control Center güncel. Yüklü=v{ControlCenterCurrentVersion}; yayın=v{release.Version}.",
+                FooterStatus.Text = $"NFSU2 Server control güncel · v{ControlCenterCurrentVersion}";
+                AppendLog($"NFSU2 Server control güncel. Yüklü=v{ControlCenterCurrentVersion}; yayın=v{release.Version}.",
                     "OK", "APP");
                 ShowModernUpdateDialog(
                     "Her şey güncel",
@@ -2574,8 +2574,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         }
         catch (Exception ex)
         {
-            FooterStatus.Text = "Control Center güncellemesi denetlenemedi.";
-            AppendLog("Control Center güncelleme denetimi başarısız: " + ex.Message, "HATA", "APP");
+            FooterStatus.Text = "NFSU2 Server control güncellemesi denetlenemedi.";
+            AppendLog("NFSU2 Server control güncelleme denetimi başarısız: " + ex.Message, "HATA", "APP");
             ShowModernUpdateDialog(
                 "Güncelleme denetlenemedi",
                 ex.Message,
@@ -2609,7 +2609,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         string targetDirectory = Path.GetDirectoryName(Path.GetFullPath(targetExe)) ?? string.Empty;
         if (string.IsNullOrWhiteSpace(targetDirectory) ||
             targetDirectory.StartsWith(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Control Center geçici klasörden çalışıyor. Önce uygulamayı kalıcı bir klasöre taşı ve oradan başlat.");
+            throw new InvalidOperationException("NFSU2 Server control geçici klasörden çalışıyor. Önce uygulamayı kalıcı bir klasöre taşı ve oradan başlat.");
 
         try
         {
@@ -2620,13 +2620,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         catch (Exception ex)
         {
             throw new UnauthorizedAccessException(
-                "Uygulama klasörüne yazma izni yok. Control Center'ı yazma izni olan bir klasöre kurup tekrar dene.", ex);
+                "Uygulama klasörüne yazma izni yok. NFSU2 Server control'ı yazma izni olan bir klasöre kurup tekrar dene.", ex);
         }
 
         FooterStatus.Text = $"v{release.Version} indiriliyor...";
         progress?.Invoke(52, "İmzalı güncelleme indiriliyor",
             $"v{release.Version} · {FormatBytes(release.AssetSize)}");
-        AppendLog($"Control Center v{release.Version} indiriliyor. Kanal={release.Channel}; paket={FormatBytes(release.AssetSize)}.",
+        AppendLog($"NFSU2 Server control v{release.Version} indiriliyor. Kanal={release.Channel}; paket={FormatBytes(release.AssetSize)}.",
             "INFO", "APP");
 
         var reporter = new Progress<(long Received, long Total)>(p =>
@@ -2637,7 +2637,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         });
         string downloaded = await UpdateEngine.DownloadPackageAsync(release, reporter);
         progress?.Invoke(92, "SHA-256 doğrulandı", "İndirilen EXE manifestteki dosyayla eşleşiyor.");
-        AppendLog($"Control Center v{release.Version} indirildi ve SHA-256 doğrulandı: {release.Sha256}.",
+        AppendLog($"NFSU2 Server control v{release.Version} indirildi ve SHA-256 doğrulandı: {release.Sha256}.",
             "OK", "APP");
 
         if (!automatic)
@@ -4800,7 +4800,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         try
         {
-            const string displayName = "TRPOLARIS NFSU2 Web Control Center LAN";
+            const string displayName = "TRPOLARIS NFSU2 Web NFSU2 Server control LAN";
             string script = "$displayName = '" + displayName + "'; " +
                 "Get-NetFirewallRule -DisplayName $displayName -ErrorAction SilentlyContinue | Remove-NetFirewallRule; " +
                 "New-NetFirewallRule -DisplayName $displayName -Direction Inbound -Action Allow -Protocol TCP -LocalPort " + port.ToString(CultureInfo.InvariantCulture) + " -Profile Private | Out-Null";
@@ -5442,7 +5442,7 @@ rm -f "$root/NFSU2-PUBLIC-URL.txt" "$root/nfsu2-access-url.txt" "$root/nfsu2-acc
     {
         try
         {
-            string script = "$names = @('TRPOLARIS NFSU2 LAN HTTPS','TRPOLARIS NFSU2 Web Control Center LAN'); " +
+            string script = "$names = @('TRPOLARIS NFSU2 LAN HTTPS','TRPOLARIS NFSU2 Web NFSU2 Server control LAN'); " +
                 "foreach ($name in $names) { Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue }";
             string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
             var result = await RunCommandAsync(GetPowerShellExe(),

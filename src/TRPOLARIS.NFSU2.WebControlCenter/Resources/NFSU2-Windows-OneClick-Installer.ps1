@@ -607,7 +607,7 @@ try {
         $probeErrorActionPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'
-            $dockerProbe = @(& wsl.exe -d $Distro -u root -- env -u DOCKER_HOST -u DOCKER_CONTEXT docker info --format '{{.OSType}}' 2>$null)
+            $dockerProbe = @(& wsl.exe -d $Distro -u root -- env -u DOCKER_HOST -u DOCKER_CONTEXT docker --context default info --format '{{.OSType}}' 2>$null)
             $dockerProbeCode = $LASTEXITCODE
         } finally {
             $ErrorActionPreference = $probeErrorActionPreference

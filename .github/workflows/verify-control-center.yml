@@ -57,6 +57,7 @@ jobs:
           bash -n "$RUNNER_TEMP/nfsu2-one-click-wsl.sh"
           bash -n 'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/nfsu2-project-lookup.sh'
           bash .github/verify-project-lookup.sh
+          bash .github/verify-checkout-refresh.sh "$RUNNER_TEMP/nfsu2-one-click-wsl.sh"
           python3 - <<'PY'
           from pathlib import Path
           source = Path("src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1").read_text(encoding="utf-8")

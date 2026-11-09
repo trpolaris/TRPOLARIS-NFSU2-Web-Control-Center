@@ -4,7 +4,7 @@ MODE="${1:?mode missing}"
 HTTP_PORT="${2:?http port missing}"
 LAN_IP="${3:-}"
 LAN_PORT="${4:-8443}"
-ROOT='/mnt/c/nfsu2'
+ROOT="${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}"
 PROJECT="${NFSU2_PROJECT_DIR:-}"
 if [[ -z "$PROJECT" ]]; then
   BASE_HOME="${NFSU2_INSTALL_HOME:-$(getent passwd "$(id -un)" | cut -d: -f6)}"

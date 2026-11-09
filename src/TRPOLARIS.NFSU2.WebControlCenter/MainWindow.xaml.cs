@@ -4891,7 +4891,7 @@ export DOCKER_CONFIG="$safe_config"
             if (_accessStateLabel is not null) _accessStateLabel.Text = "Profil uygulanıyor: " + mode;
             _accessProcess?.Dispose();
             var psi = new ProcessStartInfo { FileName = wslExe, UseShellExecute = false, CreateNoWindow = false, WindowStyle = ProcessWindowStyle.Normal, WorkingDirectory = RootDir };
-            foreach (var arg in new[] { "-d", distro, "-u", "root", "--", "env", "HOME=/root", "NFSU2_INSTALL_HOME=" + userHome, "NFSU2_PROJECT_DIR=" + projectDirectory, "SUDO_USER=" + (installUser ?? ""), "NFSU2_STOP_REQUEST_FILE=/mnt/c/nfsu2/logs/.nfsu2-safe-stop.request", "bash", "/mnt/c/nfsu2/nfsu2-access.sh", mode, port.ToString(), ip, lanPort.ToString() }) psi.ArgumentList.Add(arg);
+            foreach (var arg in new[] { "-d", distro, "-u", "root", "--", "env", "HOME=/root", "NFSU2_CONTROL_ROOT=" + "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2", "NFSU2_INSTALL_HOME=" + userHome, "NFSU2_PROJECT_DIR=" + projectDirectory, "SUDO_USER=" + (installUser ?? ""), "NFSU2_STOP_REQUEST_FILE=" + "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/logs/.nfsu2-safe-stop.request", "bash", "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/nfsu2-access.sh", mode, port.ToString(), ip, lanPort.ToString() }) psi.ArgumentList.Add(arg);
             _accessProcess = Process.Start(psi) ?? throw new InvalidOperationException("WSL erişim komutu başlatılamadı.");
             _accessLogTimer.Start();
             await _accessProcess.WaitForExitAsync(cancellationToken);
@@ -5318,7 +5318,7 @@ fi
         var path = Path.Combine(RootDir, "nfsu2-remove-verified-project.sh");
         Directory.CreateDirectory(RootDir); File.WriteAllText(path, shell.Replace("\r\n", "\n"), new UTF8Encoding(false));
         AppendLog("WSL içinde doğrulanmış NFSU2 proje klasörü aranıyor; Git remote eşleşmiyorsa korunacak.", "INFO", "WSL");
-        var removeResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "bash", "/mnt/c/nfsu2/nfsu2-remove-verified-project.sh" }, TimeSpan.FromMinutes(3), logCategory: "WSL");
+        var removeResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "bash", "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/nfsu2-remove-verified-project.sh" }, TimeSpan.FromMinutes(3), logCategory: "WSL");
         try { if (File.Exists(path)) File.Delete(path); } catch { }
         if (removeResult.ExitCode != 0) AppendLog($"WSL proje klasörü temizliği tamamlanamadı (kod {removeResult.ExitCode}); WSL günlüğündeki ayrıntıları kontrol et.", "UYARI", "WSL");
     }
@@ -5388,7 +5388,7 @@ fi
         const string shell = """
 #!/usr/bin/env bash
 set -u
-root=/mnt/c/nfsu2
+root=${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}
 pf="$root/.nfsu2-cloudflared.pid"
 port="${1:-9093}"
 if [[ -f "$pf" ]]; then
@@ -5408,7 +5408,7 @@ rm -f "$root/NFSU2-PUBLIC-URL.txt" "$root/nfsu2-access-url.txt" "$root/nfsu2-acc
 echo "NFSU2 access URL/profile markers cleared."
 """;
         File.WriteAllText(helperPath, shell.Replace("\r\n", "\n"), new UTF8Encoding(false));
-        var stopResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "bash", "/mnt/c/nfsu2/nfsu2-stop-owned-tunnel.sh", GetConfiguredPort().ToString() }, TimeSpan.FromSeconds(30), logCategory: "WSL");
+        var stopResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "bash", "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/nfsu2-stop-owned-tunnel.sh", GetConfiguredPort().ToString() }, TimeSpan.FromSeconds(30), logCategory: "WSL");
         try { if (File.Exists(helperPath)) File.Delete(helperPath); } catch { }
         if (stopResult.ExitCode != 0) AppendLog($"NFSU2 tünel temizliği başarısız (kod {stopResult.ExitCode}).", "UYARI", "WSL");
     }

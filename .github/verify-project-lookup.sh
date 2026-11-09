@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-repo_root="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-lookup="\${1:-$repo_root/src/TRPOLARIS.NFSU2.WebControlCenter/Resources/nfsu2-project-lookup.sh}"
+repo_root="$(pwd)"
+lookup="$repo_root/src/TRPOLARIS.NFSU2.WebControlCenter/Resources/nfsu2-project-lookup.sh"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 home="$tmp/home"

@@ -10,6 +10,26 @@ public partial class App : Application
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+        if (NativeUpdateHelper.IsHelperInvocation(e.Args))
+        {
+            int helperExitCode = await NativeUpdateHelper.RunHelperAsync(e.Args);
+            Shutdown(helperExitCode);
+            return;
+        }
+
+        string? updateHealthMarker = NativeUpdateHelper.GetArgumentValue(e.Args, "--update-health");
+        string? helperCleanupPath = NativeUpdateHelper.GetArgumentValue(e.Args, "--cleanup-helper");
+        NativeUpdateHelper.ScheduleHelperCleanup(helperCleanupPath);
+
+        string? runningExecutable = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(updateHealthMarker) &&
+            NativeUpdateHelper.NeedsExecutableNameMigration(runningExecutable))
+        {
+            NativeUpdateHelper.StartLegacyNameMigration(runningExecutable!);
+            Shutdown();
+            return;
+        }
+
         var startupClock = Stopwatch.StartNew();
         var splash = new SplashWindow();
         splash.Show();
@@ -29,6 +49,7 @@ public partial class App : Application
             await Task.Delay(180);
             main.Show();
             ShutdownMode = ShutdownMode.OnMainWindowClose;
+            NativeUpdateHelper.WriteHealthMarker(updateHealthMarker);
             splash.Close();
         }
         catch (Exception)
@@ -39,6 +60,7 @@ public partial class App : Application
             await Task.Delay(180);
             main.Show();
             ShutdownMode = ShutdownMode.OnMainWindowClose;
+            NativeUpdateHelper.WriteHealthMarker(updateHealthMarker);
             splash.Close();
         }
     }

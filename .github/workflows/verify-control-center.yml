@@ -42,8 +42,17 @@ jobs:
           if len(matches) != 1:
               raise SystemExit(f"Expected one embedded Bash here-string, found {len(matches)}")
           target = pathlib.Path(os.environ["RUNNER_TEMP"]) / "nfsu2-one-click-wsl.sh"
-          target.write_text(matches[0].replace("\r\n", "\n"), encoding="utf-8")
-          print(f"Extracted {len(matches[0].splitlines())} embedded Bash lines to {target}")
+          bash_script = matches[0].replace("\r\n", "\n")
+          required = (
+              "fetch --unshallow origin main",
+              "merge --ff-only FETCH_HEAD",
+              "diff --quiet --",
+          )
+          missing = [needle for needle in required if needle not in bash_script]
+          if missing:
+              raise SystemExit(f"Existing-checkout refresh safeguards are missing: {missing}")
+          target.write_text(bash_script, encoding="utf-8")
+          print(f"Extracted {len(bash_script.splitlines())} embedded Bash lines to {target}")
           PY
           bash -n "$RUNNER_TEMP/nfsu2-one-click-wsl.sh"
 
@@ -101,7 +110,7 @@ jobs:
       - name: Upload single-file executable
         uses: actions/upload-artifact@v4
         with:
-          name: NFSU2-Server-control-v1.8.1-win-x64
+          name: NFSU2-Server-control-v1.8.2-win-x64
           path: publish/NFSU2 Server control.exe
           if-no-files-found: error
           retention-days: 30

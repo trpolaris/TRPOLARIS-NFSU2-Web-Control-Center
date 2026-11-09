@@ -72,7 +72,7 @@ internal static class NativeUpdateHelper
     public static bool NeedsExecutableNameMigration(string? executablePath)
     {
         if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath)) return false;
-        return !Path.GetFileName(executablePath).Equals(UpdateEngine.ExecutableName, StringComparison.OrdinalIgnoreCase);
+        return Path.GetFileName(executablePath).Equals(UpdateEngine.LegacyExecutableName, StringComparison.OrdinalIgnoreCase);
     }
 
     public static void StartLegacyNameMigration(string executablePath)

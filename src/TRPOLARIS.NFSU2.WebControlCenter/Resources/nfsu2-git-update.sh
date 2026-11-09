@@ -9,11 +9,10 @@ set -Eeuo pipefail
 SCRIPT_PATH="$(realpath -e -- "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd -P)"
 PROJECT_DIR="$(pwd -P)"
-ROOT="${NFSU2_CONTROL_ROOT:-$SCRIPT_DIR}"
-# Defensive fallback: an empty environment variable must never produce an empty mkdir target.
-if [[ -z "${ROOT//[[:space:]]/}" ]]; then ROOT="$SCRIPT_DIR"; fi
-ROOT="${ROOT%/}"
-if [[ -z "$ROOT" ]]; then ROOT="$SCRIPT_DIR"; fi
+# The updater is extracted directly into the Control Center root. Its own directory
+# is the source of truth, not a possibly empty inherited environment variable.
+ROOT="$SCRIPT_DIR"
+[[ -n "$ROOT" && -d "$ROOT" ]] || { echo "[UPDATER_BOOT] invalid script directory: $SCRIPT_DIR" >&2; exit 1; }
 MODULE_DIR="$ROOT/module"
 LOG_DIR="$ROOT/logs"
 LOG="$LOG_DIR/nfsu2-update-$(date +%Y%m%d-%H%M%S).log"
@@ -37,7 +36,8 @@ HOST_MODULE_UPDATED=0
 ROLLBACK_READY=0
 STASH_REF=""
 
-printf '%s\\n' "[UPDATER_BOOT] script=$SCRIPT_PATH project=$PROJECT_DIR control_root=${NFSU2_CONTROL_ROOT:-<unset>} root=$ROOT log_dir=$LOG_DIR" >&2
+printf '%s\n' "[UPDATER_BOOT] script=$SCRIPT_PATH project=$PROJECT_DIR control_root=${NFSU2_CONTROL_ROOT:-<unset>} root=$ROOT log_dir=$LOG_DIR" >&2
+[[ -n "$LOG_DIR" ]] || { echo '[UPDATER_BOOT] LOG_DIR is empty; aborting.' >&2; exit 1; }
 mkdir -p -- "$LOG_DIR"
 exec > >(tee -a "$LOG") 2>&1
 

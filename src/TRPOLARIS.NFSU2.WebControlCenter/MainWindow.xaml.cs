@@ -1761,8 +1761,22 @@ done
         var location = await ResolveWslProjectAsync(log);
         var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
 
-        // Prepare Docker Desktop's isolated CLI context as root. Compose and updater
-        // commands run once as root; the updater restores checkout ownership at exit.
+        // Use WSL to translate RootDir instead of deriving /mnt/<drive> in managed code.
+        var rootProbe = await RunCommandAsync(wsl,
+            new[] { "-d", location.Distro, "-u", "root", "--", "wslpath", "-u", RootDir },
+            TimeSpan.FromSeconds(15), RootDir, logOutput: false, logCategory: "WSL");
+        string controlRoot = rootProbe.Output.Trim().TrimEnd('/');
+        if (rootProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(controlRoot) ||
+            !controlRoot.StartsWith("/", StringComparison.Ordinal))
+            throw new OperationFailureException(
+                "WSL, Control Center klasör yolunu çeviremedi. Windows yolu: " + RootDir +
+                "; wslpath çıkış kodu: " + rootProbe.ExitCode +
+                "; çıktı: " + TailText(rootProbe.Output, 1000),
+                "WSL_CONTROL_ROOT_RESOLUTION_FAILED");
+        AppendLog("WSL kontrol merkezi yolu doğrulandı: " + controlRoot, "OK", "WSL");
+
+        // Python creates the isolated Docker config directory itself. This bootstrap
+        // has no mkdir command that could receive an empty environment-derived value.
         const string dockerConfigPython = """
 import json, pathlib, sys
 source, target = map(pathlib.Path, sys.argv[1:3])
@@ -1774,35 +1788,26 @@ except Exception:
     data = {}
 data.pop("credsStore", None)
 data.pop("credHelpers", None)
+target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
 """;
         string pythonB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(dockerConfigPython));
 
-        string windowsRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\";
-        string drive = windowsRoot.TrimEnd('\\', ':');
-        if (drive.Length != 1 || !char.IsLetter(drive[0]))
-            throw new OperationFailureException("Windows sistem sürücüsü WSL içinde çözümlenemedi.", "WSL_WINDOWS_DRIVE_UNKNOWN");
-        string controlRoot = "/mnt/" + char.ToLowerInvariant(drive[0]) + "/nfsu2";
-
-        // Avoid Bash here-documents in a C# raw string: Windows source line endings
-        // can otherwise prevent the terminator from matching inside the WSL shell.
         string shell = """
 set -Eeuo pipefail
-export NFSU2_CONTROL_ROOT='__NFSU2_CONTROL_ROOT__'
-printf '%s\\n' "[CONTROL_CENTER] NFSU2_CONTROL_ROOT=$NFSU2_CONTROL_ROOT"
-source_config="${DOCKER_CONFIG:-/root/.docker}"
+source_config="/root/.docker"
 safe_config="/root/.config/nfsu2-control-center-docker"
-mkdir -p -- "$safe_config"
 printf '%s' '__DOCKER_CONFIG_PYTHON_B64__' | base64 -d | python3 - "$source_config/config.json" "$safe_config/config.json"
 if [[ -d "$source_config/contexts" && ! -d "$safe_config/contexts" ]]; then
   cp -a "$source_config/contexts" "$safe_config/contexts"
 fi
 export DOCKER_CONFIG="$safe_config"
+printf '[CONTROL_CENTER] project=%s control_root=%s\n' "$PWD" "$NFSU2_CONTROL_ROOT"
 """;
-        shell = shell.Replace("__DOCKER_CONFIG_PYTHON_B64__", pythonB64, StringComparison.Ordinal)
-            .Replace("__NFSU2_CONTROL_ROOT__", controlRoot, StringComparison.Ordinal);
+        shell = shell.Replace("__DOCKER_CONFIG_PYTHON_B64__", pythonB64, StringComparison.Ordinal);
 
-        string projectCommand = "cd " + QuoteBash(location.ProjectDirectory) + " && " + command;
+        string resolvedCommand = command.Replace("__NFSU2_CONTROL_ROOT__", controlRoot, StringComparison.Ordinal);
+        string projectCommand = "cd " + QuoteBash(location.ProjectDirectory) + " && " + resolvedCommand;
         string finalShell = (shell + "\n" + projectCommand)
             .Replace("\r\n", "\n", StringComparison.Ordinal);
 
@@ -2701,7 +2706,7 @@ export DOCKER_CONFIG="$safe_config"
             Directory.CreateDirectory(Path.Combine(RootDir, "logs"));
             ExtractResource(GitUpdateResource, "nfsu2-git-update.sh", Path.Combine(RootDir, "nfsu2-git-update.sh"));
             SetOperationProgress(8, "GitHub main, WSL paketleri ve Docker bağlantısı doğrulanıyor");
-            var pull = await RunWslProjectCommandAsync("bash " + QuoteBashArgument("/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/nfsu2-git-update.sh"), TimeSpan.FromMinutes(90));
+            var pull = await RunWslProjectCommandAsync("bash __NFSU2_CONTROL_ROOT__/nfsu2-git-update.sh", TimeSpan.FromMinutes(90));
             if (pull.ExitCode != 0)
             {
                 string detail = TailText(pull.Output, 4500).Trim();

@@ -195,6 +195,11 @@
                                         <TextBlock Text="Uygulama güncellemesi" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+                                <Button Click="UpdateSettings_Click" ToolTip="Güncelleme kanalı, kontrol sıklığı ve geçmiş"
+                                        Style="{StaticResource SecondaryButton}" Padding="10,8" MinHeight="36" Margin="0,0,8,0">
+                                    <Path Data="M12,8.2 A3.8,3.8 0 1 0 12,15.8 A3.8,3.8 0 1 0 12,8.2 M19.4,13.5 L21,14.7 L19.5,17.3 L17.9,16.5 A8,8 0 0 1 16.2,17.5 L16,19.4 L13,20 L12.3,18.2 A8,8 0 0 1 10.3,18.1 L9.2,19.6 L6.5,18.2 L7,16.4 A8,8 0 0 1 5.6,14.9 L3.7,15.2 L2.8,12.2 L4.5,11.2 A8,8 0 0 1 4.7,9.2 L3.2,8 L4.7,5.4 L6.5,6.1 A8,8 0 0 1 8.2,5.1 L8.4,3.2 L11.4,2.6 L12.1,4.4 A8,8 0 0 1 14.1,4.5 L15.2,3 L17.9,4.4 L17.4,6.2 A8,8 0 0 1 18.8,7.7 L20.7,7.4 L21.6,10.4 L19.9,11.4 A8,8 0 0 1 19.4,13.5 Z"
+                                          Width="16" Height="16" Stretch="Uniform" Stroke="#9CC8FF" StrokeThickness="1.1" Fill="Transparent" />
+                                </Button>
                                 <Button x:Name="HeaderRefreshButton" Click="RefreshStatus_Click" ToolTip="WSL, Ubuntu ve Docker durumunu yenile"
                                         Style="{StaticResource SecondaryButton}" Height="36" MinHeight="36" Padding="10,8">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

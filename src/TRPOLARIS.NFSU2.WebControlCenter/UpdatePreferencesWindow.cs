@@ -89,7 +89,8 @@ internal sealed class UpdatePreferencesWindow : Window
         caption.Child = captionGrid;
         caption.MouseLeftButtonDown += (_, e) =>
         {
-            if (e.OriginalSource is not Button && e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+            if (e.OriginalSource is DependencyObject source && IsInsideButton(source)) return;
+            if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
                 DragMove();
         };
         Grid.SetRow(caption, 0);
@@ -258,8 +259,17 @@ internal sealed class UpdatePreferencesWindow : Window
         parent.Children.Add(combo);
     }
 
+    private static bool IsInsideButton(DependencyObject source)
+    {
+        for (DependencyObject? current = source; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (current is Button) return true;
+        return false;
+    }
+
     private static void StyleButton(Button button, string background, string foreground)
     {
+        try { button.Style = (Style)Application.Current.FindResource(background == "#176B70" ? "ModernButton" : "SecondaryButton"); } catch { }
+        button.MinHeight = 40;
         button.Background = Brush(background);
         button.Foreground = Brush(foreground);
         button.BorderBrush = Brush("#36536A");

@@ -49,9 +49,10 @@ internal sealed record ControlCenterRelease(
 internal static class UpdateEngine
 {
     public const string Repository = "trpolaris/TRPOLARIS-NFSU2-Web-Control-Center";
-    public const string Product = "TRPOLARIS Control Center";
-    public const string ExecutableName = "TRPOLARIS.ControlCenter.exe";
-    public const string LegacyExecutableName = "TRPOLARIS.NFSU2.WebControlCenter.exe";
+    public const string Product = "NFSU2 Server control";
+    public const string ExecutableName = "NFSU2 Server control.exe";
+    public const string LegacyExecutableName = "TRPOLARIS.ControlCenter.exe";
+    public const string PreviousLegacyExecutableName = "TRPOLARIS.NFSU2.WebControlCenter.exe";
     private const string KeyId = "f58f0a93a19ca147";
     private const string SignatureAlgorithm = "RSA-SHA256";
     private const string PublicKeyPem = @"-----BEGIN PUBLIC KEY-----

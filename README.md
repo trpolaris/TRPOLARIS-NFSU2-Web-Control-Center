@@ -124,7 +124,7 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 - 🛠️ Windows PowerShell 5.1'in yönlendirilmiş Docker hata çıktısını bekleme döngüsünü durduran hata olarak değerlendirmesi düzeltildi.
 - 🐧 Farklı Windows sürücüleri ve Linux kullanıcı adları için dinamik WSL proje yolu/kullanıcı keşfi iyileştirildi.
 - 📁 Dosya yöneticisi, dosya sahipliği ve altyapı güncelleme yolları sağlamlaştırıldı.
-- 🔄 Uygulama başlık çubuğu ve pencere başlığı sürümü artık derlemenin AssemblyVersion bilgisinden otomatik alınır.
+- 🔄 Ana pencere başlığı, üst çubuk ve splash screen sürüm bilgileri ortak AssemblyVersion sağlayıcısından otomatik alınır; eski sürüm numarasının ekranda kalması önlenir.
 
 ### v1.7.2 · Arayüz, indirme ve kullanım iyileştirmeleri
 - 🎨 Güncelleme denetimi penceresi Night Circuit tasarımına taşındı; güncel sürüm bilgisi sadeleştirildi.

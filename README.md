@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏁 TRPOLARIS Control Center
+# 🏁 NFSU2 Server control
 
 ### 🌌 Night Circuit · Windows Infrastructure Control
 
@@ -20,11 +20,11 @@
 
 ## 📖 Proje hakkında
 
-**TRPOLARIS NFSU2 Web Control Center**, NFSU2 Web sunucusunu Windows bilgisayarda kurmak ve çalıştığı altyapıyı güncel tutmak için geliştirilmiş bir **Windows masaüstü uygulamasıdır**.
+**NFSU2 Server control**, NFSU2 Web sunucusunu Windows bilgisayarda kurmak ve çalıştığı altyapıyı güncel tutmak için geliştirilmiş bir **Windows masaüstü uygulamasıdır**.
 
-Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanlı hazırlık ve derleme görevlerini **WSL 2 / Ubuntu** üzerinde yürütür, sunucuyu ise **Docker Desktop** ile çalıştırır. Böylece WSL, proje araçları, web kaynakları, Rust sunucusu ve WASM modülünü ayrı ayrı elle hazırlamak yerine kurulum ve güncelleme akışını Control Center üzerinden yönetebilirsiniz.
+Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanlı hazırlık ve derleme görevlerini **WSL 2 / Ubuntu** üzerinde yürütür, sunucuyu ise **Docker Desktop** ile çalıştırır. Böylece WSL, proje araçları, web kaynakları, Rust sunucusu ve WASM modülünü ayrı ayrı elle hazırlamak yerine kurulum ve güncelleme akışını NFSU2 Server control üzerinden yönetebilirsiniz.
 
-> **Kapsamı:** Control Center web sitesini veya oyunu yönetmez. Oyuncu, sohbet, yarış ya da oyun içi yönetim konsolu değildir. Görevi NFSU2 Web sunucusunun Windows üzerindeki kurulumunu, altyapı bakımını, servis yaşam döngüsünü ve kaldırılmasını kolaylaştırmaktır. Web uygulaması ve sunucu kaynak kodu ayrı [trpolaris/NFSU2-Web](https://github.com/trpolaris/NFSU2-Web) deposunda geliştirilir.
+> **Kapsamı:** NFSU2 Server control web sitesini veya oyunu yönetmez. Oyuncu, sohbet, yarış ya da oyun içi yönetim konsolu değildir. Görevi NFSU2 Web sunucusunun Windows üzerindeki kurulumunu, altyapı bakımını, servis yaşam döngüsünü ve kaldırılmasını kolaylaştırmaktır. Web uygulaması ve sunucu kaynak kodu ayrı [trpolaris/NFSU2-Web](https://github.com/trpolaris/NFSU2-Web) deposunda geliştirilir.
 
 ## ✨ Öne çıkan özellikler
 
@@ -47,7 +47,7 @@ Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanl
 Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar temel bölümlerini sırayla gösterir. Tekil görselleri büyütmek için ilgili ekran görüntüsüne tıklayın.
 
 <p align="center">
-  <img src="docs/screenshots/control-center-tour.gif" alt="TRPOLARIS Control Center arayüz ekran turu" width="900">
+  <img src="docs/screenshots/control-center-tour.gif" alt="NFSU2 Server control arayüz ekran turu" width="900">
 </p>
 
 
@@ -69,7 +69,7 @@ Control Center, Windows arayüzünden aşağıdaki zinciri yönetir:
 
 - Güncelleme sırasında oyun klasörü ve kalıcı Docker volume verileri normal akışta silinmez.
 - Docker volume'lerini silen bir Compose işlemi normal güncelleme adımının parçası değildir.
-- Yalnızca Control Center tarafından kurulan/doğrulanan NFSU2 Compose servisi hedeflenir; diğer Docker projeleri hedeflenmez.
+- Yalnızca NFSU2 Server control tarafından kurulan/doğrulanan NFSU2 Compose servisi hedeflenir; diğer Docker projeleri hedeflenmez.
 - Kaldırma ekranındaki Ubuntu WSL, Docker Desktop, oyun dosyaları ve kalıcı kayıtları silme seçenekleri varsayılan olarak kapalıdır.
 - Public Tunnel geçici bir erişim adresidir; bağlantıyı bilen herkese açık olabilir ve kendi başına kullanıcı doğrulaması sağlamaz.
 
@@ -88,7 +88,7 @@ Control Center, Windows arayüzünden aşağıdaki zinciri yönetir:
 
 ## 💻 Sistem gereksinimleri
 
-**Windows Control Center**
+**NFSU2 Server control uygulaması**
 - 64-bit Windows 10/11.
 - Uygulama kurulumu ve sistem bileşenleri için gerektiğinde yönetici izni.
 - İndirmeler ve kaynak güncellemeleri için internet bağlantısı.
@@ -99,11 +99,11 @@ Control Center, Windows arayüzünden aşağıdaki zinciri yönetir:
 - Docker Desktop ve Ubuntu için WSL Integration.
 - Oyun arşivi, kaynak kodu, WASM çıktıları ve Docker imajları için yeterli disk alanı.
 
-> Yayımlanan uygulama self-contained tek EXE olarak hazırlanır; Control Center'ı açmak için ayrıca .NET Desktop Runtime yüklemek gerekmez. WSL, Ubuntu ve Docker ise sunucu altyapısının gereksinimleridir.
+> Yayımlanan uygulama self-contained tek EXE olarak hazırlanır; NFSU2 Server control'ü açmak için ayrıca .NET Desktop Runtime yüklemek gerekmez. WSL, Ubuntu ve Docker ise sunucu altyapısının gereksinimleridir.
 
 ## 📥 Kurulum
 
-1. [GitHub Releases](https://github.com/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest) sayfasından **TRPOLARIS.ControlCenter.exe** dosyasını indirin.
+1. [GitHub Releases](https://github.com/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest) sayfasından **NFSU2 Server control.exe** dosyasını indirin.
 2. EXE'yi çalıştırın. Windows yönetici izni isterse onaylayın.
 3. **Sunucu Kurulumu** ekranında oyun arşivini indirin veya mevcut ZIP dosyanızı içe aktarın.
 4. Oyun klasörünü doğrulayın ve **Kurulumu başlat** seçeneğini kullanın.
@@ -111,7 +111,7 @@ Control Center, Windows arayüzünden aşağıdaki zinciri yönetir:
 
 ## 🔔 Uygulama güncellemesi
 
-Control Center, GitHub Releases API üzerinden yayınları denetler. Sürüm bilgisi bir `version.txt` dosyasından değil Release etiketinden (`tag_name`) alınır.
+NFSU2 Server control, GitHub Releases API üzerinden yayınları denetler. Sürüm bilgisi bir `version.txt` dosyasından değil Release etiketinden (`tag_name`) alınır.
 
 - **SemVer:** Kararlı ve önizleme sürümleri doğru sıralanır.
 - **Stable / Beta:** Güncelleme tercihleri penceresinden kanal seçilebilir.
@@ -125,13 +125,19 @@ Control Center, GitHub Releases API üzerinden yayınları denetler. Sürüm bil
 - **Başlangıç doğrulaması ve geçmiş:** Yeni uygulama açılış sinyali verir; güncelleme sonuçları yerel geçmişte tutulur.
 - **Minimum sürüm politikası:** Release manifesti, desteklenen en düşük istemci sürümünü belirtebilir.
 
-**v1.7.3'ten v1.8.0'a tek seferlik geçiş:** Eski istemcinin updater'ı `.previous` yedeği oluşturduğu için eski sürümün otomatik güncelleme akışı kullanılmaz. Control Center'ı kapatın, Release'den `TRPOLARIS.ControlCenter.exe` dosyasını indirin, mevcut kurulum klasöründe dosya adını `TRPOLARIS.NFSU2.WebControlCenter.exe` yapıp eski dosyanın üzerine yazın ve çalıştırın. Yeni uygulama ilk açılışta kendi dosya adını otomatik olarak `TRPOLARIS.ControlCenter.exe` biçimine taşır. Bu geçişte uygulama yedeği oluşturulmaz. Bundan sonraki güncellemeler yerel C# motoruyla otomatik yapılır.
+**Eski sürümlerden v1.8.1'e geçiş:** Eski updater'lar uygulama yedeği oluşturabildiğinden, v1.8.1'e ilk geçişi elle yapın. Release sayfasından `NFSU2 Server control.exe` dosyasını indirin; uygulama klasöründe yeni dosyayı mevcut EXE'nin eski adıyla (`TRPOLARIS.ControlCenter.exe` veya `TRPOLARIS.NFSU2.WebControlCenter.exe`) yerleştirip eski dosyanın üzerine yazın ve çalıştırın. v1.8.1 bu eski dosya adlarını tanır ve ilk açılışta kendi adını `NFSU2 Server control.exe` olarak değiştirir. Hiçbir `.previous` veya `.bak` uygulama yedeği oluşturulmaz. Sonraki uygulama güncellemeleri yerel C# motoruyla yapılır.
 
 Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncelleme** işlemi birbirinden ayrıdır:
-- **Uygulama güncellemesi:** Windows'taki Control Center EXE dosyasını yeniler.
+- **Uygulama güncellemesi:** Windows'taki NFSU2 Server control EXE dosyasını yeniler.
 - **Altyapı güncellemesi:** WSL içindeki web kaynaklarını, derleme araçlarını ve Docker sunucu imajını yeniler.
 
 ## 🆕 Sürüm notları
+
+### v1.8.1 · NFSU2 Server control adı ve temalı arayüz
+- Uygulama adı, Windows ürün bilgisi ve yayımlanan dosya adı `NFSU2 Server control` / `NFSU2 Server control.exe` olarak değiştirildi.
+- v1.8.0 ve daha eski EXE dosya adları ilk açılışta yedeksiz olarak yeni ada taşınır.
+- Güncelleme tercihleri ekranındaki ComboBox açılır listeleri ve geçmiş ListBox alanı koyu tema ile yeniden tasarlandı.
+- Uyarı, onay ve hata pencereleri Windows MessageBox yerine uygulamanın kendi karanlık tema diyaloglarını kullanır.
 
 ### v1.8.0 · İmzalı güncelleme motoru ve yeniden adlandırma
 - GitHub Release varlıkları RSA-SHA256 imzalı manifest ile doğrulanır; EXE SHA-256 ve boyut kontrolünden geçer.
@@ -198,7 +204,7 @@ Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme ar
 
 <div align="center">
 
-**TRPOLARIS** · Control Center · **v1.8.0**
+**NFSU2 Server control** · **v1.8.1**
 
 *Install · Update · Maintain · Remove*
 

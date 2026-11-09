@@ -181,7 +181,7 @@ for raw_dir in "${candidates[@]}"; do
 done
 
 # Last resort is restricted to Linux source directories; never scan the game folder.
-for base in /home /root /opt /srv "${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/source"; do
+for base in "${home_now:-/home}" /home /root /opt /srv "${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/source"; do
   [[ -d "$base" ]] || continue
   while IFS= read -r -d '' gitdir; do
     if [[ "${gitdir##*/}" == ".git" ]]; then add_candidate "${gitdir%/.git}"; fi

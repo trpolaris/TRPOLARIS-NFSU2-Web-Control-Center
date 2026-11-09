@@ -953,9 +953,15 @@ public partial class MainWindow : Window
             string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(script));
             string shell = "printf '%s' " + QuoteBashArgument(encoded) + " | base64 -d | bash -s -- " + QuoteBashArgument(absolute);
             var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
+            string listCommand = location.LinuxUid > 0
+                ? "setpriv --reuid=" + location.LinuxUid.ToString(CultureInfo.InvariantCulture) +
+                  " --regid=" + location.LinuxUid.ToString(CultureInfo.InvariantCulture) +
+                  " --init-groups env HOME=" + QuoteBashArgument(location.LinuxHome) +
+                  " bash --noprofile --norc -c " + QuoteBashArgument(shell)
+                : shell;
             var result = await RunCommandAsync(wsl,
                 new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "LC_ALL=C.UTF-8",
-                        "bash", "--noprofile", "--norc", "-c", shell },
+                        "bash", "--noprofile", "--norc", "-c", listCommand },
                 TimeSpan.FromSeconds(45), RootDir, logOutput: true, logCategory: "WSL");
             if (result.ExitCode != 0) throw new IOException("WSL dosya listeleme başarısız (kod " + result.ExitCode + "): " + TailText(result.Output, 2500));
 
@@ -1116,7 +1122,9 @@ public partial class MainWindow : Window
                 try
                 {
                     string linuxTemp = "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/" + Path.GetFileName(temp);
-                    string command = "install -D -m 0644 " + QuoteBashArgument(linuxTemp) + " " + QuoteBashArgument(linuxTarget);
+                    string command = "install -D -m 0644 " + QuoteBashArgument(linuxTemp) + " " + QuoteBashArgument(linuxTarget) +
+                        " && chown " + location.LinuxUid.ToString(CultureInfo.InvariantCulture) + ":" + location.LinuxUid.ToString(CultureInfo.InvariantCulture) +
+                        " " + QuoteBashArgument(linuxTarget);
                     var copied = await RunCommandAsync(FindWslExe()!,
                         new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "bash", "--noprofile", "--norc", "-c", command },
                         TimeSpan.FromMinutes(2), RootDir, logOutput: true, logCategory: "WSL");

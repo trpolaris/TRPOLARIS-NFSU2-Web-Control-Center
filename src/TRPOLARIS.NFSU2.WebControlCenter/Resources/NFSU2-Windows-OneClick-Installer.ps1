@@ -983,6 +983,29 @@ progress 55 "Rust derleme araçları hazır"
 progress 59 "GitHub kaynak kodu alınıyor"
 say "Download the TRPOLARIS GitHub project"
 PROJECT="$INSTALL_USER_HOME/nfsu2-web-trpolaris"
+
+update_existing_checkout() {
+  # Never overwrite developer edits or local commits while retrying setup.
+  if ! git -C "$PROJECT" diff --quiet --; then
+    die "Existing checkout has modified tracked files: $PROJECT. Commit or back up those changes before retrying; nothing was overwritten."
+  fi
+  if ! git -C "$PROJECT" diff --cached --quiet --; then
+    die "Existing checkout has staged changes: $PROJECT. Commit or back up those changes before retrying; nothing was overwritten."
+  fi
+
+  local shallow
+  shallow="$(git -C "$PROJECT" rev-parse --is-shallow-repository 2>/dev/null || echo false)"
+  echo "[INFO] Refreshing existing checkout from origin/main (shallow=$shallow)."
+  if [[ "$shallow" == true ]]; then
+    git -C "$PROJECT" fetch --unshallow origin main
+  else
+    git -C "$PROJECT" fetch origin main
+  fi
+  # Fast-forward only: a local-only commit or diverged branch is never discarded.
+  git -C "$PROJECT" merge --ff-only FETCH_HEAD
+  echo "[INFO] Existing checkout updated to $(git -C "$PROJECT" rev-parse --short HEAD)."
+}
+
 if [[ -d "$PROJECT" ]]; then
   if [[ ! -d "$PROJECT/.git" ]]; then
     die "Project folder already exists but is not a git checkout: $PROJECT. Nothing was deleted. Rename it or move it, then run setup again."
@@ -991,7 +1014,7 @@ if [[ -d "$PROJECT" ]]; then
   if [[ "$ORIGIN" != "$REPO_URL" ]]; then
     die "Existing $PROJECT uses another Git remote ($ORIGIN). Nothing was deleted. Move it or change its remote before retrying."
   fi
-  echo "Using existing checkout: $PROJECT"
+  run_with_heartbeat "Update existing GitHub checkout" --progress 59 64 update_existing_checkout
 else
   run_with_heartbeat "GitHub repository download" --progress 59 64 git_clone_with_progress
 fi

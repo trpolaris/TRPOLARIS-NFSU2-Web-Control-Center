@@ -120,18 +120,19 @@ validate_candidate() {
     esac
   fi
 
-  local project_b64 home_b64 owner_b64
+  local project_b64 home_b64 owner_b64 uid_b64
   project_b64="$(printf '%s' "$d" | base64 -w0)"
   home_b64="$(printf '%s' "$owner_home" | base64 -w0)"
   owner_b64="$(printf '%s' "$owner" | base64 -w0)"
-  printf 'NFSU2_PROJECT_B64=%s.%s.%s\n' "$project_b64" "$home_b64" "$owner_b64"
+  uid_b64="$(printf '%s' "${owner_uid:-1000}" | base64 -w0)"
+  printf 'NFSU2_PROJECT_B64=%s.%s.%s.%s\n' "$project_b64" "$home_b64" "$owner_b64" "$uid_b64"
   printf 'NFSU2_PROJECT_VALIDATED path=%s remote=%s owner=%s uid=%s\n' "$d" "$origin" "$owner" "${owner_uid:-unknown}"
   return 0
 }
 
 # Read both the compact path manifest and the human-readable installer report.
-manifest="${NFSU2_PROJECT_METADATA_FILE:-/mnt/c/nfsu2/NFSU2-PROJECT-PATH.txt}"
-for report in "$manifest" "${NFSU2_SETUP_REPORT_FILE:-/mnt/c/nfsu2/NFSU2-SETUP-REPORT.txt}"; do
+manifest="${NFSU2_PROJECT_METADATA_FILE:-${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/NFSU2-PROJECT-PATH.txt}"
+for report in "$manifest" "${NFSU2_SETUP_REPORT_FILE:-${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/NFSU2-SETUP-REPORT.txt}"; do
   [[ -f "$report" ]] || continue
   report_project="$(sed -n 's/^Source folder (WSL):[[:space:]]*//p' "$report" | head -n 1 || true)"
   add_candidate "$report_project"
@@ -180,7 +181,7 @@ for raw_dir in "${candidates[@]}"; do
 done
 
 # Last resort is restricted to Linux source directories; never scan the game folder.
-for base in /home /root /opt /srv /mnt/c/nfsu2/source; do
+for base in /home /root /opt /srv "${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/source"; do
   [[ -d "$base" ]] || continue
   while IFS= read -r -d '' gitdir; do
     if [[ "${gitdir##*/}" == ".git" ]]; then add_candidate "${gitdir%/.git}"; fi

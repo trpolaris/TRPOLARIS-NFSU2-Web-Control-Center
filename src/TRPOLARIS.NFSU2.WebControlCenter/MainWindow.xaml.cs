@@ -148,6 +148,7 @@ public partial class MainWindow : Window
     private string? _resolvedWslDistro;
     private string? _resolvedLinuxHome;
     private string? _resolvedLinuxUser;
+    private uint? _resolvedLinuxUid;
     private int _operationProgressValue;
     private string _operationProgressLabel = "İşlem bekleniyor";
     private string _operationProgressState = "idle";
@@ -161,7 +162,7 @@ public partial class MainWindow : Window
         public OperationFailureException(string message, string failureCode) : base(message) => FailureCode = failureCode;
     }
 
-    private sealed record WslProjectLocation(string Distro, string ProjectDirectory, string LinuxHome, string LinuxUser);
+    private sealed record WslProjectLocation(string Distro, string ProjectDirectory, string LinuxHome, string LinuxUser, uint LinuxUid);
     private sealed record GameFolderValidation(bool IsValid, string Message, string? GameDirectory);
     private sealed record GameImportResult(string TargetDirectory, string? BackupDirectory, long ExpandedBytes, int ExtractedFiles);
     private sealed record GameArchiveDownloadMetadata(string Url, long? TotalBytes, string? ETag, DateTimeOffset? LastModified, string? FinalUrl);
@@ -1114,7 +1115,7 @@ public partial class MainWindow : Window
                 File.Copy(source, temp, true);
                 try
                 {
-                    string linuxTemp = "/mnt/c/nfsu2/" + Path.GetFileName(temp);
+                    string linuxTemp = "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/" + Path.GetFileName(temp);
                     string command = "install -D -m 0644 " + QuoteBashArgument(linuxTemp) + " " + QuoteBashArgument(linuxTarget);
                     var copied = await RunCommandAsync(FindWslExe()!,
                         new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "bash", "--noprofile", "--norc", "-c", command },
@@ -1144,7 +1145,7 @@ public partial class MainWindow : Window
             if (dialog.ShowDialog(this) != true) return;
             var location = await ResolveWslProjectAsync(false);
             string linuxPath = location.ProjectDirectory.TrimEnd('/') + "/" + NormalizeProjectRelativePath(entry.RelativePath);
-            string command = "cat -- " + QuoteBashArgument(linuxPath) + " > " + QuoteBashArgument("/mnt/c/nfsu2/" + Path.GetFileName(temp));
+            string command = "cat -- " + QuoteBashArgument(linuxPath) + " > " + QuoteBashArgument("/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/" + Path.GetFileName(temp));
             var result = await RunCommandAsync(FindWslExe()!,
                 new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "bash", "--noprofile", "--norc", "-c", command },
                 TimeSpan.FromMinutes(3), RootDir, logOutput: true, logCategory: "WSL");
@@ -1327,7 +1328,7 @@ public partial class MainWindow : Window
         _projectSnapshotPollBusy = true;
         try
         {
-            var location = new WslProjectLocation(_resolvedWslDistro!, _resolvedProjectDirectory!, _resolvedLinuxHome ?? "/root", _resolvedLinuxUser ?? "root");
+            var location = new WslProjectLocation(_resolvedWslDistro!, _resolvedProjectDirectory!, _resolvedLinuxHome ?? "/root", _resolvedLinuxUser ?? "root", _resolvedLinuxUid ?? 0);
             var wsl = FindWslExe();
             if (wsl is null) return;
             string scan = """
@@ -1609,6 +1610,7 @@ done
                 "TRPOLARIS NFSU2 Web Control Center project metadata",
                 "WSL distribution: " + location.Distro,
                 "Linux user: " + location.LinuxUser,
+                "Linux uid: " + location.LinuxUid.ToString(CultureInfo.InvariantCulture),
                 "Linux home: " + location.LinuxHome,
                 "Source folder (WSL): " + location.ProjectDirectory,
                 "GitHub: https://github.com/trpolaris/NFSU2-Web.git"
@@ -1678,18 +1680,25 @@ done
         Directory.CreateDirectory(RootDir);
         var lookupScriptWinPath = Path.Combine(RootDir, "nfsu2-project-lookup.sh");
         ExtractResource(ProjectLookupResource, "nfsu2-project-lookup.sh", lookupScriptWinPath);
+        string windowsRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\";
+        string drive = windowsRoot.TrimEnd('\\', ':');
+        if (drive.Length != 1 || !char.IsLetter(drive[0]))
+            throw new OperationFailureException("Windows sistem sürücüsü WSL içinde çözümlenemedi.", "WSL_WINDOWS_DRIVE_UNKNOWN");
+        string controlRoot = "/mnt/" + char.ToLowerInvariant(drive[0]) + "/nfsu2";
+        string lookupScriptLinuxPath = controlRoot + "/nfsu2-project-lookup.sh";
         var args = new List<string>
         {
             "-d", distro, "-u", "root", "--", "env",
             "HOME=/root", "LC_ALL=C.UTF-8",
             "NFSU2_DEFAULT_HOME=" + (homeLine is null ? "" : homeLine["HOME=".Length..]),
-            "NFSU2_PROJECT_METADATA_FILE=/mnt/c/nfsu2/NFSU2-PROJECT-PATH.txt",
-            "NFSU2_SETUP_REPORT_FILE=/mnt/c/nfsu2/NFSU2-SETUP-REPORT.txt",
+            "NFSU2_CONTROL_ROOT=" + controlRoot,
+            "NFSU2_PROJECT_METADATA_FILE=" + controlRoot + "/NFSU2-PROJECT-PATH.txt",
+            "NFSU2_SETUP_REPORT_FILE=" + controlRoot + "/NFSU2-SETUP-REPORT.txt",
             "DOCKER_CONFIG=/root/.config/nfsu2-control-center-docker"
         };
         if (!string.IsNullOrWhiteSpace(expectedProject))
             args.Add("NFSU2_EXPECTED_PROJECT_DIR=" + expectedProject);
-        args.AddRange(new[] { "/bin/bash", "--noprofile", "--norc", "/mnt/c/nfsu2/nfsu2-project-lookup.sh" });
+        args.AddRange(new[] { "/bin/bash", "--noprofile", "--norc", lookupScriptLinuxPath });
         AppendLog("WSL proje doğrulayıcısı dosya üzerinden çalıştırılıyor; kurulum raporu ve varsayılan HOME doğrudan kontrol edilecek.", "INFO", "WSL");
         var result = await RunCommandAsync(wsl, args, TimeSpan.FromSeconds(90), logOutput: true, logCategory: "WSL");
         if (result.Output.Contains("WSL_E_DISTRO_NOT_FOUND", StringComparison.OrdinalIgnoreCase))
@@ -1710,13 +1719,14 @@ done
         _resolvedWslDistro = distro;
         _resolvedLinuxHome = location.Value.LinuxHome;
         _resolvedLinuxUser = location.Value.LinuxUser;
-        PersistResolvedProjectMetadata(new WslProjectLocation(distro, location.Value.ProjectDirectory, location.Value.LinuxHome, location.Value.LinuxUser));
+        _resolvedLinuxUid = location.Value.LinuxUid;
+        PersistResolvedProjectMetadata(new WslProjectLocation(distro, location.Value.ProjectDirectory, location.Value.LinuxHome, location.Value.LinuxUser, location.Value.LinuxUid));
         if (log) AppendLog($"GitHub remote adresi doğrulandı. Dağıtım={distro}; proje={location.Value.ProjectDirectory}; sahibi={location.Value.LinuxUser}", "OK", "WSL");
         if (_serverProjectLabel is not null) _serverProjectLabel.Text = "Ubuntu: " + distro + " · Proje: " + location.Value.ProjectDirectory;
-        return new WslProjectLocation(distro, location.Value.ProjectDirectory, location.Value.LinuxHome, location.Value.LinuxUser);
+        return new WslProjectLocation(distro, location.Value.ProjectDirectory, location.Value.LinuxHome, location.Value.LinuxUser, location.Value.LinuxUid);
     }
 
-    private static (string ProjectDirectory, string LinuxHome, string LinuxUser)? ParseWslProjectLookup(string output)
+    private static (string ProjectDirectory, string LinuxHome, string LinuxUser, uint LinuxUid)? ParseWslProjectLookup(string output)
     {
         const string marker = "NFSU2_PROJECT_B64=";
         var line = output.Replace("\0", "").Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -1724,13 +1734,14 @@ done
         if (line is null) return null;
         try
         {
-            // Each field is encoded separately: Bash command substitution drops NUL bytes,
-            // so a single NUL-delimited payload is not safe to capture through stdout.
+            // Each field is encoded separately because command substitution drops NUL bytes.
             var encodedFields = line[marker.Length..].Split('.');
-            if (encodedFields.Length != 3) return null;
+            if (encodedFields.Length is not (3 or 4)) return null;
             var fields = encodedFields.Select(x => Encoding.UTF8.GetString(Convert.FromBase64String(x))).ToArray();
-            if (fields.Any(string.IsNullOrWhiteSpace)) return null;
-            return (fields[0], fields[1], fields[2]);
+            if (fields.Take(3).Any(string.IsNullOrWhiteSpace)) return null;
+            if (fields.Length == 3) return (fields[0], fields[1], fields[2], 0u);
+            if (!uint.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out uint uid) || uid == 0) return null;
+            return (fields[0], fields[1], fields[2], uid);
         }
         catch (FormatException) { return null; }
     }
@@ -1761,7 +1772,18 @@ PYDOCKERCFG
 if [[ -d "$source_config/contexts" && ! -d "$safe_config/contexts" ]]; then cp -a "$source_config/contexts" "$safe_config/contexts"; fi
 export DOCKER_CONFIG="$safe_config"
 """ + "\ncd " + QuoteBash(location.ProjectDirectory) + " && " + command;
-        return await RunCommandAsync(wsl, new[] { "-d", location.Distro, "-u", "root", "--", "env", "HOME=/root", "LC_ALL=C.UTF-8", "bash", "--noprofile", "--norc", "-c", shell }, timeout ?? TimeSpan.FromMinutes(3), RootDir, logOutput: log, logCategory: "WSL");
+        string projectCommand = "cd " + QuoteBash(location.ProjectDirectory) + " && " + command;
+        string launch = location.LinuxUid > 0
+            ? "setpriv --reuid=" + location.LinuxUid.ToString(CultureInfo.InvariantCulture) +
+              " --regid=" + location.LinuxUid.ToString(CultureInfo.InvariantCulture) +
+              " --init-groups env HOME=" + QuoteBash(location.LinuxHome) +
+              " bash --noprofile --norc -c " + QuoteBash(projectCommand)
+            : projectCommand;
+        string finalShell = shell + "\n" + launch;
+        return await RunCommandAsync(wsl, new[] { "-d", location.Distro, "-u", "root", "--", "env",
+            "HOME=/root", "LC_ALL=C.UTF-8", "DOCKER_CONFIG=/root/.config/nfsu2-control-center-docker",
+            "bash", "--noprofile", "--norc", "-c", finalShell }, timeout ?? TimeSpan.FromMinutes(3),
+            RootDir, logOutput: log, logCategory: "WSL");
     }
 
     private async Task ManageServerAsync(string action)
@@ -2651,7 +2673,7 @@ export DOCKER_CONFIG="$safe_config"
             Directory.CreateDirectory(Path.Combine(RootDir, "logs"));
             ExtractResource(GitUpdateResource, "nfsu2-git-update.sh", Path.Combine(RootDir, "nfsu2-git-update.sh"));
             SetOperationProgress(8, "GitHub main, WSL paketleri ve Docker bağlantısı doğrulanıyor");
-            var pull = await RunWslProjectCommandAsync("bash /mnt/c/nfsu2/nfsu2-git-update.sh", TimeSpan.FromMinutes(90));
+            var pull = await RunWslProjectCommandAsync("bash " + QuoteBashArgument("/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/nfsu2-git-update.sh"), TimeSpan.FromMinutes(90));
             if (pull.ExitCode != 0)
             {
                 string detail = TailText(pull.Output, 4500).Trim();

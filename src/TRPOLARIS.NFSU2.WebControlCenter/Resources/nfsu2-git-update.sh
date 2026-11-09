@@ -7,7 +7,7 @@
 set -Eeuo pipefail
 
 PROJECT_DIR="$(pwd -P)"
-ROOT="/mnt/c/nfsu2"
+ROOT="${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}"
 MODULE_DIR="$ROOT/module"
 LOG_DIR="$ROOT/logs"
 LOG="$LOG_DIR/nfsu2-update-$(date +%Y%m%d-%H%M%S).log"

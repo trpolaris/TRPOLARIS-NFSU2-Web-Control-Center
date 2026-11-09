@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Windows;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -199,13 +200,17 @@ internal static class NativeUpdateHelper
                 TryDelete(request.SourcePath);
 
             WriteLog(logPath, $"Doğrulanan dosya yerleştirildi. SHA256={sourceHash}; hedef={request.TargetPath}.");
-            Process.Start(new ProcessStartInfo
+            var launch = new ProcessStartInfo
             {
                 FileName = request.TargetPath,
                 WorkingDirectory = targetDirectory,
-                UseShellExecute = false,
-                ArgumentList = { HealthSwitch, request.HealthMarkerPath, CleanupSwitch, request.HelperExecutablePath }
-            });
+                UseShellExecute = false
+            };
+            launch.ArgumentList.Add(HealthSwitch);
+            launch.ArgumentList.Add(request.HealthMarkerPath);
+            launch.ArgumentList.Add(CleanupSwitch);
+            launch.ArgumentList.Add(request.HelperExecutablePath);
+            _ = Process.Start(launch) ?? throw new InvalidOperationException("Yeni Control Center süreci başlatılamadı.");
 
             if (!string.IsNullOrWhiteSpace(request.HealthMarkerPath))
             {

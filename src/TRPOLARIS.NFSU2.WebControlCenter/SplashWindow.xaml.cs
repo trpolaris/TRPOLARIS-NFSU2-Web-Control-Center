@@ -7,6 +7,8 @@ public partial class SplashWindow : Window
     public SplashWindow()
     {
         InitializeComponent();
+        Title = $"TRPOLARIS Control Center {AppVersion.Display}";
+        SplashVersionText.Text = AppVersion.Display;
     }
 
     private void SplashSurface_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

@@ -32,10 +32,8 @@ public partial class MainWindow : Window
     private const string ProjectLookupResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-project-lookup.sh";
     private const string GitUpdateResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-git-update.sh";
     private const string ControlCenterRepo = "trpolaris/TRPOLARIS-NFSU2-Web-Control-Center";
-    private const string ControlCenterExeName = "TRPOLARIS.NFSU2.WebControlCenter.exe";
-    private const string UpdaterResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.ControlCenterUpdater.ps1";
+    private const string ControlCenterExeName = UpdateEngine.ExecutableName;
     private static readonly string ControlCenterCurrentVersion = AppVersion.Current;
-    private const string GitHubLatestReleaseApi = "https://api.github.com/repos/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest";
     private const string GameArchiveDownloadUrl = "https://download938.mediafire.com/mx7g8vs33jeg0V_t4F5UZJPrgX8ctsn7N2xSFzUFj_hdmmIvChJLispk-Zwh863xQe4redTD5RQMrrMyVEdBK0R7SATfcze5DSfEdXXAmzmbI24bEaFQQ2f7b8eRAv1UQjXRqxgM89xfa5RciNGEqiW3_aoMaEoNohzq4wYRf_M/rlvg6fi4lxlla97/Need+For+Speed+Underground+2.zip";
     private const long MaxGameArchiveDownloadBytes = 20L * 1024 * 1024 * 1024;
     private const long SupportedGameExeSize = 4_800_512;
@@ -58,7 +56,6 @@ public partial class MainWindow : Window
         @"\b(error|failed|failure|denied|exception|fatal|not found|could not|cannot|timed out|unavailable)\b|başarısız|erişim engellendi|zaman aşım|bulunamadı|erişilemiyor",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
-    private static readonly HttpClient UpdateHttp = CreateUpdateHttpClient();
     private static readonly HttpClient GameDownloadHttp = new(new HttpClientHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 10 }) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
     private static readonly HttpClient LocalHttp = new(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(8) };
     // LAN profile uses a self-signed cert. This client is used only for the local 127.0.0.1 port probe,
@@ -167,8 +164,6 @@ public partial class MainWindow : Window
     private sealed record GameFolderValidation(bool IsValid, string Message, string? GameDirectory);
     private sealed record GameImportResult(string TargetDirectory, string? BackupDirectory, long ExpandedBytes, int ExtractedFiles);
     private sealed record GameArchiveDownloadMetadata(string Url, long? TotalBytes, string? ETag, DateTimeOffset? LastModified, string? FinalUrl);
-    private sealed record ControlCenterRelease(string TagName, string Name, string Body, string HtmlUrl, string Version,
-        string AssetUrl, string AssetName, string Sha256, long AssetSize, DateTimeOffset PublishedAt);
     private sealed record ProjectFileEntry(string Name, string RelativePath, bool IsDirectory, long Length, DateTime LastWriteUtc)
     {
         public override string ToString() => IsDirectory
@@ -2040,47 +2035,47 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     public async Task<bool> RunStartupUpdateCheckAsync(Action<int, string, string?> reportProgress)
     {
+        if (!UpdateEngine.ShouldCheckAtStartup())
+        {
+            reportProgress(82, "Otomatik güncelleme kontrolü atlandı",
+                "Güncelleme tercihleriniz nedeniyle açılış denetimi yapılmadı.");
+            return false;
+        }
+
         try
         {
-            reportProgress(8, "Güncellemeler denetleniyor", "GitHub üzerinde yayımlanan kararlı Control Center sürümü kontrol ediliyor.");
+            var settings = UpdateEngine.LoadSettings();
+            reportProgress(8, "Güncellemeler denetleniyor",
+                settings.Channel == UpdateChannel.Beta
+                    ? "Kararlı ve beta yayınları SemVer sırasına göre kontrol ediliyor."
+                    : "Yayımlanmış kararlı Control Center sürümü kontrol ediliyor.");
             await Task.Delay(150);
-            using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(18));
+            using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
             var release = await GetLatestControlCenterReleaseAsync(startupTimeout.Token);
-            if (release is null)
+            if (release is null || !UpdateEngine.IsUpdateAvailable(ControlCenterCurrentVersion, release.Version))
             {
-                AppendLog("Başlangıç denetimi: yayımlanmış kararlı bir Control Center güncellemesi bulunamadı.", "INFO", "APP");
-                reportProgress(78, "Yeni güncelleme bulunmadı", $"Kurulu sürüm v{ControlCenterCurrentVersion} kullanılıyor.");
-                await Task.Delay(220);
-                reportProgress(84, "Güncelleme kontrolü tamamlandı", "Control Center mevcut sürümle açılmaya hazır.");
-                return false;
-            }
-
-            var current = ParseVersionOrZero(ControlCenterCurrentVersion);
-            var latest = ParseVersionOrZero(release.Version);
-            if (latest <= current)
-            {
-                AppendLog($"Başlangıç denetimi tamamlandı. Control Center güncel: v{ControlCenterCurrentVersion}.", "OK", "APP");
-                reportProgress(82, "Control Center güncel", $"Yüklü v{ControlCenterCurrentVersion} · GitHub v{release.Version}");
+                AppendLog($"Başlangıç denetimi tamamlandı. Kurulu sürüm v{ControlCenterCurrentVersion}; kanal={settings.Channel}.",
+                    "OK", "APP");
+                reportProgress(82, "Control Center güncel",
+                    $"Yüklü v{ControlCenterCurrentVersion} · {settings.Channel} kanalı");
                 await Task.Delay(220);
                 reportProgress(84, "Güncelleme kontrolü tamamlandı", "Yeni sürüm gerekmiyor. Kurulu sürüm kullanılacak.");
                 return false;
             }
 
-            AppendLog($"Başlangıçta yeni Control Center sürümü bulundu: v{release.Version}. Otomatik güncelleme başlatılıyor.", "OK", "APP");
-            reportProgress(48, "Yeni sürüm bulundu", $"v{ControlCenterCurrentVersion} → v{release.Version} · {FormatBytes(release.AssetSize)}");
+            AppendLog($"Başlangıçta yeni sürüm bulundu: v{release.Version}; kanal={release.Channel}.",
+                "OK", "APP");
+            reportProgress(48, "Yeni sürüm bulundu",
+                $"v{ControlCenterCurrentVersion} → v{release.Version} · {FormatBytes(release.AssetSize)}");
             await DownloadAndApplyControlCenterUpdateAsync(release, reportProgress, automatic: true);
             return true;
         }
         catch (Exception ex)
         {
-            try
-            {
-                string staged = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "updates", ControlCenterExeName + ".download");
-                if (File.Exists(staged)) File.Delete(staged);
-            }
-            catch { /* A stale staged file is harmless; the running EXE remains untouched. */ }
-            AppendLog("Başlangıç güncelleme denetimi tamamlanamadı; kurulu sürüm korunuyor: " + ex.Message, "UYARI", "APP");
-            reportProgress(86, "Güncelleme denetlenemedi", "Mevcut sürüm değiştirilmedi. Bağlantı daha sonra tekrar denetlenebilir.");
+            AppendLog("Başlangıç güncelleme denetimi tamamlanamadı; kurulu sürüm korunuyor: " + ex.Message,
+                "UYARI", "APP");
+            reportProgress(86, "Güncelleme denetlenemedi",
+                "Mevcut sürüm değiştirilmedi. Bağlantı daha sonra tekrar denetlenebilir.");
             await Task.Delay(400);
             reportProgress(86, "Güncelleme kontrolü tamamlandı", "Mevcut Control Center sürümüyle devam ediliyor.");
             return false;
@@ -2476,6 +2471,21 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         await CheckControlCenterUpdatesAsync(sender as Button);
     }
 
+    private void UpdateSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new UpdatePreferencesWindow(UpdateEngine.LoadSettings(), UpdateEngine.LoadHistory())
+        {
+            Owner = this
+        };
+        if (dialog.ShowDialog() == true)
+        {
+            UpdateEngine.SaveSettings(dialog.Settings);
+            FooterStatus.Text = $"Güncelleme tercihleri kaydedildi · {dialog.Settings.Channel}";
+            AppendLog($"Güncelleme tercihleri kaydedildi. Kanal={dialog.Settings.Channel}; sıklık={dialog.Settings.Frequency}.",
+                "OK", "APP");
+        }
+    }
+
     private async Task CheckControlCenterUpdatesAsync(Button? checkButton)
     {
         if (_operationBusy)
@@ -2494,35 +2504,36 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         if (checkButton is not null) checkButton.IsEnabled = false;
         FooterStatus.Text = "Control Center güncellemeleri denetleniyor...";
-        AppendLog($"Control Center güncellemesi denetleniyor. Kaynak: https://github.com/{ControlCenterRepo}", "INFO", "APP");
+        AppendLog($"Control Center güncellemesi denetleniyor. Kaynak: https://github.com/{UpdateEngine.Repository}",
+            "INFO", "APP");
         try
         {
-            var release = await GetLatestControlCenterReleaseAsync();
+            var release = await GetLatestControlCenterReleaseAsync(force: true);
             if (release is null)
             {
-                FooterStatus.Text = "GitHub'da yayımlanmış Control Center güncellemesi yok.";
-                AppendLog("GitHub deposunda yayımlanmış kararlı Control Center Release bulunamadı. İlk v* etiketi yayımlandığında denetim etkinleşecek.", "UYARI", "APP");
+                FooterStatus.Text = "Seçili kanalda kullanılabilir yayın bulunamadı.";
                 ShowModernUpdateDialog(
                     "Henüz bir yayın yok",
-                    "GitHub deposunda şu anda yayımlanmış kararlı bir uygulama sürümü bulunamadı.",
-                    "RELEASE YAYINLANMADI",
+                    "Seçili güncelleme kanalında imzalı ve doğrulanabilir bir Release bulunamadı.",
+                    "RELEASE BULUNAMADI",
                     ControlCenterCurrentVersion,
                     "",
-                    "Kararlı Release bekleniyor",
-                    "İlk kararlı v* etiketi ve güncelleme paketi yayımlandığında uygulama içinden güncelleme denetimi kullanılabilir olacak.",
+                    "Yayın bekleniyor",
+                    "Kararlı veya beta Release yayımlandığında imzalı manifest üzerinden kontrol edilecektir.",
                     false);
                 return;
             }
 
-            var current = ParseVersionOrZero(ControlCenterCurrentVersion);
-            var latest = ParseVersionOrZero(release.Version);
-            if (latest <= current)
+            bool updateAvailable = UpdateEngine.IsUpdateAvailable(ControlCenterCurrentVersion, release.Version);
+            bool mandatory = UpdateEngine.IsMandatoryUpdate(ControlCenterCurrentVersion, release.MinimumSupportedVersion);
+            if (!updateAvailable && !mandatory)
             {
                 FooterStatus.Text = $"Control Center güncel · v{ControlCenterCurrentVersion}";
-                AppendLog($"Control Center güncel. Yüklü=v{ControlCenterCurrentVersion}; GitHub=v{release.Version}.", "OK", "APP");
+                AppendLog($"Control Center güncel. Yüklü=v{ControlCenterCurrentVersion}; yayın=v{release.Version}.",
+                    "OK", "APP");
                 ShowModernUpdateDialog(
                     "Her şey güncel",
-                    "TRPOLARIS Control Center'ın en güncel sürümünü kullanıyorsunuz.",
+                    "TRPOLARIS Control Center'ın seçili kanaldaki en güncel sürümünü kullanıyorsunuz.",
                     "EN GÜNCEL SÜRÜM",
                     ControlCenterCurrentVersion,
                     "",
@@ -2532,19 +2543,30 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 return;
             }
 
-            string notes = string.IsNullOrWhiteSpace(release.Body) ? "Bu sürüm için açıklama yayımlanmamış." : release.Body.Trim();
+            string notes = string.IsNullOrWhiteSpace(release.Body)
+                ? "Bu sürüm için açıklama yayımlanmamış."
+                : release.Body.Trim();
             if (notes.Length > 5000) notes = notes[..5000] + "\n\n(Notlar kısaltıldı.)";
-            notes += "\n\nPaket: " + release.AssetName + "\nBoyut: " + FormatBytes(release.AssetSize);
+            notes += "\n\nKanal: " + release.Channel.ToUpperInvariant()
+                + "\nPaket: " + release.AssetName
+                + "\nBoyut: " + FormatBytes(release.AssetSize)
+                + "\nİmza: RSA-SHA256 doğrulandı"
+                + "\nSHA-256: indirme sonrası doğrulanacak.";
+            if (mandatory)
+                notes += "\n\nBu sürüm, mevcut kurulumunuz için minimum desteklenen sürüm gereksinimidir.";
 
             var answer = ShowModernUpdateDialog(
-                "Yeni sürüm hazır",
-                "Control Center için yeni bir Windows uygulama sürümü bulundu. İndirme ve doğrulama başlatılsın mı?",
-                "YENİ SÜRÜM BULUNDU",
+                mandatory ? "Güncelleme gerekli" : "Yeni sürüm hazır",
+                mandatory
+                    ? "Kurulu sürüm artık desteklenen alt sınırın altında. Devam etmek için güncelleme gerekli."
+                    : "İmzalı ve doğrulanmış bir Windows uygulama sürümü bulundu. İndirme başlatılsın mı?",
+                mandatory ? "ZORUNLU GÜNCELLEME" : "YENİ SÜRÜM BULUNDU",
                 ControlCenterCurrentVersion,
                 release.Version,
                 release.Name,
                 notes,
-                true);
+                true,
+                mandatory);
             if (answer != MessageBoxResult.Yes) return;
 
             await DownloadAndApplyControlCenterUpdateAsync(release);
@@ -2556,11 +2578,11 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             ShowModernUpdateDialog(
                 "Güncelleme denetlenemedi",
                 ex.Message,
-                "BAĞLANTI / DENETİM HATASI",
+                "BAĞLANTI / İMZA / DENETİM HATASI",
                 ControlCenterCurrentVersion,
                 "Erişilemiyor",
                 "Mevcut uygulama korunuyor",
-                "GitHub sürüm bilgisi alınamadı. Yüklü Control Center dosyası değiştirilmedi.",
+                "Manifest imzası veya yayın doğrulaması başarısızsa uygulama dosyası değiştirilmez.",
                 false);
         }
         finally
@@ -2569,83 +2591,25 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         }
     }
 
-    private async Task<ControlCenterRelease?> GetLatestControlCenterReleaseAsync(CancellationToken cancellationToken = default)
+    private async Task<ControlCenterRelease?> GetLatestControlCenterReleaseAsync(
+        CancellationToken cancellationToken = default,
+        bool force = false)
     {
-        using var response = await UpdateHttp.GetAsync(GitHubLatestReleaseApi, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
-        response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        var root = document.RootElement;
-        if (root.TryGetProperty("draft", out var draft) && draft.GetBoolean()) return null;
-        if (root.TryGetProperty("prerelease", out var prerelease) && prerelease.GetBoolean()) return null;
-
-        string tag = GetJsonString(root, "tag_name");
-        string versionText = tag.TrimStart('v', 'V');
-        if (!Version.TryParse(versionText, out var version))
-            throw new InvalidDataException("GitHub Release etiketi geçerli bir sürüm numarası içermiyor: " + tag);
-
-        string htmlUrl = GetJsonString(root, "html_url");
-        string name = GetJsonString(root, "name");
-        string body = GetJsonString(root, "body");
-        DateTimeOffset published = DateTimeOffset.MinValue;
-        if (DateTimeOffset.TryParse(GetJsonString(root, "published_at"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)) published = parsed;
-
-        JsonElement assets = root.GetProperty("assets");
-        JsonElement exeAsset = default;
-        JsonElement manifestAssetElement = default;
-        foreach (var asset in assets.EnumerateArray())
-        {
-            string assetName = GetJsonString(asset, "name");
-            if (assetName.Equals(ControlCenterExeName, StringComparison.OrdinalIgnoreCase)) exeAsset = asset;
-            else if (assetName.Equals("latest.json", StringComparison.OrdinalIgnoreCase)) manifestAssetElement = asset;
-        }
-        if (exeAsset.ValueKind == JsonValueKind.Undefined || manifestAssetElement.ValueKind == JsonValueKind.Undefined)
-        {
-            AppendLog($"Release {tag} EXE veya latest.json içermiyor; çalıştırılabilir güncelleme olarak kabul edilmedi.", "UYARI", "APP");
-            throw new InvalidDataException("GitHub Release içinde hem " + ControlCenterExeName + " hem de latest.json bulunmalı.");
-        }
-
-        string manifestUrl = GetJsonString(manifestAssetElement, "browser_download_url");
-        using var manifestResponse = await UpdateHttp.GetAsync(manifestUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        manifestResponse.EnsureSuccessStatusCode();
-        await using var manifestStream = await manifestResponse.Content.ReadAsStreamAsync(cancellationToken);
-        using var manifestDocument = await JsonDocument.ParseAsync(manifestStream, cancellationToken: cancellationToken);
-        var manifest = manifestDocument.RootElement;
-        string manifestProduct = GetJsonString(manifest, "product");
-        string manifestVersion = GetJsonString(manifest, "version").TrimStart('v', 'V');
-        string manifestAssetName = GetJsonString(manifest, "asset");
-        string sha256 = GetJsonString(manifest, "sha256").ToLowerInvariant();
-        if (!manifestProduct.Equals("TRPOLARIS NFSU2 Web Control Center", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("Release manifesti farklı bir ürüne ait.");
-        if (!Version.TryParse(manifestVersion, out var manifestVersionParsed) || manifestVersionParsed != version)
-            throw new InvalidDataException("Release etiketi ile latest.json sürüm bilgisi eşleşmiyor.");
-        if (!string.Equals(manifestAssetName, ControlCenterExeName, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("Release manifesti beklenmeyen EXE dosyasını gösteriyor.");
-        if (!Regex.IsMatch(sha256, "^[a-f0-9]{64}$"))
-            throw new InvalidDataException("Release latest.json içindeki SHA-256 geçerli değil.");
-
-        string assetUrl = GetJsonString(exeAsset, "browser_download_url");
-        if (!Uri.TryCreate(assetUrl, UriKind.Absolute, out var parsedAssetUri) || parsedAssetUri.Scheme != Uri.UriSchemeHttps ||
-            !parsedAssetUri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) &&
-            !parsedAssetUri.Host.EndsWith("githubusercontent.com", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("Release EXE indirme adresi güvenilir GitHub HTTPS adresi değil.");
-        long size = exeAsset.TryGetProperty("size", out var sizeElement) && sizeElement.TryGetInt64(out var parsedSize) ? parsedSize : 0;
-        if (size <= 0 || size > 500L * 1024 * 1024) throw new InvalidDataException("Release EXE boyutu geçersiz veya 500 MB sınırını aşıyor.");
-
-        return new ControlCenterRelease(tag, name, body, htmlUrl, version.ToString(), assetUrl, ControlCenterExeName, sha256, size, published);
+        return await UpdateEngine.GetLatestReleaseAsync(cancellationToken, force);
     }
 
-    private async Task DownloadAndApplyControlCenterUpdateAsync(ControlCenterRelease release, Action<int, string, string?>? progress = null, bool automatic = false)
+    private async Task DownloadAndApplyControlCenterUpdateAsync(
+        ControlCenterRelease release,
+        Action<int, string, string?>? progress = null,
+        bool automatic = false)
     {
-        string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "updates");
-        Directory.CreateDirectory(appData);
-        string downloaded = Path.Combine(appData, ControlCenterExeName + ".download");
         string targetExe = Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName
             ?? throw new InvalidOperationException("Çalışan uygulamanın EXE yolu belirlenemedi.");
         string targetDirectory = Path.GetDirectoryName(Path.GetFullPath(targetExe)) ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(targetDirectory) || targetDirectory.StartsWith(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(targetDirectory) ||
+            targetDirectory.StartsWith(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Control Center geçici klasörden çalışıyor. Önce uygulamayı kalıcı bir klasöre taşı ve oradan başlat.");
+
         try
         {
             string probe = Path.Combine(targetDirectory, ".trpolaris-update-write-test");
@@ -2654,110 +2618,42 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         }
         catch (Exception ex)
         {
-            throw new UnauthorizedAccessException("Uygulama klasörüne yazma izni yok. Control Center'ı yazma izni olan bir klasöre kurup tekrar dene.", ex);
+            throw new UnauthorizedAccessException(
+                "Uygulama klasörüne yazma izni yok. Control Center'ı yazma izni olan bir klasöre kurup tekrar dene.", ex);
         }
-        string updater = ExtractResource(UpdaterResource, "ControlCenterUpdater.ps1");
+
         FooterStatus.Text = $"v{release.Version} indiriliyor...";
-        progress?.Invoke(54, "Yeni sürüm indiriliyor", $"v{release.Version} · {FormatBytes(release.AssetSize)}");
-        AppendLog($"Control Center v{release.Version} indiriliyor ({FormatBytes(release.AssetSize)}).", "INFO", "APP");
+        progress?.Invoke(52, "İmzalı güncelleme indiriliyor",
+            $"v{release.Version} · {FormatBytes(release.AssetSize)}");
+        AppendLog($"Control Center v{release.Version} indiriliyor. Kanal={release.Channel}; paket={FormatBytes(release.AssetSize)}.",
+            "INFO", "APP");
 
-        using (var response = await UpdateHttp.GetAsync(release.AssetUrl, HttpCompletionOption.ResponseHeadersRead))
+        var reporter = new Progress<(long Received, long Total)>(p =>
         {
-            response.EnsureSuccessStatusCode();
-            long? contentLength = response.Content.Headers.ContentLength;
-            if (contentLength.HasValue && contentLength.Value != release.AssetSize)
-                throw new InvalidDataException("Release EXE Content-Length değeri asset manifestindeki boyutla eşleşmiyor.");
-            await using var input = await response.Content.ReadAsStreamAsync();
-            await using var output = new FileStream(downloaded, FileMode.Create, FileAccess.Write, FileShare.None, 128 * 1024, useAsync: true);
-            var buffer = new byte[128 * 1024];
-            long total = 0;
-            DateTime lastProgressUpdate = DateTime.MinValue;
-            int read;
-            while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
-            {
-                total += read;
-                if (total > 500L * 1024 * 1024 || total > release.AssetSize) throw new InvalidDataException("İndirilen dosya beklenenden büyük.");
-                await output.WriteAsync(buffer.AsMemory(0, read));
-                if (progress is not null && (DateTime.UtcNow - lastProgressUpdate).TotalMilliseconds >= 120)
-                {
-                    int downloadPercent = 54 + (int)Math.Round(34d * total / release.AssetSize);
-                    progress(downloadPercent, "Yeni sürüm indiriliyor", $"{FormatBytes(total)} / {FormatBytes(release.AssetSize)}");
-                    lastProgressUpdate = DateTime.UtcNow;
-                }
-            }
-            await output.FlushAsync();
-            if (total != release.AssetSize) throw new InvalidDataException($"İndirilen dosya boyutu uyuşmuyor. Beklenen: {release.AssetSize}; alınan: {total}.");
-        }
+            int percent = p.Total > 0 ? 52 + (int)Math.Round(36d * p.Received / p.Total) : 52;
+            progress?.Invoke(percent, "Güncelleme indiriliyor",
+                $"{FormatBytes(p.Received)} / {FormatBytes(p.Total)}");
+        });
+        string downloaded = await UpdateEngine.DownloadPackageAsync(release, reporter);
+        progress?.Invoke(92, "SHA-256 doğrulandı", "İndirilen EXE manifestteki dosyayla eşleşiyor.");
+        AppendLog($"Control Center v{release.Version} indirildi ve SHA-256 doğrulandı: {release.Sha256}.",
+            "OK", "APP");
 
-        progress?.Invoke(91, "İndirme tamamlandı", "Dosyanın bütünlüğü SHA-256 ile doğrulanıyor.");
-        string actualHash;
-        await using (var file = File.OpenRead(downloaded))
-        {
-            var hash = await SHA256.HashDataAsync(file);
-            actualHash = Convert.ToHexString(hash).ToLowerInvariant();
-        }
-        if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(actualHash), Encoding.ASCII.GetBytes(release.Sha256)))
-            throw new InvalidDataException("İndirilen Control Center EXE dosyasının SHA-256 değeri GitHub manifestiyle eşleşmiyor.");
-
-        AppendLog($"Control Center v{release.Version} indirildi ve SHA-256 doğrulandı: {actualHash}.", "OK", "APP");
-        FooterStatus.Text = "Güncelleme doğrulandı; uygulama yeniden başlatılacak.";
-        progress?.Invoke(96, "Güncelleme doğrulandı", "Yeni uygulama güvenli biçimde devreye alınacak.");
         if (!automatic)
         {
             MessageBox.Show(this,
-                $"Yeni sürüm indirildi ve SHA-256 doğrulaması başarılı.\n\nUygulama kapatılıp güncellenecek, ardından otomatik yeniden açılacak.\n\nv{ControlCenterCurrentVersion} → v{release.Version}",
+                $"Yeni sürüm indirildi. Dijital imza ve SHA-256 doğrulamaları başarılı.\n\n"
+                + "Uygulama kapatılacak ve mevcut EXE yedek kopya oluşturmadan değiştirilecek.\n\n"
+                + $"v{ControlCenterCurrentVersion} → v{release.Version}",
                 "Güncelleme hazır", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        int parentPid = Environment.ProcessId;
-        var psi = new ProcessStartInfo
-        {
-            FileName = GetPowerShellExe(),
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WindowStyle = ProcessWindowStyle.Hidden
-        };
-        psi.ArgumentList.Add("-NoProfile");
-        psi.ArgumentList.Add("-ExecutionPolicy");
-        psi.ArgumentList.Add("Bypass");
-        psi.ArgumentList.Add("-File");
-        psi.ArgumentList.Add(updater);
-        psi.ArgumentList.Add("-TargetExe");
-        psi.ArgumentList.Add(targetExe);
-        psi.ArgumentList.Add("-DownloadedExe");
-        psi.ArgumentList.Add(downloaded);
-        psi.ArgumentList.Add("-ExpectedSha256");
-        psi.ArgumentList.Add(release.Sha256);
-        psi.ArgumentList.Add("-ParentProcessId");
-        psi.ArgumentList.Add(parentPid.ToString(CultureInfo.InvariantCulture));
-        psi.ArgumentList.Add("-BackupExe");
-        psi.ArgumentList.Add(targetExe + ".previous");
-        _ = Process.Start(psi) ?? throw new InvalidOperationException("Güncelleme yardımcı süreci başlatılamadı.");
-        progress?.Invoke(99, "Uygulama güncelleniyor", "Güncelleme yardımcısı başlatıldı. Yeni sürüm doğrulandıktan sonra açılacak.");
-        AppendLog("Güncelleme yardımcısı başlatıldı; Control Center kapatılıyor.", "OK", "APP");
+        progress?.Invoke(96, "Güncelleme hazırlanıyor", "Yerel yardımcı doğrulanmış EXE'yi atomik olarak yerleştirecek.");
+        NativeUpdateHelper.StartUpdate(targetExe, downloaded, release.Sha256,
+            release.AssetSize, release.Version, release.Channel);
         _diskLogTimer?.Change(Timeout.Infinite, Timeout.Infinite);
         FlushPendingDiskLogs();
-        Application.Current.Shutdown();
     }
-
-    private static HttpClient CreateUpdateHttpClient()
-    {
-        var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 5 })
-        {
-            Timeout = TimeSpan.FromMinutes(15)
-        };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd($"TRPOLARIS-Control-Center/{ControlCenterCurrentVersion}");
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        return client;
-    }
-
-    private static string GetJsonString(JsonElement element, string property)
-    {
-        return element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString() ?? string.Empty : string.Empty;
-    }
-
-    private static Version ParseVersionOrZero(string value) => Version.TryParse(value, out var version) ? version : new Version(0, 0);
 
     private async Task UpdateServerAsync()
     {

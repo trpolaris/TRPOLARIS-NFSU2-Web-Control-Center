@@ -53,7 +53,7 @@ Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar 
 
 ## ⚙️ Nasıl çalışır?
 
-Control Center, Windows arayüzünden aşağıdaki zinciri yönetir:
+NFSU2 Server control, Windows arayüzünden aşağıdaki zinciri yönetir:
 
 **Windows / WPF → WSL 2 / Ubuntu → GitHub kaynakları ve proje araçları → React + Rust + WASM derlemesi → Docker Compose → NFSU2 Web sunucusu**
 
@@ -146,7 +146,7 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 - Güncelleme kanalını ve otomatik kontrol sıklığını uygulama içinden seçme eklendi.
 - PowerShell güncelleme yardımcısı kaldırıldı; dosya değiştirme C# yerel yardımcı süreçle yapılır.
 - Uygulama güncellemesi sırasında `.previous` veya başka bir EXE yedeği oluşturulmaz.
-- Ürün/EXE adı `TRPOLARIS Control Center` ve `TRPOLARIS.ControlCenter.exe` olarak kısaltıldı.
+- v1.8.0 ara sürümünün ürün/EXE adı `TRPOLARIS Control Center` ve `TRPOLARIS.ControlCenter.exe` idi; v1.8.1 ile ürün/EXE adı `NFSU2 Server control` olarak değiştirildi.
 - v1.7.3'ten v1.8.0'a tek seferlik manuel dosya adı geçişi sağlandı; eski PowerShell updater'ın yedek oluşturan akışı kullanılmaz.
 
 ### v1.7.3 · İlk kurulum ve WSL/Docker kararlılığı

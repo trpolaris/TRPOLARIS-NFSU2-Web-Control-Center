@@ -20,50 +20,139 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish single-file application
+      - name: Restore and publish single-file executable
         shell: pwsh
         run: |
           $project = 'src/TRPOLARIS.NFSU2.WebControlCenter/TRPOLARIS.NFSU2.WebControlCenter.csproj'
           dotnet restore $project -r win-x64
           if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
-          # The project file is the single source of truth for publish settings.
+
           dotnet publish $project -c Release -r win-x64 --self-contained true -o publish
           if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
+
+          $exe = 'publish/TRPOLARIS.ControlCenter.exe'
+          if (-not (Test-Path $exe)) { throw 'Published executable not found.' }
+
           $sidecarScripts = @(Get-ChildItem 'publish' -Recurse -File -Filter '*.ps1')
           if ($sidecarScripts.Count -gt 0) {
-            $sidecarScripts | ForEach-Object { Write-Error "External PowerShell file found in publish output: $($_.FullName)" }
-            throw 'PowerShell automation must be embedded in the single-file executable.'
+            $sidecarScripts | ForEach-Object { Write-Error "Unexpected external script: $($_.FullName)" }
+            throw 'The single-file release must not contain external PowerShell sidecars.'
           }
 
-      - name: Create SHA-256 manifest
-        id: manifest
+      - name: Validate version and create legacy compatibility asset
+        id: assets
         shell: pwsh
         run: |
-          $exe = 'publish/TRPOLARIS.NFSU2.WebControlCenter.exe'
-          if (-not (Test-Path $exe)) { throw 'Published EXE not found.' }
-          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($env:GITHUB_REF_TYPE -ne 'tag') { throw 'Workflow must run from a v* tag to create a release.' }
+          if ($env:GITHUB_REF_TYPE -ne 'tag') { throw 'Release workflow requires a Git tag.' }
           $tag = $env:GITHUB_REF_NAME
           $version = $tag.TrimStart('v')
+
           [xml]$projectXml = Get-Content 'src/TRPOLARIS.NFSU2.WebControlCenter/TRPOLARIS.NFSU2.WebControlCenter.csproj'
           $projectVersion = [string]$projectXml.Project.PropertyGroup.Version
           if ($projectVersion -ne $version) {
-            throw "Git tag version ($version) does not match project version ($projectVersion). Update the csproj before tagging."
+            throw "Git tag version ($version) does not match project version ($projectVersion)."
           }
-          $manifest = [ordered]@{
+
+          $exe = 'publish/TRPOLARIS.ControlCenter.exe'
+          $legacyExe = 'publish/TRPOLARIS.NFSU2.WebControlCenter.exe'
+          Copy-Item -LiteralPath $exe -Destination $legacyExe -Force
+
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $size = (Get-Item -LiteralPath $exe).Length
+          $channel = if ($version -match '-') { 'beta' } else { 'stable' }
+          $publishedAt = (Get-Date).ToUniversalTime().ToString('o')
+          $minimumSupportedVersion = '1.7.3'
+
+          # Compatibility manifest for already-installed v1.7.3 clients.
+          $legacyManifest = [ordered]@{
             product = 'TRPOLARIS NFSU2 Web Control Center'
             version = $version
             tag = $tag
             asset = 'TRPOLARIS.NFSU2.WebControlCenter.exe'
             sha256 = $hash
             architecture = 'win-x64'
-            publishedAt = (Get-Date).ToUniversalTime().ToString('o')
+            publishedAt = $publishedAt
           }
-          $manifest | ConvertTo-Json -Depth 5 | Set-Content 'publish/latest.json' -Encoding UTF8
+          $legacyManifest | ConvertTo-Json -Depth 5 | Set-Content 'publish/latest.json' -Encoding utf8
+
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
+          "channel=$channel" >> $env:GITHUB_OUTPUT
           "sha256=$hash" >> $env:GITHUB_OUTPUT
-          "asset=publish/TRPOLARIS.NFSU2.WebControlCenter.exe" >> $env:GITHUB_OUTPUT
+          "size=$size" >> $env:GITHUB_OUTPUT
+          "publishedAt=$publishedAt" >> $env:GITHUB_OUTPUT
+          "minimumSupportedVersion=$minimumSupportedVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Sign update manifest
+        shell: pwsh
+        env:
+          UPDATE_SIGNING_PRIVATE_KEY: ${{ secrets.UPDATE_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:UPDATE_SIGNING_PRIVATE_KEY)) {
+            throw 'Repository secret UPDATE_SIGNING_PRIVATE_KEY is missing. Add the RSA PEM key with GitHub CLI before publishing.'
+          }
+
+          $version = '${{ steps.assets.outputs.version }}'
+          $tag = '${{ steps.assets.outputs.tag }}'
+          $channel = '${{ steps.assets.outputs.channel }}'
+          $publishedAt = '${{ steps.assets.outputs.publishedAt }}'
+          $minimumSupportedVersion = '${{ steps.assets.outputs.minimumSupportedVersion }}'
+          $sha256 = '${{ steps.assets.outputs.sha256 }}'
+          $assetSize = [long]'${{ steps.assets.outputs.size }}'
+          $assetName = 'TRPOLARIS.ControlCenter.exe'
+          $product = 'TRPOLARIS Control Center'
+          $platform = 'win-x64'
+          $signatureAlgorithm = 'RSA-SHA256'
+          $keyId = 'f58f0a93a19ca147'
+
+          $signingPayload = @(
+            '2'
+            $product
+            $channel
+            $version
+            $tag
+            $platform
+            $assetName
+            $assetSize.ToString([Globalization.CultureInfo]::InvariantCulture)
+            $sha256.ToLowerInvariant()
+            $minimumSupportedVersion
+            $publishedAt
+            $signatureAlgorithm
+            $keyId
+          ) -join "`n"
+
+          $rsa = [System.Security.Cryptography.RSA]::Create()
+          try {
+            $rsa.ImportFromPem($env:UPDATE_SIGNING_PRIVATE_KEY)
+            $signature = $rsa.SignData(
+              [System.Text.Encoding]::UTF8.GetBytes($signingPayload),
+              [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+              [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
+            )
+          }
+          finally {
+            $rsa.Dispose()
+            $env:UPDATE_SIGNING_PRIVATE_KEY = ''
+          }
+
+          $manifest = [ordered]@{
+            schemaVersion = 2
+            product = $product
+            channel = $channel
+            version = $version
+            tag = $tag
+            platform = $platform
+            assetName = $assetName
+            assetSize = $assetSize
+            sha256 = $sha256
+            minimumSupportedVersion = $minimumSupportedVersion
+            publishedAt = $publishedAt
+            signatureAlgorithm = $signatureAlgorithm
+            keyId = $keyId
+            signature = [Convert]::ToBase64String($signature)
+          }
+
+          $manifest | ConvertTo-Json -Depth 6 | Set-Content 'publish/update-manifest.json' -Encoding utf8
 
       - name: Validate versioned release notes
         shell: pwsh
@@ -77,12 +166,17 @@ jobs:
             throw "Versioned release notes are empty: $notes"
           }
 
-      - name: Upload release assets
+      - name: Publish release assets
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: TRPOLARIS Control Center ${{ steps.manifest.outputs.tag }}
+          name: TRPOLARIS Control Center ${{ steps.assets.outputs.tag }}
           body_path: .github/release-notes/${{ github.ref_name }}.md
+          prerelease: ${{ steps.assets.outputs.channel == 'beta' }}
+          make_latest: ${{ steps.assets.outputs.channel == 'stable' }}
+          overwrite_files: true
+          fail_on_unmatched_files: true
           files: |
+            publish/TRPOLARIS.ControlCenter.exe
             publish/TRPOLARIS.NFSU2.WebControlCenter.exe
+            publish/update-manifest.json
             publish/latest.json

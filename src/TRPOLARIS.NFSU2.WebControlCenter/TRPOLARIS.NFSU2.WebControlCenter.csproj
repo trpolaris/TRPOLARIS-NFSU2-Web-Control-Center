@@ -9,9 +9,9 @@
     <ApplicationIcon>Assets\TRPOLARIS-NFSU2.ico</ApplicationIcon>
     <AssemblyName>NFSU2 Server control</AssemblyName>
     <RootNamespace>TRPOLARIS.NFSU2.WebControlCenter</RootNamespace>
-    <Version>1.8.1</Version>
-    <AssemblyVersion>1.8.1.0</AssemblyVersion>
-    <FileVersion>1.8.1.0</FileVersion>
+    <Version>1.8.2</Version>
+    <AssemblyVersion>1.8.2.0</AssemblyVersion>
+    <FileVersion>1.8.2.0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <Product>NFSU2 Server control</Product>
     <Authors>TRPOLARIS</Authors>

@@ -5620,8 +5620,10 @@ rm -f "$root/NFSU2-PUBLIC-URL.txt" "$root/nfsu2-access-url.txt" "$root/nfsu2-acc
     {
         try
         {
-            int saved = Nfsu2ConfigStore.Read(RootDir).Access.LanPort;
-            if (saved is >= 1024 and <= 65535) return saved;
+            var access = Nfsu2ConfigStore.Read(RootDir).Access;
+            int saved = access.LanPort;
+            if (string.Equals(access.Mode, "lan", StringComparison.OrdinalIgnoreCase)
+                && saved is >= 1024 and <= 65535) return saved;
             string marker = Path.Combine(RootDir, "NFSU2-LAN-PORT.txt");
             if (File.Exists(marker) && int.TryParse(File.ReadAllText(marker).Trim(), out saved) && saved is >= 1024 and <= 65535)
                 return saved;
@@ -5639,8 +5641,10 @@ rm -f "$root/NFSU2-PUBLIC-URL.txt" "$root/nfsu2-access-url.txt" "$root/nfsu2-acc
 
     private int GetConfiguredPort()
     {
-        int saved = Nfsu2ConfigStore.Read(RootDir).Install.ServerPort;
-        if (saved is >= 1024 and <= 65535) return saved;
+        var install = Nfsu2ConfigStore.Read(RootDir).Install;
+        int saved = install.ServerPort;
+        if (!string.IsNullOrWhiteSpace(install.ProjectDirectory)
+            && saved is >= 1024 and <= 65535) return saved;
         try { var env = File.ReadAllLines(Path.Combine(RootDir, ".env.local")).FirstOrDefault(x => x.TrimStart().StartsWith("NFSU2_HTTP_PORT=")); if (env is not null && int.TryParse(env.Split('=', 2).Last().Trim(), out int p) && p is >=1024 and <=65535) return p; } catch { }
         try { var compose = File.ReadAllText(Path.Combine(RootDir, "compose.yml")); var m = Regex.Match(compose, @"NFSU2_HTTP_PORT\s*[:=]\s*['""]?(\d+)"); if (m.Success && int.TryParse(m.Groups[1].Value, out int p) && p is >=1024 and <=65535) return p; } catch { }
         return 9093;

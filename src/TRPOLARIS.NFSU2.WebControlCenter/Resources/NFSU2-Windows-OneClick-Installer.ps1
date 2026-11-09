@@ -1053,18 +1053,18 @@ update_existing_checkout() {
     esac
   done < <(git -C "$PROJECT" diff --name-only)
 
-  if (( \${#unexpected[@]} > 0 )); then
-    printf '[ERROR] Unrecognized local changes: %s\n' "\${unexpected[*]}" >&2
+  if (( ${#unexpected[@]} > 0 )); then
+    printf '[ERROR] Unrecognized local changes: %s\n' "${unexpected[*]}" >&2
     save_project_changes_and_stop "Unrecognized user changes were found."
   fi
 
-  for path in "\${generated_docker_files[@]}"; do
+  for path in "${generated_docker_files[@]}"; do
     git -C "$PROJECT" restore --source=HEAD --worktree -- "$path"
     echo "[INFO] Restored installer-generated Docker patch from upstream: $path"
   done
-  for entry in "\${generated_script_modes[@]}"; do
-    mode="\${entry%%:*}"
-    path="\${entry#*:}"
+  for entry in "${generated_script_modes[@]}"; do
+    mode="${entry%%:*}"
+    path="${entry#*:}"
     if [[ "$mode" == "100755" ]]; then
       chmod a+x "$PROJECT/$path"
     else

@@ -1760,11 +1760,10 @@ done
     {
         var location = await ResolveWslProjectAsync(log);
         var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
-        string shell = """
-source_config="${DOCKER_CONFIG:-/root/.docker}"
-safe_config="/root/.config/nfsu2-control-center-docker"
-mkdir -p -- /root/.config/nfsu2-control-center-docker
-python3 - "$source_config/config.json" /root/.config/nfsu2-control-center-docker/config.json <<'PYDOCKERCFG'
+
+        // Prepare Docker Desktop's isolated CLI context as root. Compose and updater
+        // commands run once as root; the updater restores checkout ownership at exit.
+        const string dockerConfigPython = """
 import json, pathlib, sys
 source, target = map(pathlib.Path, sys.argv[1:3])
 data = {}
@@ -1776,20 +1775,38 @@ except Exception:
 data.pop("credsStore", None)
 data.pop("credHelpers", None)
 target.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
-PYDOCKERCFG
-if [[ -d "$source_config/contexts" && ! -d "$safe_config/contexts" ]]; then cp -a "$source_config/contexts" "$safe_config/contexts"; fi
+""";
+        string pythonB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(dockerConfigPython));
+
+        string windowsRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\";
+        string drive = windowsRoot.TrimEnd('\\', ':');
+        if (drive.Length != 1 || !char.IsLetter(drive[0]))
+            throw new OperationFailureException("Windows sistem sürücüsü WSL içinde çözümlenemedi.", "WSL_WINDOWS_DRIVE_UNKNOWN");
+        string controlRoot = "/mnt/" + char.ToLowerInvariant(drive[0]) + "/nfsu2";
+
+        // Avoid Bash here-documents in a C# raw string: Windows source line endings
+        // can otherwise prevent the terminator from matching inside the WSL shell.
+        string shell = """
+set -Eeuo pipefail
+source_config="${DOCKER_CONFIG:-/root/.docker}"
+safe_config="/root/.config/nfsu2-control-center-docker"
+mkdir -p -- "$safe_config"
+printf '%s' '__DOCKER_CONFIG_PYTHON_B64__' | base64 -d | python3 - "$source_config/config.json" "$safe_config/config.json"
+if [[ -d "$source_config/contexts" && ! -d "$safe_config/contexts" ]]; then
+  cp -a "$source_config/contexts" "$safe_config/contexts"
+fi
 export DOCKER_CONFIG="$safe_config"
-""" + "\ncd " + QuoteBash(location.ProjectDirectory) + " && " + command;
+""";
+        shell = shell.Replace("__DOCKER_CONFIG_PYTHON_B64__", pythonB64, StringComparison.Ordinal);
+
         string projectCommand = "cd " + QuoteBash(location.ProjectDirectory) + " && " + command;
-        string launch = location.LinuxUid > 0
-            ? "setpriv --reuid=" + location.LinuxUid.ToString(CultureInfo.InvariantCulture) +
-              " --regid=" + location.LinuxUid.ToString(CultureInfo.InvariantCulture) +
-              " --init-groups env HOME=" + QuoteBash(location.LinuxHome) +
-              " bash --noprofile --norc -c " + QuoteBash(projectCommand)
-            : projectCommand;
-        string finalShell = shell + "\n" + launch;
+        string finalShell = (shell + "\n" + projectCommand)
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+
         return await RunCommandAsync(wsl, new[] { "-d", location.Distro, "-u", "root", "--", "env",
-            "HOME=/root", "LC_ALL=C.UTF-8", "DOCKER_CONFIG=/root/.config/nfsu2-control-center-docker",
+            "HOME=/root", "LC_ALL=C.UTF-8", "NFSU2_CONTROL_ROOT=" + controlRoot,
+            "NFSU2_STOP_REQUEST_FILE=" + controlRoot + "/logs/.nfsu2-safe-stop.request",
+            "DOCKER_CONFIG=/root/.config/nfsu2-control-center-docker",
             "bash", "--noprofile", "--norc", "-c", finalShell }, timeout ?? TimeSpan.FromMinutes(3),
             RootDir, logOutput: log, logCategory: "WSL");
     }

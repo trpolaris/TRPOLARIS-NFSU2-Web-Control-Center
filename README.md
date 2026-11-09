@@ -121,6 +121,7 @@ Control Center, GitHub Releases API üzerinden yayınları denetler. Sürüm bil
 - **Devam ettirilebilir indirme:** Bağlantı kesilirse kısmi dosya bir sonraki denemede Range isteğiyle sürdürülür.
 - **Yerel C# güncelleme yardımcısı:** EXE değiştirme işlemi harici PowerShell updater olmadan yapılır.
 - **Yedeksiz değiştirme:** Güncelleme sırasında `.previous` veya başka bir uygulama yedeği oluşturulmaz. İndirme ve doğrulama tamamlanmadan mevcut EXE'ye dokunulmaz.
+- **Rollback politikası:** Yedek oluşturulmaması tercih edildiğinden, yeni EXE dosyası yerleştirildikten sonra açılış doğrulaması başarısız olursa otomatik eski sürüme dönüş yapılamaz; sonuç güncelleme geçmişine ve günlüğe yazılır.
 - **Başlangıç doğrulaması ve geçmiş:** Yeni uygulama açılış sinyali verir; güncelleme sonuçları yerel geçmişte tutulur.
 - **Minimum sürüm politikası:** Release manifesti, desteklenen en düşük istemci sürümünü belirtebilir.
 

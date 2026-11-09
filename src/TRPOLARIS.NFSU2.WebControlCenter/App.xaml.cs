@@ -90,7 +90,7 @@ public partial class App : Application
         var finalRemaining = minimumDuration - clock.Elapsed;
         if (finalRemaining > TimeSpan.Zero)
         {
-            splash.ReportProgress(98, "Başlatma tamamlanıyor", "Control Center ana ekranı açılmak üzere.");
+            splash.ReportProgress(98, "Başlatma tamamlanıyor", "NFSU2 Server control ana ekranı açılmak üzere.");
             await Task.Delay(finalRemaining);
         }
     }

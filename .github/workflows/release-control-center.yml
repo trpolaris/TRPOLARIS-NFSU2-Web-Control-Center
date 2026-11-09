@@ -74,7 +74,14 @@ jobs:
           UPDATE_SIGNING_PRIVATE_KEY: ${{ secrets.UPDATE_SIGNING_PRIVATE_KEY }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:UPDATE_SIGNING_PRIVATE_KEY)) {
-            throw 'Repository secret UPDATE_SIGNING_PRIVATE_KEY is missing. Add the RSA PEM key with GitHub CLI before publishing.'
+            throw @'
+          Missing required GitHub Actions secret: UPDATE_SIGNING_PRIVATE_KEY
+
+          Create a repository Actions secret with this exact name:
+            gh secret set UPDATE_SIGNING_PRIVATE_KEY --repo trpolaris/TRPOLARIS-NFSU2-Web-Control-Center < UPDATE_SIGNING_PRIVATE_KEY.pem
+
+          The secret must contain the complete RSA PEM private key. Do not commit the PEM file.
+          '@
           }
 
           $version = '${{ steps.assets.outputs.version }}'

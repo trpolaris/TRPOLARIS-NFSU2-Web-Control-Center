@@ -124,7 +124,7 @@ Control Center, GitHub Releases API üzerinden yayınları denetler. Sürüm bil
 - **Başlangıç doğrulaması ve geçmiş:** Yeni uygulama açılış sinyali verir; güncelleme sonuçları yerel geçmişte tutulur.
 - **Minimum sürüm politikası:** Release manifesti, desteklenen en düşük istemci sürümünü belirtebilir.
 
-v1.7.3 ve daha eski kurulumların geçişi için Release ayrıca eski EXE adıyla uyumlu bir kopya ve `latest.json` taşır. Yeni uygulama ilk açılışında eski dosya adından `TRPOLARIS.ControlCenter.exe` adına geçer.
+**v1.7.3'ten v1.8.0'a tek seferlik geçiş:** Eski istemcinin updater'ı `.previous` yedeği oluşturduğu için eski sürümün otomatik güncelleme akışı kullanılmaz. Control Center'ı kapatın, Release'den `TRPOLARIS.ControlCenter.exe` dosyasını indirin, mevcut kurulum klasöründe dosya adını `TRPOLARIS.NFSU2.WebControlCenter.exe` yapıp eski dosyanın üzerine yazın ve çalıştırın. Yeni uygulama ilk açılışta kendi dosya adını otomatik olarak `TRPOLARIS.ControlCenter.exe` biçimine taşır. Bu geçişte uygulama yedeği oluşturulmaz. Bundan sonraki güncellemeler yerel C# motoruyla otomatik yapılır.
 
 Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncelleme** işlemi birbirinden ayrıdır:
 - **Uygulama güncellemesi:** Windows'taki Control Center EXE dosyasını yeniler.
@@ -140,7 +140,7 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 - PowerShell güncelleme yardımcısı kaldırıldı; dosya değiştirme C# yerel yardımcı süreçle yapılır.
 - Uygulama güncellemesi sırasında `.previous` veya başka bir EXE yedeği oluşturulmaz.
 - Ürün/EXE adı `TRPOLARIS Control Center` ve `TRPOLARIS.ControlCenter.exe` olarak kısaltıldı.
-- v1.7.3 istemcileri için eski dosya adıyla geçiş uyumluluğu korundu.
+- v1.7.3'ten v1.8.0'a tek seferlik manuel dosya adı geçişi sağlandı; eski PowerShell updater'ın yedek oluşturan akışı kullanılmaz.
 
 ### v1.7.3 · İlk kurulum ve WSL/Docker kararlılığı
 - 🐳 İlk Ubuntu kurulumunda Docker Desktop WSL Integration hazır olana kadar güvenilir yeniden deneme.

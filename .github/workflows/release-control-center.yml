@@ -1,4 +1,4 @@
-name: Build and publish Control Center
+name: Build and publish NFSU2 Server control
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
           dotnet publish $project -c Release -r win-x64 --self-contained true -o publish
           if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
-          $exe = 'publish/TRPOLARIS.ControlCenter.exe'
+          $exe = 'publish/NFSU2 Server control.exe'
           if (-not (Test-Path $exe)) { throw 'Published executable not found.' }
 
           $sidecarScripts = @(Get-ChildItem 'publish' -Recurse -File -Filter '*.ps1')
@@ -53,7 +53,7 @@ jobs:
             throw "Git tag version ($version) does not match project version ($projectVersion)."
           }
 
-          $exe = 'publish/TRPOLARIS.ControlCenter.exe'
+          $exe = 'publish/NFSU2 Server control.exe'
           $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $size = (Get-Item -LiteralPath $exe).Length
           $channel = if ($version -match '-') { 'beta' } else { 'stable' }
@@ -91,8 +91,8 @@ jobs:
           $minimumSupportedVersion = '${{ steps.assets.outputs.minimumSupportedVersion }}'
           $sha256 = '${{ steps.assets.outputs.sha256 }}'
           $assetSize = [long]'${{ steps.assets.outputs.size }}'
-          $assetName = 'TRPOLARIS.ControlCenter.exe'
-          $product = 'TRPOLARIS Control Center'
+          $assetName = 'NFSU2 Server control.exe'
+          $product = 'NFSU2 Server control'
           $platform = 'win-x64'
           $signatureAlgorithm = 'RSA-SHA256'
           $keyId = 'f58f0a93a19ca147'
@@ -177,12 +177,12 @@ jobs:
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
-          name: TRPOLARIS Control Center ${{ steps.assets.outputs.tag }}
+          name: NFSU2 Server control ${{ steps.assets.outputs.tag }}
           body_path: .github/release-notes/${{ github.ref_name }}.md
           prerelease: ${{ steps.assets.outputs.channel == 'beta' }}
           make_latest: ${{ steps.assets.outputs.channel == 'stable' }}
           overwrite_files: true
           fail_on_unmatched_files: true
           files: |
-            publish/TRPOLARIS.ControlCenter.exe
+            publish/NFSU2 Server control.exe
             publish/update-manifest.json

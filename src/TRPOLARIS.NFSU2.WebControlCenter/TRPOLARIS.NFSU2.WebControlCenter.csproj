@@ -10,30 +10,12 @@
     <AssemblyName>TRPOLARIS.ControlCenter</AssemblyName>
     <RootNamespace>TRPOLARIS.NFSU2.WebControlCenter</RootNamespace>
     <Version>1.8.0</Version>
-    <AssemblyVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '-.*
-    <Product>TRPOLARIS Control Center</Product>
-    <Authors>TRPOLARIS</Authors>
-    <Description>Native WPF control center for the browser-playable Need for Speed Underground 2 web server.</Description>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\NFSU2-Windows-OneClick-Installer.ps1" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.NFSU2-Windows-OneClick-Installer.ps1" />
-    <EmbeddedResource Include="Resources\nfsu2-access.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-access.sh" />
-    <EmbeddedResource Include="Resources\nfsu2-project-lookup.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-project-lookup.sh" />
-    <EmbeddedResource Include="Resources\nfsu2-git-update.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-git-update.sh" />
-  </ItemGroup>
-</Project>
-, ''))</AssemblyVersion>
-    <FileVersion>$(AssemblyVersion)</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <Product>TRPOLARIS Control Center</Product>
     <Authors>TRPOLARIS</Authors>
-    <Description>Native WPF control center for the browser-playable Need for Speed Underground 2 web server.</Description>
+    <Description>TRPOLARIS Control Center for installing and maintaining the browser-playable Need for Speed Underground 2 web server.</Description>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>

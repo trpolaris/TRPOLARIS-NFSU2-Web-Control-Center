@@ -1761,22 +1761,35 @@ done
         var location = await ResolveWslProjectAsync(log);
         var wsl = FindWslExe() ?? throw new InvalidOperationException("wsl.exe bulunamadı.");
 
-        // Use WSL to translate RootDir instead of deriving /mnt/<drive> in managed code.
-        var rootProbe = await RunCommandAsync(wsl,
-            new[] { "-d", location.Distro, "-u", "root", "--", "wslpath", "-u", RootDir },
-            TimeSpan.FromSeconds(15), RootDir, logOutput: false, logCategory: "WSL");
-        string controlRoot = rootProbe.Output.Trim().TrimEnd('/');
-        if (rootProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(controlRoot) ||
-            !controlRoot.StartsWith("/", StringComparison.Ordinal))
-            throw new OperationFailureException(
-                "WSL, Control Center klasör yolunu çeviremedi. Windows yolu: " + RootDir +
-                "; wslpath çıkış kodu: " + rootProbe.ExitCode +
-                "; çıktı: " + TailText(rootProbe.Output, 1000),
-                "WSL_CONTROL_ROOT_RESOLUTION_FAILED");
-        AppendLog("WSL kontrol merkezi yolu doğrulandı: " + controlRoot, "OK", "WSL");
+        // RootDir is the known Windows directory where this app extracts its helpers.
+        // WSL helper files already use the standard /mnt/<drive> mount (verified by
+        // the project lookup); avoid wslpath, which fails in some WSL configurations.
+        string windowsRoot = Path.GetFullPath(RootDir);
+        string driveRoot = Path.GetPathRoot(windowsRoot) ?? throw new OperationFailureException(
+            "Control Center Windows sürücü kökü çözümlenemedi: " + windowsRoot,
+            "WINDOWS_CONTROL_ROOT_INVALID");
+        string drive = driveRoot.TrimEnd('\\', ':');
+        if (drive.Length != 1 || !char.IsLetter(drive[0]))
+            throw new OperationFailureException("Control Center sürücü harfi çözümlenemedi: " + windowsRoot,
+                "WINDOWS_CONTROL_ROOT_INVALID");
+        string relativeRoot = windowsRoot[driveRoot.Length..].Replace('\\', '/').Trim('/');
+        string controlRoot = "/mnt/" + char.ToLowerInvariant(drive[0]) + "/" + relativeRoot;
+        if (string.IsNullOrWhiteSpace(relativeRoot))
+            throw new OperationFailureException("Control Center kök klasörü boş çözümlendi.", "WINDOWS_CONTROL_ROOT_INVALID");
 
-        // Python creates the isolated Docker config directory itself. This bootstrap
-        // has no mkdir command that could receive an empty environment-derived value.
+        // Verify the exact mapped directory before invoking the updater or Docker.
+        var rootCheck = await RunCommandAsync(wsl,
+            new[] { "-d", location.Distro, "-u", "root", "--", "test", "-d", controlRoot },
+            TimeSpan.FromSeconds(15), RootDir, logOutput: false, logCategory: "WSL");
+        if (rootCheck.ExitCode != 0)
+            throw new OperationFailureException(
+                "Control Center klasörü WSL içinde bulunamadı. Windows: " + windowsRoot +
+                "; beklenen WSL yolu: " + controlRoot +
+                ". WSL automount /mnt ayarını veya bu klasörün erişimini kontrol et.",
+                "WSL_CONTROL_ROOT_NOT_MOUNTED");
+        AppendLog("Control Center WSL yolu doğrulandı: " + controlRoot, "OK", "WSL");
+
+        // Prepare Docker Desktop's isolated CLI config without a shell mkdir target.
         const string dockerConfigPython = """
 import json, pathlib, sys
 source, target = map(pathlib.Path, sys.argv[1:3])
@@ -1792,7 +1805,6 @@ target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
 """;
         string pythonB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(dockerConfigPython));
-
         string shell = """
 set -Eeuo pipefail
 source_config="/root/.docker"
@@ -1802,17 +1814,19 @@ if [[ -d "$source_config/contexts" && ! -d "$safe_config/contexts" ]]; then
   cp -a "$source_config/contexts" "$safe_config/contexts"
 fi
 export DOCKER_CONFIG="$safe_config"
-printf '[CONTROL_CENTER] project=%s control_root=%s\n' "$PWD" "$NFSU2_CONTROL_ROOT"
+printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD"
 """;
-        shell = shell.Replace("__DOCKER_CONFIG_PYTHON_B64__", pythonB64, StringComparison.Ordinal);
+        shell = shell.Replace("__DOCKER_CONFIG_PYTHON_B64__", pythonB64, StringComparison.Ordinal)
+            .Replace("__CONTROL_ROOT__", controlRoot, StringComparison.Ordinal);
 
-        string resolvedCommand = command.Replace("__NFSU2_CONTROL_ROOT__", controlRoot, StringComparison.Ordinal);
+        string resolvedCommand = command.Replace("__NFSU2_UPDATE_SCRIPT__",
+            QuoteBash(controlRoot + "/nfsu2-git-update.sh"), StringComparison.Ordinal);
         string projectCommand = "cd " + QuoteBash(location.ProjectDirectory) + " && " + resolvedCommand;
         string finalShell = (shell + "\n" + projectCommand)
             .Replace("\r\n", "\n", StringComparison.Ordinal);
 
         return await RunCommandAsync(wsl, new[] { "-d", location.Distro, "-u", "root", "--", "env",
-            "HOME=/root", "LC_ALL=C.UTF-8", "NFSU2_CONTROL_ROOT=" + controlRoot,
+            "HOME=/root", "LC_ALL=C.UTF-8",
             "NFSU2_STOP_REQUEST_FILE=" + controlRoot + "/logs/.nfsu2-safe-stop.request",
             "DOCKER_CONFIG=/root/.config/nfsu2-control-center-docker",
             "bash", "--noprofile", "--norc", "-c", finalShell }, timeout ?? TimeSpan.FromMinutes(3),
@@ -2706,7 +2720,7 @@ printf '[CONTROL_CENTER] project=%s control_root=%s\n' "$PWD" "$NFSU2_CONTROL_RO
             Directory.CreateDirectory(Path.Combine(RootDir, "logs"));
             ExtractResource(GitUpdateResource, "nfsu2-git-update.sh", Path.Combine(RootDir, "nfsu2-git-update.sh"));
             SetOperationProgress(8, "GitHub main, WSL paketleri ve Docker bağlantısı doğrulanıyor");
-            var pull = await RunWslProjectCommandAsync("bash __NFSU2_CONTROL_ROOT__/nfsu2-git-update.sh", TimeSpan.FromMinutes(90));
+            var pull = await RunWslProjectCommandAsync("bash __NFSU2_UPDATE_SCRIPT__", TimeSpan.FromMinutes(90));
             if (pull.ExitCode != 0)
             {
                 string detail = TailText(pull.Output, 4500).Trim();

@@ -6,8 +6,14 @@
 # Existing game-data and state volumes are never removed or recreated.
 set -Eeuo pipefail
 
+SCRIPT_PATH="$(realpath -e -- "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd -P)"
 PROJECT_DIR="$(pwd -P)"
-ROOT="${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}"
+ROOT="${NFSU2_CONTROL_ROOT:-$SCRIPT_DIR}"
+# Defensive fallback: an empty environment variable must never produce an empty mkdir target.
+if [[ -z "${ROOT//[[:space:]]/}" ]]; then ROOT="$SCRIPT_DIR"; fi
+ROOT="${ROOT%/}"
+if [[ -z "$ROOT" ]]; then ROOT="$SCRIPT_DIR"; fi
 MODULE_DIR="$ROOT/module"
 LOG_DIR="$ROOT/logs"
 LOG="$LOG_DIR/nfsu2-update-$(date +%Y%m%d-%H%M%S).log"
@@ -31,7 +37,9 @@ HOST_MODULE_UPDATED=0
 ROLLBACK_READY=0
 STASH_REF=""
 
-mkdir -p "$LOG_DIR"
+printf '[UPDATER_BOOT] script=%q project=%q control_root=%q root=%q log_dir=%q\\n' \
+  "$SCRIPT_PATH" "$PROJECT_DIR" "${NFSU2_CONTROL_ROOT:-<unset>}" "$ROOT" "$LOG_DIR" >&2
+mkdir -p -- "$LOG_DIR"
 exec > >(tee -a "$LOG") 2>&1
 
 say() { printf '[%s] %s\n' "$(date '+%F %T')" "$*"; }

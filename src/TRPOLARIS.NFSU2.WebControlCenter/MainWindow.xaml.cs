@@ -1788,6 +1788,8 @@ target.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
         // can otherwise prevent the terminator from matching inside the WSL shell.
         string shell = """
 set -Eeuo pipefail
+export NFSU2_CONTROL_ROOT='__NFSU2_CONTROL_ROOT__'
+printf '[CONTROL_CENTER] NFSU2_CONTROL_ROOT=%q\\n' "$NFSU2_CONTROL_ROOT"
 source_config="${DOCKER_CONFIG:-/root/.docker}"
 safe_config="/root/.config/nfsu2-control-center-docker"
 mkdir -p -- "$safe_config"
@@ -1797,7 +1799,8 @@ if [[ -d "$source_config/contexts" && ! -d "$safe_config/contexts" ]]; then
 fi
 export DOCKER_CONFIG="$safe_config"
 """;
-        shell = shell.Replace("__DOCKER_CONFIG_PYTHON_B64__", pythonB64, StringComparison.Ordinal);
+        shell = shell.Replace("__DOCKER_CONFIG_PYTHON_B64__", pythonB64, StringComparison.Ordinal)
+            .Replace("__NFSU2_CONTROL_ROOT__", controlRoot, StringComparison.Ordinal);
 
         string projectCommand = "cd " + QuoteBash(location.ProjectDirectory) + " && " + command;
         string finalShell = (shell + "\n" + projectCommand)

@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏁 TRPOLARIS NFSU2 Web Control Center
+# 🏁 TRPOLARIS Control Center
 
 ### 🌌 Night Circuit · Windows Infrastructure Control
 
@@ -36,7 +36,7 @@ Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanl
 | ⏯️ | **Duraklat / devam et** | İndirmeyi duraklatır, sürdürür veya iptal eder; kaynak destekliyorsa kaldığı yerden devam eder. |
 | 🔄 | **Altyapı güncelleme** | GitHub main kaynaklarını ve WSL araç zincirini yeniler; React, Rust ve WASM bileşenlerini yeniden derler. |
 | 🐳 | **Docker servis kontrolü** | NFSU2 servisini başlatır, durdurur ve yeniden başlatır; sağlık durumunu görüntüler. |
-| 🛡️ | **Otomatik uygulama güncellemesi** | Açılışta GitHub Release kontrolü yapar; yeni EXE'yi indirir, SHA-256 ile doğrular ve yedekli biçimde uygular. |
+| 🛡️ | **İmzalı otomatik güncelleme** | GitHub Releases API, RSA imzalı manifest, SHA-256, SemVer ve devam ettirilebilir indirme kullanır. |
 | 🗂️ | **Dosya yöneticisi** | WSL içindeki proje dosyalarını görüntüler, düzenler ve aktarır. |
 | 🌐 | **Erişim ve paylaşım** | Local, LAN/HTTPS ve geçici Public Tunnel profillerini yapılandırır. |
 | 📋 | **Canlı işlem günlükleri** | Aşamaları, ilerlemeyi, komut çıktılarını ve hata kayıtlarını tek ekranda gösterir. |
@@ -47,7 +47,7 @@ Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanl
 Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar temel bölümlerini sırayla gösterir. Tekil görselleri büyütmek için ilgili ekran görüntüsüne tıklayın.
 
 <p align="center">
-  <img src="docs/screenshots/control-center-tour.gif" alt="TRPOLARIS Control Center v1.7.3 arayüz ekran turu" width="900">
+  <img src="docs/screenshots/control-center-tour.gif" alt="TRPOLARIS Control Center arayüz ekran turu" width="900">
 </p>
 
 
@@ -103,7 +103,7 @@ Control Center, Windows arayüzünden aşağıdaki zinciri yönetir:
 
 ## 📥 Kurulum
 
-1. [GitHub Releases](https://github.com/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest) sayfasından TRPOLARIS.NFSU2.WebControlCenter.exe dosyasını indirin.
+1. [GitHub Releases](https://github.com/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest) sayfasından **TRPOLARIS.ControlCenter.exe** dosyasını indirin.
 2. EXE'yi çalıştırın. Windows yönetici izni isterse onaylayın.
 3. **Sunucu Kurulumu** ekranında oyun arşivini indirin veya mevcut ZIP dosyanızı içe aktarın.
 4. Oyun klasörünü doğrulayın ve **Kurulumu başlat** seçeneğini kullanın.
@@ -111,13 +111,36 @@ Control Center, Windows arayüzünden aşağıdaki zinciri yönetir:
 
 ## 🔔 Uygulama güncellemesi
 
-Control Center açılışta GitHub Releases üzerinden yeni uygulama sürümünü kontrol eder. Güncelleme bulunduğunda EXE ve sürüm manifesti indirilir; dosya SHA-256 ile doğrulanır ve mevcut uygulama yedeklenerek değiştirilir. Güncelleme bulunmazsa veya kontrol tamamlanamazsa mevcut sürüm açılır.
+Control Center, GitHub Releases API üzerinden yayınları denetler. Sürüm bilgisi bir `version.txt` dosyasından değil Release etiketinden (`tag_name`) alınır.
+
+- **SemVer:** Kararlı ve önizleme sürümleri doğru sıralanır.
+- **Stable / Beta:** Güncelleme tercihleri penceresinden kanal seçilebilir.
+- **ETag:** GitHub aynı sürümü döndürdüğünde HTTP 304 ile gereksiz veri aktarımı azaltılır.
+- **İmzalı manifest:** `update-manifest.json`, gömülü RSA açık anahtarıyla RSA-SHA256 üzerinden doğrulanır.
+- **Dosya bütünlüğü:** EXE indirme sonrası SHA-256 ve dosya boyutuyla doğrulanır.
+- **Devam ettirilebilir indirme:** Bağlantı kesilirse kısmi dosya bir sonraki denemede Range isteğiyle sürdürülür.
+- **Yerel C# güncelleme yardımcısı:** EXE değiştirme işlemi harici PowerShell updater olmadan yapılır.
+- **Yedeksiz değiştirme:** Güncelleme sırasında `.previous` veya başka bir uygulama yedeği oluşturulmaz. İndirme ve doğrulama tamamlanmadan mevcut EXE'ye dokunulmaz.
+- **Başlangıç doğrulaması ve geçmiş:** Yeni uygulama açılış sinyali verir; güncelleme sonuçları yerel geçmişte tutulur.
+- **Minimum sürüm politikası:** Release manifesti, desteklenen en düşük istemci sürümünü belirtebilir.
+
+v1.7.3 ve daha eski kurulumların geçişi için Release ayrıca eski EXE adıyla uyumlu bir kopya ve `latest.json` taşır. Yeni uygulama ilk açılışında eski dosya adından `TRPOLARIS.ControlCenter.exe` adına geçer.
 
 Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncelleme** işlemi birbirinden ayrıdır:
 - **Uygulama güncellemesi:** Windows'taki Control Center EXE dosyasını yeniler.
 - **Altyapı güncellemesi:** WSL içindeki web kaynaklarını, derleme araçlarını ve Docker sunucu imajını yeniler.
 
 ## 🆕 Sürüm notları
+
+### v1.8.0 · İmzalı güncelleme motoru ve yeniden adlandırma
+- GitHub Release varlıkları RSA-SHA256 imzalı manifest ile doğrulanır; EXE SHA-256 ve boyut kontrolünden geçer.
+- GitHub Releases API, SemVer ve ETag tabanlı kararlı/beta sürüm denetimi eklendi.
+- Kesilen EXE indirmelerini Range istekleriyle devam ettirme ve güncelleme geçmişi eklendi.
+- Güncelleme kanalını ve otomatik kontrol sıklığını uygulama içinden seçme eklendi.
+- PowerShell güncelleme yardımcısı kaldırıldı; dosya değiştirme C# yerel yardımcı süreçle yapılır.
+- Uygulama güncellemesi sırasında `.previous` veya başka bir EXE yedeği oluşturulmaz.
+- Ürün/EXE adı `TRPOLARIS Control Center` ve `TRPOLARIS.ControlCenter.exe` olarak kısaltıldı.
+- v1.7.3 istemcileri için eski dosya adıyla geçiş uyumluluğu korundu.
 
 ### v1.7.3 · İlk kurulum ve WSL/Docker kararlılığı
 - 🐳 İlk Ubuntu kurulumunda Docker Desktop WSL Integration hazır olana kadar güvenilir yeniden deneme.
@@ -161,7 +184,7 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 
 Tek dosyalı yayın ayarları doğrudan `TRPOLARIS.NFSU2.WebControlCenter.csproj` içinde tanımlıdır. Ayrı bir yayın PowerShell betiği gerekmez. WPF arayüzü, uygulama kodu ve kurulum/güncelleme otomasyon kaynakları tek Windows x64 EXE dosyasına gömülür.
 
-Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir. Çıktı `publish\TRPOLARIS.NFSU2.WebControlCenter.exe` konumuna yazılır.
+Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir. Çıktı `publish\TRPOLARIS.ControlCenter.exe` konumuna yazılır.
 
 ## 🔗 Bağlantılar
 
@@ -174,7 +197,7 @@ Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme ar
 
 <div align="center">
 
-**TRPOLARIS** · NFSU2 Web Control Center · **v1.7.3**
+**TRPOLARIS** · Control Center · **v1.8.0**
 
 *Install · Update · Maintain · Remove*
 

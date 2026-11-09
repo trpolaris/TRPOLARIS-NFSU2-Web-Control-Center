@@ -47,7 +47,7 @@ Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanl
 Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar temel bölümlerini sırayla gösterir. Tekil görselleri büyütmek için ilgili ekran görüntüsüne tıklayın.
 
 <p align="center">
-  <img src="docs/screenshots/control-center-tour.gif" alt="TRPOLARIS Control Center v1.7.1 arayüz ekran turu" width="900">
+  <img src="docs/screenshots/control-center-tour.gif" alt="TRPOLARIS Control Center v1.7.3 arayüz ekran turu" width="900">
 </p>
 
 
@@ -119,6 +119,13 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 
 ## 🆕 Sürüm notları
 
+### v1.7.3 · İlk kurulum ve WSL/Docker kararlılığı
+- 🐳 İlk Ubuntu kurulumunda Docker Desktop WSL Integration hazır olana kadar güvenilir yeniden deneme.
+- 🛠️ Windows PowerShell 5.1'in yönlendirilmiş Docker hata çıktısını bekleme döngüsünü durduran hata olarak değerlendirmesi düzeltildi.
+- 🐧 Farklı Windows sürücüleri ve Linux kullanıcı adları için dinamik WSL proje yolu/kullanıcı keşfi iyileştirildi.
+- 📁 Dosya yöneticisi, dosya sahipliği ve altyapı güncelleme yolları sağlamlaştırıldı.
+- 🔄 Uygulama başlık çubuğu ve pencere başlığı sürümü artık derlemenin AssemblyVersion bilgisinden otomatik alınır.
+
 ### v1.7.2 · Arayüz, indirme ve kullanım iyileştirmeleri
 - 🎨 Güncelleme denetimi penceresi Night Circuit tasarımına taşındı; güncel sürüm bilgisi sadeleştirildi.
 - 🟢 Buton yazıları için kontrast ve metin gölgesi iyileştirildi; bilgi ipuçları koyu ve okunaklı hale getirildi.
@@ -148,9 +155,9 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
     git clone https://github.com/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center.git
     Set-Location TRPOLARIS-NFSU2-Web-Control-Center
     dotnet restore .\src\TRPOLARIS.NFSU2.WebControlCenter\TRPOLARIS.NFSU2.WebControlCenter.csproj -r win-x64
-    dotnet publish .\src\TRPOLARIS.NFSU2.WebControlCenter\TRPOLARIS.NFSU2.WebControlCenter.csproj -c Release -r win-x64 --self-contained true
+    .\Publish-SingleFile.ps1
 
-Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir.
+Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir. Betik tek dosyalı Windows x64 EXE çıktısını `publish` klasörüne yazar.
 
 ## 🔗 Bağlantılar
 
@@ -163,7 +170,7 @@ Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme ar
 
 <div align="center">
 
-**TRPOLARIS** · NFSU2 Web Control Center · **v1.7.2**
+**TRPOLARIS** · NFSU2 Web Control Center · **v1.7.3**
 
 *Install · Update · Maintain · Remove*
 

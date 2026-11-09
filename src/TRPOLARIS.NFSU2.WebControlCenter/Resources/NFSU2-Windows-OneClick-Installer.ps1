@@ -984,16 +984,27 @@ progress 59 "GitHub kaynak kodu alınıyor"
 say "Download the TRPOLARIS GitHub project"
 PROJECT="$INSTALL_USER_HOME/nfsu2-web-trpolaris"
 
-update_existing_checkout() {
-  # Never overwrite developer edits or local commits while retrying setup.
-  if ! git -C "$PROJECT" diff --quiet --; then
-    die "Existing checkout has modified tracked files: $PROJECT. Commit or back up those changes before retrying; nothing was overwritten."
+save_project_changes_and_stop() {
+  local reason="$1"
+  local backup="$LOG_DIR/nfsu2-project-local-changes-$(date -u +%Y%m%dT%H%M%SZ).patch"
+  if ! git -C "$PROJECT" diff --binary HEAD -- > "$backup" 2>/dev/null; then
+    backup="could-not-write-patch"
   fi
+  echo "[ERROR] $reason"
+  if [[ "$backup" != "could-not-write-patch" ]]; then
+    echo "[INFO] Tracked changes were preserved in: $backup"
+  fi
+  die "The existing checkout contains changes outside the installer's known generated changes. No user source was overwritten. Review the patch backup and resolve those changes before retrying."
+}
+
+update_existing_checkout() {
+  local shallow path numstat mode entry
+  local -a generated_docker_files=() generated_script_modes=() unexpected=()
+
   if ! git -C "$PROJECT" diff --cached --quiet --; then
-    die "Existing checkout has staged changes: $PROJECT. Commit or back up those changes before retrying; nothing was overwritten."
+    save_project_changes_and_stop "Staged changes were found in the existing project."
   fi
 
-  local shallow
   shallow="$(git -C "$PROJECT" rev-parse --is-shallow-repository 2>/dev/null || echo false)"
   echo "[INFO] Refreshing existing checkout from origin/main (shallow=$shallow)."
   if [[ "$shallow" == true ]]; then
@@ -1001,6 +1012,71 @@ update_existing_checkout() {
   else
     git -C "$PROJECT" fetch origin main
   fi
+
+  # Older installers applied these exact Docker allowlist fixes in-place.
+  # They now exist upstream; restore them only when the local bytes exactly
+  # match FETCH_HEAD, proving that they are the installer's generated copies.
+  for path in \
+    web/server-rs/Dockerfile \
+    web/server-rs/Dockerfile.dockerignore \
+    web/test/docker.test.mjs; do
+    if ! git -C "$PROJECT" diff --quiet -- "$path"; then
+      if git -C "$PROJECT" cat-file -e "FETCH_HEAD:$path" 2>/dev/null &&
+         git -C "$PROJECT" show "FETCH_HEAD:$path" 2>/dev/null | cmp -s "$PROJECT/$path" -; then
+        generated_docker_files+=("$path")
+      else
+        unexpected+=("$path")
+      fi
+    fi
+  done
+
+  # Older installers also chmodded every tracked shell file. A mode-only
+  # 100644 -> 100755 change is generated noise; never reset shell contents.
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    case "$path" in
+      web/server-rs/Dockerfile|web/server-rs/Dockerfile.dockerignore|web/test/docker.test.mjs)
+        continue
+        ;;
+      *.sh)
+        numstat="$(git -C "$PROJECT" diff --numstat -- "$path")"
+        mode="$(git -C "$PROJECT" ls-files -s -- "$path" | awk 'NR == 1 { print $1 }')"
+        if [[ -z "$numstat" && ( "$mode" == "100644" || "$mode" == "100755" ) ]]; then
+          generated_script_modes+=("$mode:$path")
+        else
+          unexpected+=("$path")
+        fi
+        ;;
+      *)
+        unexpected+=("$path")
+        ;;
+    esac
+  done < <(git -C "$PROJECT" diff --name-only)
+
+  if (( \${#unexpected[@]} > 0 )); then
+    printf '[ERROR] Unrecognized local changes: %s\n' "\${unexpected[*]}" >&2
+    save_project_changes_and_stop "Unrecognized user changes were found."
+  fi
+
+  for path in "\${generated_docker_files[@]}"; do
+    git -C "$PROJECT" restore --source=HEAD --worktree -- "$path"
+    echo "[INFO] Restored installer-generated Docker patch from upstream: $path"
+  done
+  for entry in "\${generated_script_modes[@]}"; do
+    mode="\${entry%%:*}"
+    path="\${entry#*:}"
+    if [[ "$mode" == "100755" ]]; then
+      chmod a+x "$PROJECT/$path"
+    else
+      chmod a-x "$PROJECT/$path"
+    fi
+    echo "[INFO] Restored installer-generated shell file mode: $path ($mode)"
+  done
+
+  if ! git -C "$PROJECT" diff --quiet --; then
+    save_project_changes_and_stop "The existing checkout is still modified after known installer changes were repaired."
+  fi
+
   # Fast-forward only: a local-only commit or diverged branch is never discarded.
   git -C "$PROJECT" merge --ff-only FETCH_HEAD
   echo "[INFO] Existing checkout updated to $(git -C "$PROJECT" rev-parse --short HEAD)."
@@ -1024,14 +1100,11 @@ fi
 [[ -f "$PROJECT/web/server-rs/src/main.rs" && -f "$PROJECT/web/server-rs/Cargo.toml" && -f "$PROJECT/web/server-rs/Cargo.lock" ]] || die "Downloaded source is missing the current Rust server sources or locked Cargo dependencies."
 [[ -f "$PROJECT/web/tools/i18n-keys.mjs" ]] || die "The current web build imports web/tools/i18n-keys.mjs, but that source file is missing from the downloaded repository."
 
-say "Validate and repair the minimal Docker web-build source allowlist"
-# web/build.mjs imports only web/tools/i18n-keys.mjs. Do not expose the whole
-# tools directory to Docker: it contains unrelated development/deployment utilities.
-# Keep Dockerfile COPY, Dockerfile.dockerignore and the regression test in exact sync.
+say "Validate the upstream Docker web-build source allowlist"
 DOCKERFILE="$PROJECT/web/server-rs/Dockerfile"
 DOCKERIGNORE="$PROJECT/web/server-rs/Dockerfile.dockerignore"
 DOCKERTEST="$PROJECT/web/test/docker.test.mjs"
-python3 - "$DOCKERFILE" "$DOCKERIGNORE" "$DOCKERTEST" <<'PYPATCH'
+python3 - "$DOCKERFILE" "$DOCKERIGNORE" "$DOCKERTEST" <<'PYVERIFY'
 from pathlib import Path
 import re, sys
 
@@ -1040,104 +1113,28 @@ for p in (dockerfile, ignore, test):
     if not p.is_file():
         raise SystemExit(f"Required current-repository build file is missing: {p}")
 
-# 1. COPY only the helper actually imported by web/build.mjs. Remove the stale
-# broad-directory rule left by older control-center releases.
-s = dockerfile.read_text(encoding="utf-8")
-lines = [line for line in s.splitlines() if line.strip() != "COPY web/tools tools"]
-required_copy = "COPY web/tools/i18n-keys.mjs tools/i18n-keys.mjs"
-if required_copy not in [line.strip() for line in lines]:
-    marker = "COPY web/src src"
-    if marker not in [line.strip() for line in lines]:
-        raise SystemExit("Dockerfile source-copy section changed; cannot safely add i18n helper COPY")
-    idx = next(i for i, line in enumerate(lines) if line.strip() == marker)
-    lines.insert(idx + 1, required_copy)
-s = "\n".join(lines) + "\n"
-if required_copy not in s.splitlines() or "COPY web/tools tools" in s.splitlines():
-    raise SystemExit("Dockerfile does not have the exact minimal i18n helper COPY rule")
-dockerfile.write_text(s, encoding="utf-8")
-
-# 2. Docker's ignore engine needs the parent directory unignored before the
-# one allowed file. The ALLOWED source list below still contains only that file.
+docker_text = dockerfile.read_text(encoding="utf-8").splitlines()
 ignore_lines = ignore.read_text(encoding="utf-8").splitlines()
-for required_ignore in ("!web/tools/", "!web/tools/i18n-keys.mjs"):
-    if required_ignore not in ignore_lines:
-        marker = "!web/src/"
-        if marker not in ignore_lines:
-            raise SystemExit("Dockerfile.dockerignore allowlist changed; cannot safely add i18n helper")
-        idx = ignore_lines.index(marker) + 1
-        # Keep parent exception before its single-file exception.
-        if required_ignore == "!web/tools/i18n-keys.mjs" and "!web/tools/" in ignore_lines:
-            idx = ignore_lines.index("!web/tools/") + 1
-        ignore_lines.insert(idx, required_ignore)
-ignore.write_text("\n".join(ignore_lines) + "\n", encoding="utf-8")
+test_text = test.read_text(encoding="utf-8")
 
-# 3. Normalize the regression test. The old installer added web/tools/ to
-# ALLOWED, directly contradicting the new test that forbids the whole folder.
-t = test.read_text(encoding="utf-8")
-m = re.search(r"const\s+ALLOWED\s*=\s*\[(.*?)\]\s*;", t, re.S)
-if not m:
-    raise SystemExit("docker.test.mjs ALLOWED list changed; cannot safely normalize it")
-body = m.group(1)
-body = re.sub(r"(['\"])web/tools/\1", "'web/tools/i18n-keys.mjs'", body)
-if not re.search(r"(['\"])web/tools/i18n-keys\.mjs\1", body):
-    if "'web/src/'" in body:
-        body = body.replace("'web/src/'", "'web/src/', 'web/tools/i18n-keys.mjs'", 1)
-    elif '"web/src/"' in body:
-        body = body.replace('"web/src/"', '"web/src/", "web/tools/i18n-keys.mjs"', 1)
-    else:
-        raise SystemExit("docker.test.mjs ALLOWED list has no web/src entry to anchor the exact helper")
-t = t[:m.start(1)] + body + t[m.end(1):]
-
-# A directory exception is valid in .dockerignore but must never be part of ALLOWED.
-mi = re.search(r"const\s+ALLOWED_IGNORE_DIRS\s*=\s*\[(.*?)\]\s*;", t, re.S)
-if not mi:
-    ma = re.search(r"const\s+ALLOWED\s*=\s*\[.*?\]\s*;", t, re.S)
-    if not ma:
-        raise SystemExit("Could not locate ALLOWED declaration end")
-    t = t[:ma.end()] + "\nconst ALLOWED_IGNORE_DIRS = ['web/tools/'];" + t[ma.end():]
-else:
-    ibody = mi.group(1)
-    if not re.search(r"(['\"])web/tools/\1", ibody):
-        ibody = ibody.rstrip() + (", " if ibody.strip() else "") + "'web/tools/'"
-        t = t[:mi.start(1)] + ibody + t[mi.end(1):]
-
-# Ensure the ignore-list assertion recognizes the parent-directory exception.
-if "ALLOWED_IGNORE_DIRS.includes(l.slice(1))" not in t:
-    old = "if (l.startsWith('!')) assert.ok(ALLOWED.includes(l.slice(1)),"
-    new = "if (l.startsWith('!')) assert.ok(ALLOWED.includes(l.slice(1)) || ALLOWED_IGNORE_DIRS.includes(l.slice(1)),"
-    if old not in t:
-        raise SystemExit("docker.test.mjs ignore assertion changed; cannot safely normalize it")
-    t = t.replace(old, new, 1)
-
-# Ensure the context walker visits the exact helper file, not the whole tools directory.
-mc = re.search(r"const\s+CONTEXT_ROOTS\s*=\s*\[(.*?)\]\s*;", t, re.S)
-if mc:
-    cbody = re.sub(r"(['\"])web/tools/\1", "'web/tools/i18n-keys.mjs'", mc.group(1))
-    if not re.search(r"(['\"])web/tools/i18n-keys\.mjs\1", cbody):
-        if "'web/src/'" in cbody:
-            cbody = cbody.replace("'web/src/'", "'web/src/', 'web/tools/i18n-keys.mjs'", 1)
-        elif '"web/src/"' in cbody:
-            cbody = cbody.replace('"web/src/"', '"web/src/", "web/tools/i18n-keys.mjs"', 1)
-        else:
-            raise SystemExit("CONTEXT_ROOTS has no web/src entry for the exact helper")
-    t = t[:mc.start(1)] + cbody + t[mc.end(1):]
-
-if not re.search(r"['\"]web/tools/i18n-keys\.mjs['\"]", re.search(r"const\s+ALLOWED\s*=\s*\[(.*?)\]\s*;", t, re.S).group(1)):
-    raise SystemExit("ALLOWED still does not contain the exact i18n helper")
-al = re.search(r"const\s+ALLOWED\s*=\s*\[(.*?)\]\s*;", t, re.S).group(1)
-if re.search(r"['\"]web/tools/['\"]", al):
-    raise SystemExit("ALLOWED must not include the entire web/tools directory")
-if "!web/tools/" not in ignore.read_text(encoding="utf-8").splitlines() or "!web/tools/i18n-keys.mjs" not in ignore.read_text(encoding="utf-8").splitlines():
-    raise SystemExit("Dockerfile.dockerignore is missing the minimal i18n helper exception")
-if "only the imported i18n-keys helper" not in t:
-    raise SystemExit("Expected i18n helper regression test is missing")
-test.write_text(t, encoding="utf-8")
-print("Docker build repaired: only web/tools/i18n-keys.mjs is copied and allowlisted; the full web/tools directory remains excluded.")
-PYPATCH
-
+if "COPY web/tools/i18n-keys.mjs tools/i18n-keys.mjs" not in docker_text:
+    raise SystemExit("Upstream Dockerfile is missing the exact i18n helper COPY rule.")
+if "COPY web/tools tools" in docker_text:
+    raise SystemExit("Upstream Dockerfile still copies the entire web/tools directory.")
+if "!web/tools/" not in ignore_lines or "!web/tools/i18n-keys.mjs" not in ignore_lines:
+    raise SystemExit("Upstream Dockerfile.dockerignore is missing the minimal i18n helper exceptions.")
+m = re.search(r"const\s+ALLOWED\s*=\s*\[(.*?)\]\s*;", test_text, re.S)
+if not m or not re.search(r"['\"]web/tools/i18n-keys\.mjs['\"]", m.group(1)):
+    raise SystemExit("Docker regression test does not allow only the exact i18n helper.")
+if re.search(r"['\"]web/tools/['\"]", m.group(1)):
+    raise SystemExit("Docker regression test must not allow the entire web/tools directory.")
+if "ALLOWED_IGNORE_DIRS" not in test_text:
+    raise SystemExit("Docker regression test is missing the parent-directory ignore exception.")
+print("Docker source allowlist is current and was validated without modifying tracked files.")
+PYVERIFY
 say "Prepare the current repository for one-click Docker setup"
 cd "$PROJECT"
-find . -type f -name '*.sh' -exec chmod u+x {} +
+# Do not chmod tracked source scripts in-place: this used to dirty the Git checkout on every retry.
 # Compose is generated locally instead of applying a patch made for an older repository.
 # The game and module directories are mounted read-only; persistent state remains in a named volume.
 cat > compose.local.yml <<'YAML'

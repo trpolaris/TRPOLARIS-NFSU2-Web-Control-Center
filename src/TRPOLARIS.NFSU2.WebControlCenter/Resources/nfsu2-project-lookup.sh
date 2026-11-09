@@ -130,6 +130,20 @@ validate_candidate() {
   return 0
 }
 
+# Prefer the unified JSON configuration; retain text metadata only as a fallback for older installs.
+config_file="${NFSU2_CONFIG_FILE:-${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/nfsu2-config.json}"
+if [[ -f "$config_file" ]] && command -v python3 >/dev/null 2>&1; then
+  config_project="$(python3 - "$config_file" <<'PYCONFIGPATH' 2>/dev/null || true
+import json, sys
+try:
+    print(json.load(open(sys.argv[1], encoding="utf-8")).get("install", {}).get("projectDirectory", ""))
+except Exception:
+    pass
+PYCONFIGPATH
+)"
+  add_candidate "$config_project"
+fi
+
 # Read both the compact path manifest and the human-readable installer report.
 manifest="${NFSU2_PROJECT_METADATA_FILE:-${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/NFSU2-PROJECT-PATH.txt}"
 for report in "$manifest" "${NFSU2_SETUP_REPORT_FILE:-${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}/NFSU2-SETUP-REPORT.txt}"; do

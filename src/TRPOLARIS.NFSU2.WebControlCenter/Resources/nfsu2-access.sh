@@ -5,6 +5,7 @@ HTTP_PORT="${2:?http port missing}"
 LAN_IP="${3:-}"
 LAN_PORT="${4:-8443}"
 ROOT="${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}"
+CONFIG_FILE="${NFSU2_CONFIG_FILE:-$ROOT/nfsu2-config.json}"
 PROJECT="${NFSU2_PROJECT_DIR:-}"
 if [[ -z "$PROJECT" ]]; then
   BASE_HOME="${NFSU2_INSTALL_HOME:-$(getent passwd "$(id -un)" | cut -d: -f6)}"
@@ -207,7 +208,15 @@ seed_tls_volume() {
 ROLLBACK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/nfsu2-access-rollback.XXXXXX")"
 cp -p "$COMPOSE" "$ROLLBACK_DIR/compose.local.yml"
 cp -p "$ENV_FILE" "$ROLLBACK_DIR/.env.local"
-OLD_ACCESS_MODE="$(cat "$ROOT/nfsu2-access-mode.txt" 2>/dev/null || printf 'local')"
+OLD_ACCESS_MODE="$(python3 - "$CONFIG_FILE" <<'PYACCESSMODE' 2>/dev/null || true
+import json, sys
+try:
+    print(json.load(open(sys.argv[1], encoding="utf-8")).get("access", {}).get("mode", ""))
+except Exception:
+    pass
+PYACCESSMODE
+)"
+OLD_ACCESS_MODE="${OLD_ACCESS_MODE:-$(cat "$ROOT/nfsu2-access-mode.txt" 2>/dev/null || printf 'local')}"
 REQUESTED_MODE="$MODE"
 STACK_REPLACEMENT_STARTED=0
 PROFILE_COMMITTED=0
@@ -537,10 +546,30 @@ fi
 
 assert_not_stopped
 progress 97 'HTTP sağlık kontrolü başarılı; erişim kaydı yazılıyor'
-printf '%s\n' "$MODE" > "$ROOT/nfsu2-access-mode.txt"
-printf '%s\n' "$URL" > "$ROOT/nfsu2-access-url.txt"
-if [[ "$MODE" == lan ]]; then printf '%s\n' "$LAN_PORT" > "$ROOT/NFSU2-LAN-PORT.txt"; else rm -f "$ROOT/NFSU2-LAN-PORT.txt"; fi
-if [[ "$MODE" == public ]]; then printf '%s\n' "$URL" > "$ROOT/NFSU2-PUBLIC-URL.txt"; else rm -f "$ROOT/NFSU2-PUBLIC-URL.txt"; fi
+python3 - "$CONFIG_FILE" "$MODE" "$URL" "$LAN_PORT" <<'PYACCESSWRITE'
+import datetime, json, os, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+mode, url, lan_port = sys.argv[2:5]
+data = {}
+try:
+    if path.is_file():
+        data = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    data = {}
+access = data.setdefault("access", {})
+access["mode"] = mode
+access["url"] = url
+access["publicUrl"] = url if mode == "public" else ""
+if mode == "lan":
+    access["lanPort"] = int(lan_port)
+access["updatedAt"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+data.setdefault("schemaVersion", 1)
+path.parent.mkdir(parents=True, exist_ok=True)
+tmp = path.with_suffix(path.suffix + ".tmp")
+tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+os.replace(tmp, path)
+PYACCESSWRITE
+rm -f "$ROOT/nfsu2-access-mode.txt" "$ROOT/nfsu2-access-url.txt" "$ROOT/NFSU2-LAN-PORT.txt" "$ROOT/NFSU2-PUBLIC-URL.txt"
 PROFILE_COMMITTED=1
 say "Access profile is active: $MODE"
 echo "ACCESS_MODE=$MODE"

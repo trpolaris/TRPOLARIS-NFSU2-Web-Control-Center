@@ -44,6 +44,7 @@ public partial class MainWindow : Window
     private const int MaxGameArchiveEntries = 150_000;
     private const string AppLogFolder = "TRPOLARIS\\NFSU2-Web-Control-Center";
     private static readonly string RootDir = Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\", "nfsu2");
+    private static readonly string RuntimeScriptsDir = Path.Combine(RootDir, "runtime");
     private static readonly string SafeStopRequestPath = Path.Combine(RootDir, "logs", ".nfsu2-safe-stop.request");
     private static readonly string LogsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "logs");
     private static readonly string RuntimeDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppLogFolder, "runtime");
@@ -188,6 +189,9 @@ public partial class MainWindow : Window
         try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.AboveNormal; } catch { }
         Directory.CreateDirectory(LogsDir);
         Directory.CreateDirectory(RuntimeDir);
+        Directory.CreateDirectory(RootDir);
+        Directory.CreateDirectory(RuntimeScriptsDir);
+        Nfsu2ConfigStore.MigrateLegacyFiles(RootDir);
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
         StateChanged += (_, _) => UpdateMaximizeButtonGlyph();
@@ -790,6 +794,34 @@ public partial class MainWindow : Window
         return WrapScrollable(root);
     }
 
+    private string BuildSetupConfigSummary()
+    {
+        var config = Nfsu2ConfigStore.Read(RootDir);
+        var install = config.Install;
+        if (string.IsNullOrWhiteSpace(install.ProjectDirectory))
+            return ReadTextFile(Path.Combine(RootDir, "NFSU2-SETUP-REPORT.txt"), "Kurulum raporu bulunamadı. Önce tek tık kurulumu tamamla.");
+
+        return string.Join(Environment.NewLine, new[]
+        {
+            "TRPOLARIS NFSU2 Web · kurulum yapılandırması",
+            "WSL dağıtımı: " + install.WslDistribution,
+            "Linux kullanıcısı: " + install.LinuxUser + " (UID " + install.LinuxUid.ToString(CultureInfo.InvariantCulture) + ")",
+            "Linux HOME: " + install.LinuxHome,
+            "Kaynak klasörü: " + install.ProjectDirectory,
+            "GitHub: " + install.GitHub,
+            "Kaynak commit: " + install.SourceCommit,
+            "WASM revizyonu: " + install.WasmModuleRevision,
+            "Windows oyun klasörü: " + install.WindowsGameDirectory,
+            "WSL oyun klasörü: " + install.WslGameDirectory,
+            "Sunucu portu: " + install.ServerPort.ToString(CultureInfo.InvariantCulture),
+            "Modül klasörü: " + install.ModuleDirectory,
+            "Compose: " + install.ComposeFile,
+            "Compose ortamı: " + install.ComposeEnvironmentFile,
+            "Erişim profili: " + config.Access.Mode,
+            "Erişim URL: " + config.Access.Url
+        });
+    }
+
     private UIElement BuildServerPage()
     {
         var root = NewStack(16);
@@ -817,7 +849,7 @@ public partial class MainWindow : Window
         root.Children.Add(update);
 
         var paths = MakeCard("KURULUM BİLGİLERİ", "Son kurulum raporunda kaydedilen kaynak, port ve modül yolları.");
-        var report = ReadTextFile(Path.Combine(RootDir, "NFSU2-SETUP-REPORT.txt"), "Kurulum raporu bulunamadı. Önce tek tık kurulumu tamamla.");
+        var report = BuildSetupConfigSummary();
         AddCardChild(paths, new TextBlock { Text = report, FontFamily = new FontFamily("Cascadia Mono"), FontSize = 10, Foreground = BrushHex("#B8C5D2"), TextWrapping = TextWrapping.Wrap });
         root.Children.Add(paths);
 
@@ -1577,9 +1609,12 @@ done
 
     private (string? Distro, string? ProjectDirectory) ReadInstallReportMetadata()
     {
-        // Prefer the compact metadata file, but never let an incomplete/stale file
-        // hide the full installer report. The report is written by the installer
-        // before the first access-profile resolution.
+        var config = Nfsu2ConfigStore.Read(RootDir);
+        if (!string.IsNullOrWhiteSpace(config.Install.ProjectDirectory))
+            return (string.IsNullOrWhiteSpace(config.Install.WslDistribution) ? null : config.Install.WslDistribution,
+                config.Install.ProjectDirectory);
+
+        // Legacy fallback is retained for older installations that have no JSON yet.
         string? bestDistro = null;
         string? bestProject = null;
         foreach (string report in new[]
@@ -1612,22 +1647,20 @@ done
     {
         try
         {
-            Directory.CreateDirectory(RootDir);
-            string metadata = string.Join(Environment.NewLine, new[]
+            Nfsu2ConfigStore.Update(RootDir, config =>
             {
-                "TRPOLARIS NFSU2 Web Control Center project metadata",
-                "WSL distribution: " + location.Distro,
-                "Linux user: " + location.LinuxUser,
-                "Linux uid: " + location.LinuxUid.ToString(CultureInfo.InvariantCulture),
-                "Linux home: " + location.LinuxHome,
-                "Source folder (WSL): " + location.ProjectDirectory,
-                "GitHub: https://github.com/trpolaris/NFSU2-Web.git"
-            }) + Environment.NewLine;
-            File.WriteAllText(Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), metadata, new UTF8Encoding(false));
+                config.Install.WslDistribution = location.Distro;
+                config.Install.LinuxUser = location.LinuxUser;
+                config.Install.LinuxUid = location.LinuxUid;
+                config.Install.LinuxHome = location.LinuxHome;
+                config.Install.ProjectDirectory = location.ProjectDirectory;
+                if (string.IsNullOrWhiteSpace(config.Install.GitHub))
+                    config.Install.GitHub = "https://github.com/trpolaris/NFSU2-Web.git";
+            });
         }
         catch (Exception ex)
         {
-            AppendLog("Doğrulanmış proje yolu kalıcı kaydedilemedi: " + ex.Message, "UYARI", "APP");
+            AppendLog("Birleşik yapılandırma kaydedilemedi: " + ex.Message, "UYARI", "APP");
         }
     }
 
@@ -1685,21 +1718,22 @@ done
         // Keep the resolver in a real WSL-visible file. Passing a multi-line Bash program
         // as a Windows process argument caused truncated/mis-parsed helper definitions on
         // some WSL/PowerShell combinations (read_origin/normalize_remote: command not found).
-        Directory.CreateDirectory(RootDir);
-        var lookupScriptWinPath = Path.Combine(RootDir, "nfsu2-project-lookup.sh");
+        Directory.CreateDirectory(RuntimeScriptsDir);
+        var lookupScriptWinPath = Path.Combine(RuntimeScriptsDir, "nfsu2-project-lookup.sh");
         ExtractResource(ProjectLookupResource, "nfsu2-project-lookup.sh", lookupScriptWinPath);
         string windowsRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\";
         string drive = windowsRoot.TrimEnd('\\', ':');
         if (drive.Length != 1 || !char.IsLetter(drive[0]))
             throw new OperationFailureException("Windows sistem sürücüsü WSL içinde çözümlenemedi.", "WSL_WINDOWS_DRIVE_UNKNOWN");
         string controlRoot = "/mnt/" + char.ToLowerInvariant(drive[0]) + "/nfsu2";
-        string lookupScriptLinuxPath = controlRoot + "/nfsu2-project-lookup.sh";
+        string lookupScriptLinuxPath = controlRoot + "/runtime/nfsu2-project-lookup.sh";
         var args = new List<string>
         {
             "-d", distro, "-u", "root", "--", "env",
             "HOME=/root", "LC_ALL=C.UTF-8",
             "NFSU2_DEFAULT_HOME=" + (homeLine is null ? "" : homeLine["HOME=".Length..]),
             "NFSU2_CONTROL_ROOT=" + controlRoot,
+            "NFSU2_CONFIG_FILE=" + controlRoot + "/nfsu2-config.json",
             "NFSU2_PROJECT_METADATA_FILE=" + controlRoot + "/NFSU2-PROJECT-PATH.txt",
             "NFSU2_SETUP_REPORT_FILE=" + controlRoot + "/NFSU2-SETUP-REPORT.txt",
             "DOCKER_CONFIG=/root/.config/nfsu2-control-center-docker"
@@ -1708,7 +1742,15 @@ done
             args.Add("NFSU2_EXPECTED_PROJECT_DIR=" + expectedProject);
         args.AddRange(new[] { "/bin/bash", "--noprofile", "--norc", lookupScriptLinuxPath });
         AppendLog("WSL proje doğrulayıcısı dosya üzerinden çalıştırılıyor; kurulum raporu ve varsayılan HOME doğrudan kontrol edilecek.", "INFO", "WSL");
-        var result = await RunCommandAsync(wsl, args, TimeSpan.FromSeconds(90), logOutput: true, logCategory: "WSL");
+        ExecResult result;
+        try
+        {
+            result = await RunCommandAsync(wsl, args, TimeSpan.FromSeconds(90), logOutput: true, logCategory: "WSL");
+        }
+        finally
+        {
+            try { if (File.Exists(lookupScriptWinPath)) File.Delete(lookupScriptWinPath); } catch { }
+        }
         if (result.Output.Contains("WSL_E_DISTRO_NOT_FOUND", StringComparison.OrdinalIgnoreCase))
             throw new OperationFailureException("Windows WSL kayıtlarında dağıtım adı görünmesine rağmen WSL bu dağıtımı açamadı. Ubuntu kaldırılmış veya kayıt defterinde eski bir kayıt kalmış. Tek Tık Kurulum ile Ubuntu'yu yeniden kur; bu GitHub deposu hatası değildir.", "WSL_E_DISTRO_NOT_FOUND");
         var location = ParseWslProjectLookup(result.Output);
@@ -1820,13 +1862,14 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             .Replace("__CONTROL_ROOT__", controlRoot, StringComparison.Ordinal);
 
         string resolvedCommand = command.Replace("__NFSU2_UPDATE_SCRIPT__",
-            QuoteBash(controlRoot + "/nfsu2-git-update.sh"), StringComparison.Ordinal);
+            QuoteBash(controlRoot + "/runtime/nfsu2-git-update.sh"), StringComparison.Ordinal);
         string projectCommand = "cd " + QuoteBash(location.ProjectDirectory) + " && " + resolvedCommand;
         string finalShell = (shell + "\n" + projectCommand)
             .Replace("\r\n", "\n", StringComparison.Ordinal);
 
         return await RunCommandAsync(wsl, new[] { "-d", location.Distro, "-u", "root", "--", "env",
             "HOME=/root", "LC_ALL=C.UTF-8",
+            "NFSU2_CONFIG_FILE=" + controlRoot + "/nfsu2-config.json",
             "NFSU2_STOP_REQUEST_FILE=" + controlRoot + "/logs/.nfsu2-safe-stop.request",
             "DOCKER_CONFIG=/root/.config/nfsu2-control-center-docker",
             "bash", "--noprofile", "--norc", "-c", finalShell }, timeout ?? TimeSpan.FromMinutes(3),
@@ -2718,9 +2761,12 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             Directory.CreateDirectory(RootDir);
             Directory.CreateDirectory(Path.Combine(RootDir, "logs"));
-            ExtractResource(GitUpdateResource, "nfsu2-git-update.sh", Path.Combine(RootDir, "nfsu2-git-update.sh"));
+            Directory.CreateDirectory(RuntimeScriptsDir);
+            string updaterScript = ExtractResource(GitUpdateResource, "nfsu2-git-update.sh", Path.Combine(RuntimeScriptsDir, "nfsu2-git-update.sh"));
             SetOperationProgress(8, "GitHub main, WSL paketleri ve Docker bağlantısı doğrulanıyor");
-            var pull = await RunWslProjectCommandAsync("bash __NFSU2_UPDATE_SCRIPT__", TimeSpan.FromMinutes(90));
+            ExecResult pull;
+            try { pull = await RunWslProjectCommandAsync("bash __NFSU2_UPDATE_SCRIPT__", TimeSpan.FromMinutes(90)); }
+            finally { try { if (File.Exists(updaterScript)) File.Delete(updaterScript); } catch { } }
             if (pull.ExitCode != 0)
             {
                 string detail = TailText(pull.Output, 4500).Trim();
@@ -2763,8 +2809,9 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         AddCardChild(card, row);
         _accessStateLabel = new TextBlock { Text = "Profil durumu kontrol ediliyor...", Margin = new Thickness(0, 16, 0, 0), Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap };
         AddCardChild(card, _accessStateLabel); root.Children.Add(card);
-        var current = ReadTextFile(Path.Combine(RootDir, "nfsu2-access-mode.txt"), "Bilinmiyor").Trim();
-        var currentUrl = ReadTextFile(Path.Combine(RootDir, "nfsu2-access-url.txt"), "").Trim();
+        var config = Nfsu2ConfigStore.Read(RootDir);
+        var current = string.IsNullOrWhiteSpace(config.Access.Mode) ? "Bilinmiyor" : config.Access.Mode.Trim();
+        var currentUrl = (config.Access.Url ?? "").Trim();
         var active = MakeCard("AKTİF PROFİL", "Son kaydedilen erişim ayarı");
         AddCardChild(active, new TextBlock { Text = "Profil: " + current, FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#4DD1C7") });
         AddCardChild(active, new TextBlock { Text = string.IsNullOrWhiteSpace(currentUrl) ? "URL kaydı bulunamadı." : currentUrl, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("MutedBrush") });
@@ -4652,7 +4699,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             ExecResult result;
             try
             {
-                result = await RunCommandAsync(GetPowerShellExe(), new[] { "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", installer, "-Port", port.ToString(), "-GameDir", gameDir }, TimeSpan.FromHours(4), RootDir, logCategory: "WSL", cancellationToken: installCancellation.Token);
+                result = await RunCommandAsync(GetPowerShellExe(), new[] { "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", installer, "-Port", port.ToString(), "-GameDir", gameDir, "-ControlRoot", RootDir }, TimeSpan.FromHours(4), RootDir, logCategory: "WSL", cancellationToken: installCancellation.Token);
             }
             finally
             {
@@ -4932,7 +4979,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 }
                 else throw new InvalidOperationException($"LAN HTTPS portu {lanPort} başka bir işlem tarafından kullanılıyor. Boş bir port seçip tekrar dene.");
             }
-            Directory.CreateDirectory(RootDir); Directory.CreateDirectory(Path.Combine(RootDir, "logs")); ExtractResource(AccessResource, "nfsu2-access.sh", Path.Combine(RootDir, "nfsu2-access.sh"));
+            Directory.CreateDirectory(RuntimeScriptsDir); Directory.CreateDirectory(Path.Combine(RootDir, "logs"));
+            ExtractResource(AccessResource, "nfsu2-access.sh", Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"));
             _accessLogPath = Path.Combine(RootDir, "logs", "nfsu2-access-mode.log"); _accessLogOffset = File.Exists(_accessLogPath) ? new FileInfo(_accessLogPath).Length : 0;
             AppendLog($"Erişim profili uygulanıyor: {mode}. WSL terminalinde sudo parolası istenirse terminalde gir.", "INFO");
             if (_accessStateLabel is not null) _accessStateLabel.Text = "Profil uygulanıyor: " + mode;
@@ -4940,14 +4988,14 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             var psi = new ProcessStartInfo { FileName = wslExe, UseShellExecute = false, CreateNoWindow = false, WindowStyle = ProcessWindowStyle.Normal, WorkingDirectory = RootDir };
             string windowsDrive = (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant();
             string controlRoot = "/mnt/" + windowsDrive + "/nfsu2";
-            foreach (var arg in new[] { "-d", distro, "-u", "root", "--", "env", "HOME=/root", "NFSU2_CONTROL_ROOT=" + controlRoot, "NFSU2_INSTALL_HOME=" + userHome, "NFSU2_PROJECT_DIR=" + projectDirectory, "SUDO_USER=" + (installUser ?? ""), "NFSU2_STOP_REQUEST_FILE=" + controlRoot + "/logs/.nfsu2-safe-stop.request", "bash", controlRoot + "/nfsu2-access.sh", mode, port.ToString(), ip, lanPort.ToString() }) psi.ArgumentList.Add(arg);
+            foreach (var arg in new[] { "-d", distro, "-u", "root", "--", "env", "HOME=/root", "NFSU2_CONTROL_ROOT=" + controlRoot, "NFSU2_INSTALL_HOME=" + userHome, "NFSU2_PROJECT_DIR=" + projectDirectory, "SUDO_USER=" + (installUser ?? ""), "NFSU2_CONFIG_FILE=" + controlRoot + "/nfsu2-config.json", "NFSU2_STOP_REQUEST_FILE=" + controlRoot + "/logs/.nfsu2-safe-stop.request", "bash", controlRoot + "/runtime/nfsu2-access.sh", mode, port.ToString(), ip, lanPort.ToString() }) psi.ArgumentList.Add(arg);
             _accessProcess = Process.Start(psi) ?? throw new InvalidOperationException("WSL erişim komutu başlatılamadı.");
             _accessLogTimer.Start();
             await _accessProcess.WaitForExitAsync(cancellationToken);
             ReadAccessLogTail(); _accessLogTimer.Stop();
             int profileExitCode = _accessProcess.ExitCode;
             ReadAccessLogTail();
-            try { if (File.Exists(Path.Combine(RootDir, "nfsu2-access.sh"))) File.Delete(Path.Combine(RootDir, "nfsu2-access.sh")); } catch { }
+            try { if (File.Exists(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"))) File.Delete(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh")); } catch { }
             if (profileExitCode == 75)
             {
                 _lastOperationErrorCode = "SAFE_STOP / EXIT 75";
@@ -4989,7 +5037,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             _accessLogTimer.Stop();
             ReadAccessLogTail();
-            try { if (File.Exists(Path.Combine(RootDir, "nfsu2-access.sh"))) File.Delete(Path.Combine(RootDir, "nfsu2-access.sh")); } catch { }
+            try { if (File.Exists(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"))) File.Delete(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh")); } catch { }
             AppendLog("Erişim profili kullanıcı tarafından durduruldu.", "UYARI", "WSL");
             if (_accessStateLabel is not null) _accessStateLabel.Text = "Erişim profili durduruldu.";
             _lastOperationErrorCode = "CANCELLED / EXIT 130";
@@ -5003,7 +5051,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             if (_accessStateLabel is not null) _accessStateLabel.Text = ex.Message;
             if (!fromInstall) CompleteOperationProgress(false, "Erişim profili hata ile durdu", _lastOperationErrorCode);
             MessageBox.Show(this, ex.Message, "Erişim profili", MessageBoxButton.OK, MessageBoxImage.Error);
-            try { if (File.Exists(Path.Combine(RootDir, "nfsu2-access.sh"))) File.Delete(Path.Combine(RootDir, "nfsu2-access.sh")); } catch { }
+            try { if (File.Exists(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"))) File.Delete(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh")); } catch { }
             return false;
         }
         finally { if (!fromInstall) _operationBusy = false; }
@@ -5191,7 +5239,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             {
                 await RemoveWslProjectDirectoryAsync();
                 var projectCleanupFailures = new List<string>();
-                foreach (var path in new[] { Path.Combine(RootDir, "source"), Path.Combine(RootDir, "module"), Path.Combine(RootDir, "logs"), Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), Path.Combine(RootDir, "compose.yml"), Path.Combine(RootDir, "compose.local.yml"), Path.Combine(RootDir, ".env"), Path.Combine(RootDir, ".env.local"), Path.Combine(RootDir, "nfsu2-access.sh"), Path.Combine(RootDir, "nfsu2-one-click-wsl.sh"), Path.Combine(RootDir, "nfsu2-stop-owned-tunnel.sh"), Path.Combine(RootDir, "nfsu2-remove-verified-project.sh"), Path.Combine(RootDir, "nfsu2-project-lookup.sh"), Path.Combine(RootDir, "nfsu2-git-update.sh"), Path.Combine(RootDir, "nfsu2-access-mode.txt"), Path.Combine(RootDir, "nfsu2-access-url.txt"), Path.Combine(RootDir, "NFSU2-PUBLIC-URL.txt"), Path.Combine(RootDir, ".nfsu2-cloudflared.pid") })
+                foreach (var path in new[] { Path.Combine(RootDir, "source"), Path.Combine(RootDir, "module"), Path.Combine(RootDir, "logs"), Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), Path.Combine(RootDir, "compose.yml"), Path.Combine(RootDir, "compose.local.yml"), Path.Combine(RootDir, ".env"), Path.Combine(RootDir, ".env.local"), Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-one-click-wsl.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-stop-owned-tunnel.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-remove-verified-project.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-project-lookup.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-git-update.sh"), Path.Combine(RootDir, "nfsu2-config.json"), Path.Combine(RootDir, "runtime"), Path.Combine(RootDir, "NFSU2-SETUP-REPORT.txt"), Path.Combine(RootDir, "NFSU2-UPDATE-REPORT.txt"), Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), Path.Combine(RootDir, "NFSU2-LAN-PORT.txt"), Path.Combine(RootDir, "nfsu2-access-mode.txt"), Path.Combine(RootDir, "nfsu2-access-url.txt"), Path.Combine(RootDir, "NFSU2-PUBLIC-URL.txt"), Path.Combine(RootDir, ".nfsu2-cloudflared.pid") })
                 {
                     if (Directory.Exists(path))
                     {
@@ -5364,10 +5412,11 @@ else
   echo "Verified NFSU2 project directory not found for $home; nothing removed."
 fi
 """;
-        var path = Path.Combine(RootDir, "nfsu2-remove-verified-project.sh");
-        Directory.CreateDirectory(RootDir); File.WriteAllText(path, shell.Replace("\r\n", "\n"), new UTF8Encoding(false));
+        var path = Path.Combine(RuntimeScriptsDir, "nfsu2-remove-verified-project.sh");
+        Directory.CreateDirectory(RuntimeScriptsDir); File.WriteAllText(path, shell.Replace("\r\n", "\n"), new UTF8Encoding(false));
         AppendLog("WSL içinde doğrulanmış NFSU2 proje klasörü aranıyor; Git remote eşleşmiyorsa korunacak.", "INFO", "WSL");
-        var removeResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "bash", "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/nfsu2-remove-verified-project.sh" }, TimeSpan.FromMinutes(3), logCategory: "WSL");
+        string runtimeWsl = "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/runtime";
+        var removeResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "bash", runtimeWsl + "/nfsu2-remove-verified-project.sh" }, TimeSpan.FromMinutes(3), logCategory: "WSL");
         try { if (File.Exists(path)) File.Delete(path); } catch { }
         if (removeResult.ExitCode != 0) AppendLog($"WSL proje klasörü temizliği tamamlanamadı (kod {removeResult.ExitCode}); WSL günlüğündeki ayrıntıları kontrol et.", "UYARI", "WSL");
     }
@@ -5433,11 +5482,13 @@ fi
         var distro = distroResult.Names.FirstOrDefault(x => x.StartsWith("Ubuntu", StringComparison.OrdinalIgnoreCase));
         if (distro is null) { AppendLog("Ubuntu dağıtımı yok; tünel PID dosyası varsa Windows tarafındaki proje temizliğinde kaldırılacak.", "UYARI"); return; }
         Directory.CreateDirectory(RootDir);
-        var helperPath = Path.Combine(RootDir, "nfsu2-stop-owned-tunnel.sh");
+        var helperPath = Path.Combine(RuntimeScriptsDir, "nfsu2-stop-owned-tunnel.sh");
+        Directory.CreateDirectory(RuntimeScriptsDir);
         const string shell = """
 #!/usr/bin/env bash
 set -u
 root=${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}
+config="${NFSU2_CONFIG_FILE:-$root/nfsu2-config.json}"
 pf="$root/.nfsu2-cloudflared.pid"
 port="${1:-9093}"
 if [[ -f "$pf" ]]; then
@@ -5453,11 +5504,31 @@ if [[ -f "$pf" ]]; then
   fi
   rm -f "$pf"
 fi
+python3 - "$config" <<'PYACCESSRESET'
+import datetime, json, os, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+data = {}
+try:
+    if path.is_file():
+        data = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    pass
+access = data.setdefault("access", {})
+access["mode"] = "local"
+access["url"] = ""
+access["publicUrl"] = ""
+access["updatedAt"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+data.setdefault("schemaVersion", 1)
+path.parent.mkdir(parents=True, exist_ok=True)
+tmp = path.with_suffix(path.suffix + ".tmp")
+tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+os.replace(tmp, path)
+PYACCESSRESET
 rm -f "$root/NFSU2-PUBLIC-URL.txt" "$root/nfsu2-access-url.txt" "$root/nfsu2-access-mode.txt"
-echo "NFSU2 access URL/profile markers cleared."
 """;
         File.WriteAllText(helperPath, shell.Replace("\r\n", "\n"), new UTF8Encoding(false));
-        var stopResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "bash", "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2" + "/nfsu2-stop-owned-tunnel.sh", GetConfiguredPort().ToString() }, TimeSpan.FromSeconds(30), logCategory: "WSL");
+        string runtimeWsl = "/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/runtime";
+        var stopResult = await RunCommandAsync(wsl, new[] { "-d", distro, "-u", "root", "--", "env", "NFSU2_CONFIG_FILE=/mnt/" + (Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\").TrimEnd('\\', ':').ToLowerInvariant() + "/nfsu2/nfsu2-config.json", "bash", runtimeWsl + "/nfsu2-stop-owned-tunnel.sh", GetConfiguredPort().ToString() }, TimeSpan.FromSeconds(30), logCategory: "WSL");
         try { if (File.Exists(helperPath)) File.Delete(helperPath); } catch { }
         if (stopResult.ExitCode != 0) AppendLog($"NFSU2 tünel temizliği başarısız (kod {stopResult.ExitCode}).", "UYARI", "WSL");
     }
@@ -5504,9 +5575,12 @@ echo "NFSU2 access URL/profile markers cleared."
 
     private string GetActiveAccessMode()
     {
-        string mode = ReadTextFile(Path.Combine(RootDir, "nfsu2-access-mode.txt"), "").Trim().ToLowerInvariant();
+        var access = Nfsu2ConfigStore.Read(RootDir).Access;
+        string mode = (access.Mode ?? "local").Trim().ToLowerInvariant();
         if (mode is "local" or "lan" or "public") return mode;
-        string savedUrl = ReadTextFile(Path.Combine(RootDir, "nfsu2-access-url.txt"), "").Trim();
+        string savedUrl = (access.Url ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(savedUrl))
+            savedUrl = ReadTextFile(Path.Combine(RootDir, "nfsu2-access-url.txt"), "").Trim();
         if (savedUrl.Contains("trycloudflare.com", StringComparison.OrdinalIgnoreCase)) return "public";
         if (Uri.TryCreate(savedUrl, UriKind.Absolute, out var parsed) && parsed.Scheme == Uri.UriSchemeHttps && IPAddress.TryParse(parsed.Host, out var ip) && IsPrivateIpv4(ip)) return "lan";
         return "local";
@@ -5514,7 +5588,9 @@ echo "NFSU2 access URL/profile markers cleared."
 
     private string GetActiveServerUrl()
     {
-        string savedUrl = ReadTextFile(Path.Combine(RootDir, "nfsu2-access-url.txt"), "").Trim();
+        string savedUrl = (Nfsu2ConfigStore.Read(RootDir).Access.Url ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(savedUrl))
+            savedUrl = ReadTextFile(Path.Combine(RootDir, "nfsu2-access-url.txt"), "").Trim();
         if (Uri.TryCreate(savedUrl, UriKind.Absolute, out var uri) &&
             (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
             return new UriBuilder(uri) { Path = "/", Query = "", Fragment = "" }.Uri.AbsoluteUri;
@@ -5544,8 +5620,10 @@ echo "NFSU2 access URL/profile markers cleared."
     {
         try
         {
+            int saved = Nfsu2ConfigStore.Read(RootDir).Access.LanPort;
+            if (saved is >= 1024 and <= 65535) return saved;
             string marker = Path.Combine(RootDir, "NFSU2-LAN-PORT.txt");
-            if (File.Exists(marker) && int.TryParse(File.ReadAllText(marker).Trim(), out int saved) && saved is >= 1024 and <= 65535)
+            if (File.Exists(marker) && int.TryParse(File.ReadAllText(marker).Trim(), out saved) && saved is >= 1024 and <= 65535)
                 return saved;
         }
         catch { }
@@ -5561,6 +5639,8 @@ echo "NFSU2 access URL/profile markers cleared."
 
     private int GetConfiguredPort()
     {
+        int saved = Nfsu2ConfigStore.Read(RootDir).Install.ServerPort;
+        if (saved is >= 1024 and <= 65535) return saved;
         try { var env = File.ReadAllLines(Path.Combine(RootDir, ".env.local")).FirstOrDefault(x => x.TrimStart().StartsWith("NFSU2_HTTP_PORT=")); if (env is not null && int.TryParse(env.Split('=', 2).Last().Trim(), out int p) && p is >=1024 and <=65535) return p; } catch { }
         try { var compose = File.ReadAllText(Path.Combine(RootDir, "compose.yml")); var m = Regex.Match(compose, @"NFSU2_HTTP_PORT\s*[:=]\s*['""]?(\d+)"); if (m.Success && int.TryParse(m.Groups[1].Value, out int p) && p is >=1024 and <=65535) return p; } catch { }
         return 9093;

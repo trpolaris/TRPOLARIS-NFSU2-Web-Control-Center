@@ -9,10 +9,10 @@ set -Eeuo pipefail
 SCRIPT_PATH="$(realpath -e -- "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd -P)"
 PROJECT_DIR="$(pwd -P)"
-# The updater is extracted directly into the Control Center root. Its own directory
-# is the source of truth, not a possibly empty inherited environment variable.
-ROOT="$SCRIPT_DIR"
-[[ -n "$ROOT" && -d "$ROOT" ]] || { echo "[UPDATER_BOOT] invalid script directory: $SCRIPT_DIR" >&2; exit 1; }
+# Runtime helpers live beneath the durable Control Center root.
+if [[ "${SCRIPT_DIR##*/}" == "runtime" ]]; then ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"; else ROOT="$SCRIPT_DIR"; fi
+[[ -n "$ROOT" && -d "$ROOT" ]] || { echo "[UPDATER_BOOT] invalid control-center root: $ROOT" >&2; exit 1; }
+CONFIG_FILE="${NFSU2_CONFIG_FILE:-$ROOT/nfsu2-config.json}"
 MODULE_DIR="$ROOT/module"
 LOG_DIR="$ROOT/logs"
 LOG="$LOG_DIR/nfsu2-update-$(date +%Y%m%d-%H%M%S).log"
@@ -444,25 +444,33 @@ if [[ "$PROJECT_UID" =~ ^[0-9]+$ && "$PROJECT_GID" =~ ^[0-9]+$ ]]; then
   chown -R "$PROJECT_UID:$PROJECT_GID" "$PROJECT_DIR" || say 'UYARI: Kaynak klasör sahipliği tamamen geri yüklenemedi.'
 fi
 
-cat > "$ROOT/NFSU2-UPDATE-REPORT.txt" <<REPORT
-TRPOLARIS NFSU2 Web Update Report
-Updated: $(date -Is)
-GitHub: $REPO_URL
-Branch: main
-Source commit: $COMMIT
-WASM module revision: $MODULE_REV
-Docker image: $LOCAL_IMAGE
-Rollback image: $ROLLBACK_IMAGE
-Rollback module backup: $ROLLBACK_DIR/module
-Compose project: nfsu2-web-local
-Game volume: $GAME_VOLUME (preserved)
-Module volume: $MODULE_VOLUME (updated)
-State volume: nfsu2-web-local_state (preserved)
-HTTP port: $PORT
-Container: $container_id
-Health: healthy
-Build stages: Python requirements + WASI SDK + web/gen.sh + web/build.sh + Docker npm ci + Rust cargo zigbuild --locked
-REPORT
+python3 - "$CONFIG_FILE" "$COMMIT" "$MODULE_REV" "$LOCAL_IMAGE" "$ROLLBACK_IMAGE" "$PORT" <<'PYUPDATECONFIG'
+import datetime, json, os, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+commit, module_rev, image, rollback_image, port = sys.argv[2:7]
+data = {}
+try:
+    if path.is_file():
+        data = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    data = {}
+update = data.setdefault("update", {})
+update.update({
+    "updatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    "sourceCommit": commit,
+    "wasmModuleRevision": module_rev,
+    "dockerImage": image,
+    "rollbackImage": rollback_image,
+    "health": "healthy",
+    "httpPort": int(port)
+})
+data.setdefault("schemaVersion", 1)
+path.parent.mkdir(parents=True, exist_ok=True)
+tmp = path.with_suffix(path.suffix + ".tmp")
+tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+os.replace(tmp, path)
+PYUPDATECONFIG
+rm -f "$ROOT/NFSU2-UPDATE-REPORT.txt"
 
 rm -rf "$TMP_DIR"
 TMP_DIR=""

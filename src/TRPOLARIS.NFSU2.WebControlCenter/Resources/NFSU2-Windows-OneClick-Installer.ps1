@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param(
     [int]$Port = 0,
-    [string]$GameDir = ''
+    [string]$GameDir = '',
+    [string]$ControlRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,10 +17,20 @@ try {
     if (Test-Path -LiteralPath $chcp) { & $chcp 65001 *> $null }
 } catch { }
 
-$Root = 'C:\nfsu2'
+$WindowsDriveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
+if ([string]::IsNullOrWhiteSpace($ControlRoot)) { $ControlRoot = Join-Path $WindowsDriveRoot 'nfsu2' }
+$Root = [IO.Path]::GetFullPath($ControlRoot)
+$RuntimeRoot = Join-Path $Root 'runtime'
+$LogsRoot = Join-Path $Root 'logs'
+$DriveLetter = $WindowsDriveRoot.TrimEnd('\', ':').ToLowerInvariant()
+$RelativeRoot = $Root.Substring($WindowsDriveRoot.Length).Trim('\').Replace('\', '/')
+$WslControlRoot = "/mnt/$DriveLetter/$RelativeRoot"
+$WslRuntimeRoot = "$WslControlRoot/runtime"
+$WslLogsRoot = "$WslControlRoot/logs"
+$ConfigPath = Join-Path $Root 'nfsu2-config.json'
 $DefaultPort = 9093
 $RepoUrl = 'https://github.com/trpolaris/NFSU2-Web.git'
-$SafeStopRequestPath = Join-Path $Root 'logs\.nfsu2-safe-stop.request'
+$SafeStopRequestPath = Join-Path $LogsRoot '.nfsu2-safe-stop.request'
 
 function Test-InstallStopRequested {
     return (Test-Path -LiteralPath $SafeStopRequestPath -PathType Leaf)
@@ -54,14 +65,14 @@ function Test-IsAdministrator {
 if (-not (Test-IsAdministrator)) {
     Write-Host 'Kurulum program, WSL ve Docker bileşenlerini hazırlayabilmek için yönetici izni istiyor.' -ForegroundColor Yellow
     $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $argsLine = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Port {1}' -f $PSCommandPath, $Port
+    $argsLine = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Port {1} -ControlRoot "{2}"' -f $PSCommandPath, $Port, ($Root -replace '"', '\"')
     if (-not [string]::IsNullOrWhiteSpace($GameDir)) { $argsLine += ' -GameDir "{0}"' -f ($GameDir -replace '"', '\"') }
     Start-Process -FilePath $psExe -Verb RunAs -ArgumentList $argsLine
     exit
 }
 
-New-Item -ItemType Directory -Force -Path $Root, (Join-Path $Root 'game'), (Join-Path $Root 'module'), (Join-Path $Root 'logs') | Out-Null
-$TranscriptPath = Join-Path $Root 'logs\setup-powershell.log'
+New-Item -ItemType Directory -Force -Path $Root, (Join-Path $Root 'game'), (Join-Path $Root 'module'), $LogsRoot, $RuntimeRoot | Out-Null
+$TranscriptPath = Join-Path $LogsRoot 'setup-powershell.log'
 try { Start-Transcript -Path $TranscriptPath -Append | Out-Null } catch {}
 
 try {
@@ -639,8 +650,11 @@ REPO_URL='https://github.com/trpolaris/NFSU2-Web.git'
 WIN_ROOT='C:\nfsu2'
 ROOT='/mnt/c/nfsu2'
 MODULE="$ROOT/module"
-LOG="$ROOT/nfsu2-one-click-wsl-$(date +%Y%m%d-%H%M%S).log"
-STOP_REQUEST_FILE="${NFSU2_STOP_REQUEST_FILE:-$ROOT/logs/.nfsu2-safe-stop.request}"
+CONFIG_FILE="${NFSU2_CONFIG_FILE:-$ROOT/nfsu2-config.json}"
+LOG_DIR="$ROOT/logs"
+mkdir -p "$LOG_DIR"
+LOG="$LOG_DIR/nfsu2-one-click-wsl-$(date +%Y%m%d-%H%M%S).log"
+STOP_REQUEST_FILE="${NFSU2_STOP_REQUEST_FILE:-$LOG_DIR/.nfsu2-safe-stop.request}"
 
 check_safe_stop() {
   if [[ -f "$STOP_REQUEST_FILE" ]]; then
@@ -1298,36 +1312,54 @@ say "Docker reports the NFSU2 server healthy"
 
 MODULE_REV="$(grep -o '"rev":"[^"]*"' "$MODULE/nfsu2.json" | head -n 1 | cut -d '"' -f4)"
 COMMIT="$(git rev-parse --short HEAD)"
-REPORT="$ROOT/NFSU2-SETUP-REPORT.txt"
-cat > "$REPORT" <<REPORT_EOF
-TRPOLARIS NFSU2 Web - installation report
-Created: $(date -Is)
-GitHub: $REPO_URL
-WSL distribution: ${NFSU2_WSL_DISTRO:-Ubuntu}
-Source folder (WSL): $PROJECT
-Source commit: $COMMIT
-WASM module revision: $MODULE_REV
-Windows game folder: $GAME_WIN
-WSL game folder: $GAME
-Module folder (Windows): C:\nfsu2\module
-Module files: C:\nfsu2\module\nfsu2.wasm ; C:\nfsu2\module\nfsu2.json
-Compose file: $PROJECT/compose.local.yml
-Compose env: $PROJECT/.env.local
-Local URL: http://localhost:$PORT/
-Server port: $PORT
-Container/image: nfsu2-web-rs:local (builds from this checkout)
-Persistent game state volume: nfsu2-web-local_state (kept on compose down, unless explicitly removed)
-Setup log: $LOG
-
-Useful commands (run in WSL):
-  cd "$PROJECT"
-  docker compose --env-file .env.local -f compose.local.yml ps
-  docker compose --env-file .env.local -f compose.local.yml logs -f server
-  docker compose --env-file .env.local -f compose.local.yml stop
-  docker compose --env-file .env.local -f compose.local.yml up -d
-
-This profile is local-only. It does not configure public DNS, HTTPS, port forwarding, or ports 80/443.
-REPORT_EOF
+INSTALL_UID="$(id -u "$INSTALL_USER" 2>/dev/null || printf '0')"
+python3 - "$CONFIG_FILE" "${NFSU2_WSL_DISTRO:-Ubuntu}" "$INSTALL_USER" "$INSTALL_UID" "$INSTALL_USER_HOME" "$PROJECT" "$COMMIT" "$MODULE_REV" "$GAME_WIN" "$GAME" "$PORT" "$LOG" "$WIN_ROOT" <<'PYINSTALLCONFIG'
+import datetime, json, os, pathlib, sys
+(path, distro, user, uid, home, project, commit, module_rev,
+ game_win, game_wsl, port, setup_log, windows_root) = sys.argv[1:]
+config_path = pathlib.Path(path)
+data = {}
+try:
+    if config_path.is_file():
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+except Exception:
+    data = {}
+install = data.setdefault("install", {})
+install.update({
+    "wslDistribution": distro,
+    "linuxUser": user,
+    "linuxUid": int(uid) if uid.isdigit() else 0,
+    "linuxHome": home,
+    "projectDirectory": project,
+    "github": "https://github.com/trpolaris/NFSU2-Web.git",
+    "sourceCommit": commit,
+    "wasmModuleRevision": module_rev,
+    "windowsGameDirectory": game_win,
+    "wslGameDirectory": game_wsl,
+    "serverPort": int(port),
+    "moduleDirectory": windows_root.rstrip("\\/") + "\\module",
+    "composeFile": project + "/compose.local.yml",
+    "composeEnvironmentFile": project + "/.env.local",
+    "containerImage": "nfsu2-web-rs:local",
+    "gameVolume": "nfsu2-web-local_game-data",
+    "stateVolume": "nfsu2-web-local_state",
+    "setupLog": setup_log,
+    "installedAt": datetime.datetime.now(datetime.timezone.utc).isoformat()
+})
+access = data.setdefault("access", {})
+access.setdefault("mode", "local")
+access.setdefault("url", "http://localhost:" + port + "/")
+access.setdefault("lanPort", 8443)
+data.setdefault("update", {})
+data.setdefault("schemaVersion", 1)
+config_path.parent.mkdir(parents=True, exist_ok=True)
+temporary = config_path.with_suffix(config_path.suffix + ".tmp")
+temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+os.replace(temporary, config_path)
+PYINSTALLCONFIG
+rm -f "$ROOT/NFSU2-PROJECT-PATH.txt" "$ROOT/NFSU2-SETUP-REPORT.txt"
+echo "Install config: $CONFIG_FILE"
+echo "Local URL: http://localhost:$PORT/"
 
 # The GUI runs the build as root to avoid invisible sudo prompts; restore ownership after the build.
 if [[ -n "$INSTALL_USER" ]] && id "$INSTALL_USER" >/dev/null 2>&1 && [[ -d "$PROJECT" ]]; then
@@ -1335,16 +1367,7 @@ if [[ -n "$INSTALL_USER" ]] && id "$INSTALL_USER" >/dev/null 2>&1 && [[ -d "$PRO
   chown -R "$INSTALL_USER":"$INSTALL_GROUP" "$PROJECT" || echo "[WARNING] Could not change project ownership back to $INSTALL_USER."
 fi
 
-# Durable, non-secret metadata lets the Windows manager resolve this exact checkout
-# without guessing the distro HOME or relying on an old path from a previous run.
-cat > "$ROOT/NFSU2-PROJECT-PATH.txt" <<PROJECT_META_EOF
-TRPOLARIS NFSU2 Web Control Center project metadata
-WSL distribution: ${NFSU2_WSL_DISTRO:-Ubuntu}
-Linux user: ${INSTALL_USER:-unknown}
-Linux home: ${INSTALL_USER_HOME:-unknown}
-Source folder (WSL): $PROJECT
-GitHub: $REPO_URL
-PROJECT_META_EOF
+# Install/project metadata is now stored in nfsu2-config.json.
 if [[ -d "$PROJECT" ]]; then
   cat > "$PROJECT/.nfsu2-control-center-project" <<PROJECT_MARKER_EOF
 format=1
@@ -1363,15 +1386,19 @@ progress 95 "Sunucu hazır; Windows ve erişim doğrulaması bekleniyor"
 say "Installation succeeded"
 root_run docker compose --env-file .env.local -f compose.local.yml ps
 echo "URL: http://localhost:$PORT/"
-echo "Report: $REPORT"
+echo "Install config: $CONFIG_FILE"
 echo "Setup log: $LOG"
 '@
-    $BashPath = Join-Path $Root 'nfsu2-one-click-wsl.sh'
+    $BashScript = $BashScript.Replace('C:\nfsu2', $Root)
+    $BashScript = $BashScript.Replace("ROOT='/mnt/c/nfsu2'", "ROOT='$WslControlRoot'")
+    $BashScript = $BashScript.Replace('/mnt/c/nfsu2', $WslControlRoot)
+    $BashPath = Join-Path $RuntimeRoot 'nfsu2-one-click-wsl.sh'
+    $BashPathWsl = "$WslRuntimeRoot/nfsu2-one-click-wsl.sh"
     [IO.File]::WriteAllText($BashPath, ($BashScript -replace "`r`n", "`n"), $Utf8NoBom)
     $GamePathBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($GameDir))
 
     Write-Section 'WSL kurulum betiği sözdizimi kontrolü'
-    & wsl.exe -d $Distro -- bash -n /mnt/c/nfsu2/nfsu2-one-click-wsl.sh
+    & wsl.exe -d $Distro -- bash -n $BashPathWsl
     if ($LASTEXITCODE -ne 0) { throw "WSL kurulum betiğinde Bash sözdizimi hatası (kod $LASTEXITCODE). Kurulum başlatılmadı; betik: $BashPath" }
 
     Write-Section 'Otomatik kurulum başlatılıyor'
@@ -1387,30 +1414,30 @@ echo "Setup log: $LOG"
         throw 'WSL_DEFAULT_USER_REQUIRED: Ubuntu varsayılan kullanıcısı root olarak kaldı. Standart Linux hesabı oluşturup /etc/wsl.conf içindeki [user] default ayarını tanımla; kurulum root sahipliğinde devam ettirilmedi.'
     }
     Write-Host "WSL build kullanıcı modu: root (dosya sahibi işlem sonunda $DistroUserName olarak geri verilecek)." -ForegroundColor Cyan
-    & wsl.exe -d $Distro -u root -- env "HOME=/root" "NFSU2_STOP_REQUEST_FILE=/mnt/c/nfsu2/logs/.nfsu2-safe-stop.request" "NFSU2_INSTALL_HOME=$DistroHome" "NFSU2_INSTALL_USER=$DistroUserName" "NFSU2_WSL_DISTRO=$Distro" bash /mnt/c/nfsu2/nfsu2-one-click-wsl.sh "$Port" "$GamePathBase64" "$DistroUserName"
+    & wsl.exe -d $Distro -u root -- env "HOME=/root" "NFSU2_CONTROL_ROOT=$WslControlRoot" "NFSU2_RUNTIME_DIR=$WslRuntimeRoot" "NFSU2_LOG_DIR=$WslLogsRoot" "NFSU2_CONFIG_FILE=$WslControlRoot/nfsu2-config.json" "NFSU2_STOP_REQUEST_FILE=$WslLogsRoot/.nfsu2-safe-stop.request" "NFSU2_INSTALL_HOME=$DistroHome" "NFSU2_INSTALL_USER=$DistroUserName" "NFSU2_WSL_DISTRO=$Distro" bash $BashPathWsl "$Port" "$GamePathBase64" "$DistroUserName"
     $wslSetupExitCode = $LASTEXITCODE
     if ($wslSetupExitCode -eq 75) {
         Write-Host '[STOPPED] Kurulum güvenli bir aşamada durduruldu. Tamamlanan adımlar ve mevcut dosyalar korundu.' -ForegroundColor Yellow
         exit 75
     }
     if ($wslSetupExitCode -ne 0) {
-        throw "Kurulum WSL adımında hata ile durdu (kod $wslSetupExitCode). Günlük: $(Join-Path $Root 'nfsu2-one-click-wsl-*.log'). Hata sonrası tekrar çalıştırabilirsin; proje ve modül silinmez."
+        throw "Kurulum WSL adımında hata ile durdu (kod $wslSetupExitCode). Günlük klasörü: $LogsRoot. Hata sonrası tekrar çalıştırabilirsin; proje ve modül silinmez."
     }
 
-    $Report = Join-Path $Root 'NFSU2-SETUP-REPORT.txt'
     Write-Section 'Kurulum tamamlandı'
-    if (Test-Path $Report) { Get-Content -LiteralPath $Report | ForEach-Object { Write-Host $_ } }
     Write-Host "Yerel profil için tarayıcı adresi: http://localhost:$Port/" -ForegroundColor Yellow
-    Write-Host "Rapor: $Report" -ForegroundColor Green
+    Write-Host "Birleşik yapılandırma: $ConfigPath" -ForegroundColor Green
+    if (Test-Path -LiteralPath $ConfigPath) { Get-Content -LiteralPath $ConfigPath -Raw | Write-Host }
     Write-Host "PowerShell günlüğü: $TranscriptPath" -ForegroundColor Gray
 }
 catch {
     Write-Host "`nKURULUM HATASI: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Günlük dosyaları: $Root\logs ve $Root\nfsu2-one-click-wsl-*.log" -ForegroundColor Yellow
+    Write-Host "Günlük dosyaları: $LogsRoot" -ForegroundColor Yellow
     Write-Host 'Kaynak kodu veya oyun klasörü otomatik olarak silinmedi.' -ForegroundColor Gray
     exit 1
 }
 finally {
+    try { if ($BashPath -and (Test-Path -LiteralPath $BashPath)) { Remove-Item -LiteralPath $BashPath -Force -ErrorAction SilentlyContinue } } catch {}
     try { Stop-Transcript | Out-Null } catch {}
 }
 

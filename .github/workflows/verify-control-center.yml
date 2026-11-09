@@ -56,16 +56,16 @@ jobs:
         shell: pwsh
         run: |
           $project = 'src/TRPOLARIS.NFSU2.WebControlCenter/TRPOLARIS.NFSU2.WebControlCenter.csproj'
-          dotnet publish $project -c Release -r win-x64 --self-contained true `
-            -p:PublishSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true `
-            -p:EnableCompressionInSingleFile=true `
-            -p:DebugType=None `
-            -p:DebugSymbols=false `
-            -o publish
+          # Single-file publish settings are owned by the project file.
+          dotnet publish $project -c Release -r win-x64 --self-contained true -o publish
           if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
           $exe = 'publish/TRPOLARIS.NFSU2.WebControlCenter.exe'
           if (-not (Test-Path $exe)) { throw 'Published EXE not found.' }
+          $sidecarScripts = @(Get-ChildItem 'publish' -Recurse -File -Filter '*.ps1')
+          if ($sidecarScripts.Count -gt 0) {
+            $sidecarScripts | ForEach-Object { Write-Error "External PowerShell file found in publish output: $($_.FullName)" }
+            throw 'PowerShell automation must be embedded in the single-file executable.'
+          }
           Get-FileHash $exe -Algorithm SHA256
 
       - name: Upload single-file executable

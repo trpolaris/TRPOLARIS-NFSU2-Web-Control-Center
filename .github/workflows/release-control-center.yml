@@ -26,14 +26,14 @@ jobs:
           $project = 'src/TRPOLARIS.NFSU2.WebControlCenter/TRPOLARIS.NFSU2.WebControlCenter.csproj'
           dotnet restore $project -r win-x64
           if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
-          dotnet publish $project -c Release -r win-x64 --self-contained true `
-            -p:PublishSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true `
-            -p:EnableCompressionInSingleFile=true `
-            -p:DebugType=None `
-            -p:DebugSymbols=false `
-            -o publish
+          # The project file is the single source of truth for publish settings.
+          dotnet publish $project -c Release -r win-x64 --self-contained true -o publish
           if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
+          $sidecarScripts = @(Get-ChildItem 'publish' -Recurse -File -Filter '*.ps1')
+          if ($sidecarScripts.Count -gt 0) {
+            $sidecarScripts | ForEach-Object { Write-Error "External PowerShell file found in publish output: $($_.FullName)" }
+            throw 'PowerShell automation must be embedded in the single-file executable.'
+          }
 
       - name: Create SHA-256 manifest
         id: manifest

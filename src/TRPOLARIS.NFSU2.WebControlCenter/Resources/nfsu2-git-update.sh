@@ -37,8 +37,7 @@ HOST_MODULE_UPDATED=0
 ROLLBACK_READY=0
 STASH_REF=""
 
-printf '[UPDATER_BOOT] script=%q project=%q control_root=%q root=%q log_dir=%q\\n' \
-  "$SCRIPT_PATH" "$PROJECT_DIR" "${NFSU2_CONTROL_ROOT:-<unset>}" "$ROOT" "$LOG_DIR" >&2
+printf '%s\\n' "[UPDATER_BOOT] script=$SCRIPT_PATH project=$PROJECT_DIR control_root=${NFSU2_CONTROL_ROOT:-<unset>} root=$ROOT log_dir=$LOG_DIR" >&2
 mkdir -p -- "$LOG_DIR"
 exec > >(tee -a "$LOG") 2>&1
 

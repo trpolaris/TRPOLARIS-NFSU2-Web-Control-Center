@@ -1789,7 +1789,7 @@ target.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
         string shell = """
 set -Eeuo pipefail
 export NFSU2_CONTROL_ROOT='__NFSU2_CONTROL_ROOT__'
-printf '[CONTROL_CENTER] NFSU2_CONTROL_ROOT=%q\\n' "$NFSU2_CONTROL_ROOT"
+printf '%s\\n' "[CONTROL_CENTER] NFSU2_CONTROL_ROOT=$NFSU2_CONTROL_ROOT"
 source_config="${DOCKER_CONFIG:-/root/.docker}"
 safe_config="/root/.config/nfsu2-control-center-docker"
 mkdir -p -- "$safe_config"

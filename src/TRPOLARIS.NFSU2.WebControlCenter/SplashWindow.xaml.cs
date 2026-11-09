@@ -7,7 +7,7 @@ public partial class SplashWindow : Window
     public SplashWindow()
     {
         InitializeComponent();
-        Title = $"TRPOLARIS Control Center {AppVersion.Display}";
+        Title = $"NFSU2 Server control {AppVersion.Display}";
         SplashVersionText.Text = AppVersion.Display;
     }
 

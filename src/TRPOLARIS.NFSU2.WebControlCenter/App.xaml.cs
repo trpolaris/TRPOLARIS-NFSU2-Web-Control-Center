@@ -33,7 +33,7 @@ public partial class App : Application
         var startupClock = Stopwatch.StartNew();
         var splash = new SplashWindow();
         splash.Show();
-        splash.ReportProgress(4, "Program başlatılıyor", "TRPOLARIS başlangıç bileşenleri yükleniyor.");
+        splash.ReportProgress(4, "Program başlatılıyor", "NFSU2 Server control başlangıç bileşenleri yükleniyor.");
         await Task.Delay(450);
         splash.ReportProgress(12, "Güncelleme sunucusuna bağlanılıyor", "GitHub Release bilgileri kontrol için hazırlanıyor.");
 
@@ -45,7 +45,7 @@ public partial class App : Application
             if (updateStarted) return;
 
             await KeepSplashVisibleAsync(splash, startupClock, minimumDuration: TimeSpan.FromMilliseconds(5600));
-            splash.ReportProgress(100, "Program başlatılıyor", "Control Center hazır. Ana pencere açılıyor.");
+            splash.ReportProgress(100, "Program başlatılıyor", "NFSU2 Server control hazır. Ana pencere açılıyor.");
             await Task.Delay(180);
             main.Show();
             ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -56,7 +56,7 @@ public partial class App : Application
         {
             splash.ReportProgress(84, "Mevcut sürümle devam ediliyor", "Başlangıç denetimi tamamlanamadı; kurulu dosyalar korunuyor.");
             await KeepSplashVisibleAsync(splash, startupClock, minimumDuration: TimeSpan.FromMilliseconds(5600));
-            splash.ReportProgress(100, "Program başlatılıyor", "Mevcut Control Center sürümü açılıyor.");
+            splash.ReportProgress(100, "Program başlatılıyor", "Mevcut NFSU2 Server control sürümü açılıyor.");
             await Task.Delay(180);
             main.Show();
             ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -90,7 +90,7 @@ public partial class App : Application
         var finalRemaining = minimumDuration - clock.Elapsed;
         if (finalRemaining > TimeSpan.Zero)
         {
-            splash.ReportProgress(98, "Başlatma tamamlanıyor", "Control Center ana ekranı açılmak üzere.");
+            splash.ReportProgress(98, "Başlatma tamamlanıyor", "NFSU2 Server control ana ekranı açılmak üzere.");
             await Task.Delay(finalRemaining);
         }
     }

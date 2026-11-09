@@ -82,8 +82,6 @@ validate_candidate() {
   fi
   origin="$(read_origin "$d")"
   normalized="$(normalize_remote "$origin")"
-  [[ -f "$d/compose.local.yml" ]] || missing+=" compose.local.yml"
-  [[ -f "$d/.env.local" ]] || missing+=" .env.local"
   [[ -f "$d/web/server-rs/Dockerfile" ]] || missing+=" web/server-rs/Dockerfile"
   [[ -f "$d/web/server-rs/src/main.rs" ]] || missing+=" web/server-rs/src/main.rs"
   [[ -f "$d/web/server-rs/Cargo.lock" ]] || missing+=" web/server-rs/Cargo.lock"

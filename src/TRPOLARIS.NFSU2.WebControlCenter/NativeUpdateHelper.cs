@@ -74,7 +74,9 @@ internal static class NativeUpdateHelper
     public static bool NeedsExecutableNameMigration(string? executablePath)
     {
         if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath)) return false;
-        return Path.GetFileName(executablePath).Equals(UpdateEngine.LegacyExecutableName, StringComparison.OrdinalIgnoreCase);
+        string fileName = Path.GetFileName(executablePath);
+        return fileName.Equals(UpdateEngine.LegacyExecutableName, StringComparison.OrdinalIgnoreCase) ||
+               fileName.Equals(UpdateEngine.PreviousLegacyExecutableName, StringComparison.OrdinalIgnoreCase);
     }
 
     public static void StartLegacyNameMigration(string executablePath)
@@ -125,9 +127,9 @@ internal static class NativeUpdateHelper
         string currentExe = Environment.ProcessPath
             ?? Process.GetCurrentProcess().MainModule?.FileName
             ?? throw new InvalidOperationException("Çalışan Control Center EXE yolu bulunamadı.");
-        string helperDirectory = Path.Combine(Path.GetTempPath(), "TRPOLARIS-ControlCenter", Guid.NewGuid().ToString("N"));
+        string helperDirectory = Path.Combine(Path.GetTempPath(), "NFSU2 Server control", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(helperDirectory);
-        string helperExe = Path.Combine(helperDirectory, "TRPOLARIS.UpdateHost.exe");
+        string helperExe = Path.Combine(helperDirectory, "NFSU2 Server control helper.exe");
         File.Copy(currentExe, helperExe, overwrite: false);
 
         request = request with { HelperExecutablePath = helperExe };

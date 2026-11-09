@@ -26,7 +26,7 @@ namespace TRPOLARIS.NFSU2.WebControlCenter;
 
 public partial class MainWindow : Window
 {
-    private const string ProductName = "TRPOLARIS Control Center";
+    private const string ProductName = "NFSU2 Server control";
     private const string InstallerResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.NFSU2-Windows-OneClick-Installer.ps1";
     private const string AccessResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-access.sh";
     private const string ProjectLookupResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-project-lookup.sh";
@@ -199,13 +199,13 @@ public partial class MainWindow : Window
         _diskLogTimer = new System.Threading.Timer(_ => FlushPendingDiskLogs(), null, 150, 150);
         _logUiTimer.Start();
         ShowPage("Dashboard");
-        AppendLog($"TRPOLARIS Control Center {AppVersion.Display} başlatıldı. WSL, Docker ve NFSU2 kurulum durumu denetleniyor.", "OK");
+        AppendLog($"NFSU2 Server control {AppVersion.Display} başlatıldı. WSL, Docker ve NFSU2 kurulum durumu denetleniyor.", "OK");
     }
 
     private void SetApplicationVersion()
     {
         var displayVersion = ControlCenterCurrentVersion;
-        Title = $"TRPOLARIS Control Center v{displayVersion}";
+        Title = $"NFSU2 Server control v{displayVersion}";
         AppVersionText.Text = $"v{displayVersion}";
     }
 
@@ -410,7 +410,7 @@ public partial class MainWindow : Window
             return;
         }
         if (_safeStopRequested) return;
-        var answer = MessageBox.Show(this,
+        var answer = ThemedDialogWindow.Show(this,
             "Kurulum hemen öldürülmeyecek. Çalışan paket kurulum/derleme/indirme adımı güvenli bir noktaya ulaştığında duracak. Bu sırada işlem günlüğü açık kalacak. Devam edilsin mi?",
             "Güvenli durdurma", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.Yes) return;
@@ -441,7 +441,7 @@ public partial class MainWindow : Window
             RefreshOperationControlButtons();
             return;
         }
-        var answer = MessageBox.Show(this,
+        var answer = ThemedDialogWindow.Show(this,
             "Çalışan PowerShell/WSL işlemi ve alt süreçleri hemen sonlandırılacak. Paket kurulumu yarım kalabilir; yeniden başlatıldığında dpkg onarımı gerekebilir. Mevcut oyun dosyaları ve Docker kayıt hacmi otomatik silinmeyecek. Hemen iptal edilsin mi?",
             "Kurulumu hemen iptal et", MessageBoxButton.YesNo, MessageBoxImage.Error);
         if (answer != MessageBoxResult.Yes) return;
@@ -623,7 +623,7 @@ public partial class MainWindow : Window
         });
         heroText.Children.Add(new TextBlock
         {
-            Text = "Control Center yalnızca Windows kurulumunu, kaldırmayı ve WSL–Docker güncelleme zincirini yönetir. Web sitesinin veya oyunun iç yönetim ekranlarına müdahale etmez.",
+            Text = "NFSU2 Server control yalnızca Windows kurulumunu, kaldırmayı ve WSL–Docker güncelleme zincirini yönetir. Web sitesinin veya oyunun iç yönetim ekranlarına müdahale etmez.",
             FontSize = 11, Foreground = BrushHex("#A9BED1"), TextWrapping = TextWrapping.Wrap, MaxWidth = 610
         });
         heroGrid.Children.Add(heroText);
@@ -647,7 +647,7 @@ public partial class MainWindow : Window
         statusGrid.Children.Add(BuildStatusCard("NFSU2 Server", "Server", "Kurulum / sağlık durumu"));
         root.Children.Add(statusGrid);
 
-        var lifecycle = MakeCard("DOCKER SERVİS YAŞAM DÖNGÜSÜ", "Yalnızca Control Center tarafından kurulan NFSU2 Compose servisini başlatır, durdurur veya yeniden başlatır. Diğer Docker projeleri hedeflenmez.");
+        var lifecycle = MakeCard("DOCKER SERVİS YAŞAM DÖNGÜSÜ", "Yalnızca NFSU2 Server control tarafından kurulan NFSU2 Compose servisini başlatır, durdurur veya yeniden başlatır. Diğer Docker projeleri hedeflenmez.");
         var lifecycleActions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
         lifecycleActions.Children.Add(MakeButton("▶  Başlat", "ModernButton", async (_, _) => await ManageServerAsync("up -d")));
         lifecycleActions.Children.Add(MakeButton("■  Durdur", "DangerButton", async (_, _) => await ManageServerAsync("stop"), new Thickness(9, 0, 0, 0)));
@@ -703,7 +703,7 @@ public partial class MainWindow : Window
         gamePanel.Children.Add(_gameDirBox);
         var gameActions = new WrapPanel();
         _gameDownloadStartButton = MakeButton("İndir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
-        _gameDownloadStartButton.ToolTip = "ZIP arşivini Control Center üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
+        _gameDownloadStartButton.ToolTip = "ZIP arşivini NFSU2 Server control üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
         gameActions.Children.Add(_gameDownloadStartButton);
         gameActions.Children.Add(MakeButton("Bilgisayardaki ZIP arşivini içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
         gameActions.Children.Add(MakeButton("Klasörü doğrula", "SecondaryButton", VerifyGameFolder_Click, new Thickness(8, 0, 0, 0)));
@@ -1103,7 +1103,7 @@ public partial class MainWindow : Window
             Process.Start(psi);
             AppendLog("GitHub deposu VS Code Remote - WSL ile açıldı: " + location.ProjectDirectory, "OK", "APP");
         }
-        catch (Exception ex) { AppendLog("VS Code proje klasörü açılamadı: " + ex.Message, "HATA", "APP"); MessageBox.Show(this, ex.Message, "VS Code", MessageBoxButton.OK, MessageBoxImage.Warning); }
+        catch (Exception ex) { AppendLog("VS Code proje klasörü açılamadı: " + ex.Message, "HATA", "APP"); ThemedDialogWindow.Show(this, ex.Message, "VS Code", MessageBoxButton.OK, MessageBoxImage.Warning); }
     }
 
     private async Task OpenProjectInExplorerAsync()
@@ -1148,7 +1148,7 @@ public partial class MainWindow : Window
                 string linuxTarget = location.ProjectDirectory.TrimEnd('/') + "/" + relative;
                 var exists = await RunWslProjectCommandAsync("test -e " + QuoteBashArgument(linuxTarget), TimeSpan.FromSeconds(15), false);
                 if (exists.ExitCode == 0 &&
-                    MessageBox.Show(this, leaf + " zaten var. Üzerine yazılsın mı?", "Dosya yükleme", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                    ThemedDialogWindow.Show(this, leaf + " zaten var. Üzerine yazılsın mı?", "Dosya yükleme", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
                     continue;
 
                 // Stage the file in the Windows-mounted drive, then copy it inside WSL.
@@ -1255,7 +1255,7 @@ public partial class MainWindow : Window
         if (entry is null) return;
         if (entry.RelativePath.Equals(".git", StringComparison.OrdinalIgnoreCase) || entry.RelativePath.StartsWith(".git/", StringComparison.OrdinalIgnoreCase))
         { if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = "Git metadata dosyaları silinemez."; return; }
-        var answer = MessageBox.Show(this, "Aşağıdaki öğe GitHub çalışma kopyasından kalıcı olarak silinecek:\n\n" + entry.RelativePath + "\n\nDevam edilsin mi?", "Proje dosyasını sil", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        var answer = ThemedDialogWindow.Show(this, "Aşağıdaki öğe GitHub çalışma kopyasından kalıcı olarak silinecek:\n\n" + entry.RelativePath + "\n\nDevam edilsin mi?", "Proje dosyasını sil", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.Yes) return;
         try
         {
@@ -1508,7 +1508,7 @@ done
             CompleteOperationProgress(false, "Değişiklikler kaydedildi ancak sunucuya uygulanamadı; kuyrukta korundu", GetOperationFailureCode(ex));
             AppendLog("Otomatik kaynak güncellemesi başarısız: " + ex.Message, "HATA", "WSL");
             if (_projectFileExplorerStatus is not null) _projectFileExplorerStatus.Text = ex.Message;
-            MessageBox.Show(this, ex.Message, "Otomatik sunucu güncellemesi", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedDialogWindow.Show(this, ex.Message, "Otomatik sunucu güncellemesi", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally { _operationBusy = false; }
     }
@@ -1811,16 +1811,16 @@ done
         // the project lookup); avoid wslpath, which fails in some WSL configurations.
         string windowsRoot = Path.GetFullPath(RootDir);
         string driveRoot = Path.GetPathRoot(windowsRoot) ?? throw new OperationFailureException(
-            "Control Center Windows sürücü kökü çözümlenemedi: " + windowsRoot,
+            "NFSU2 Server control Windows sürücü kökü çözümlenemedi: " + windowsRoot,
             "WINDOWS_CONTROL_ROOT_INVALID");
         string drive = driveRoot.TrimEnd('\\', ':');
         if (drive.Length != 1 || !char.IsLetter(drive[0]))
-            throw new OperationFailureException("Control Center sürücü harfi çözümlenemedi: " + windowsRoot,
+            throw new OperationFailureException("NFSU2 Server control sürücü harfi çözümlenemedi: " + windowsRoot,
                 "WINDOWS_CONTROL_ROOT_INVALID");
         string relativeRoot = windowsRoot[driveRoot.Length..].Replace('\\', '/').Trim('/');
         string controlRoot = "/mnt/" + char.ToLowerInvariant(drive[0]) + "/" + relativeRoot;
         if (string.IsNullOrWhiteSpace(relativeRoot))
-            throw new OperationFailureException("Control Center kök klasörü boş çözümlendi.", "WINDOWS_CONTROL_ROOT_INVALID");
+            throw new OperationFailureException("NFSU2 Server control kök klasörü boş çözümlendi.", "WINDOWS_CONTROL_ROOT_INVALID");
 
         // Verify the exact mapped directory before invoking the updater or Docker.
         var rootCheck = await RunCommandAsync(wsl,
@@ -1828,11 +1828,11 @@ done
             TimeSpan.FromSeconds(15), RootDir, logOutput: false, logCategory: "WSL");
         if (rootCheck.ExitCode != 0)
             throw new OperationFailureException(
-                "Control Center klasörü WSL içinde bulunamadı. Windows: " + windowsRoot +
+                "NFSU2 Server control klasörü WSL içinde bulunamadı. Windows: " + windowsRoot +
                 "; beklenen WSL yolu: " + controlRoot +
                 ". WSL automount /mnt ayarını veya bu klasörün erişimini kontrol et.",
                 "WSL_CONTROL_ROOT_NOT_MOUNTED");
-        AppendLog("Control Center WSL yolu doğrulandı: " + controlRoot, "OK", "WSL");
+        AppendLog("NFSU2 Server control WSL yolu doğrulandı: " + controlRoot, "OK", "WSL");
 
         // Prepare Docker Desktop's isolated CLI config without a shell mkdir target.
         const string dockerConfigPython = """
@@ -1896,7 +1896,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             if (_currentPage == "Server") await RefreshServerPageAsync();
             CompleteOperationProgress(true, "Sunucu işlemi ve durum kontrolü tamamlandı");
         }
-        catch (Exception ex) { CompleteOperationProgress(false, "Sunucu işlemi hata ile durdu", GetOperationFailureCode(ex)); AppendLog("Sunucu işlemi başarısız: " + ex.Message, "HATA", "WSL"); MessageBox.Show(this, ex.Message, "Sunucu yönetimi", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { CompleteOperationProgress(false, "Sunucu işlemi hata ile durdu", GetOperationFailureCode(ex)); AppendLog("Sunucu işlemi başarısız: " + ex.Message, "HATA", "WSL"); ThemedDialogWindow.Show(this, ex.Message, "Sunucu yönetimi", MessageBoxButton.OK, MessageBoxImage.Error); }
         finally { _operationBusy = false; }
     }
 
@@ -2048,7 +2048,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             reportProgress(8, "Güncellemeler denetleniyor",
                 settings.Channel == UpdateChannel.Beta
                     ? "Kararlı ve beta yayınları SemVer sırasına göre kontrol ediliyor."
-                    : "Yayımlanmış kararlı Control Center sürümü kontrol ediliyor.");
+                    : "Yayımlanmış kararlı NFSU2 Server control sürümü kontrol ediliyor.");
             await Task.Delay(150);
             using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
             var release = await GetLatestControlCenterReleaseAsync(startupTimeout.Token);
@@ -2056,7 +2056,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             {
                 AppendLog($"Başlangıç denetimi tamamlandı. Kurulu sürüm v{ControlCenterCurrentVersion}; kanal={settings.Channel}.",
                     "OK", "APP");
-                reportProgress(82, "Control Center güncel",
+                reportProgress(82, "NFSU2 Server control güncel",
                     $"Yüklü v{ControlCenterCurrentVersion} · {settings.Channel} kanalı");
                 await Task.Delay(220);
                 reportProgress(84, "Güncelleme kontrolü tamamlandı", "Yeni sürüm gerekmiyor. Kurulu sürüm kullanılacak.");
@@ -2077,7 +2077,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             reportProgress(86, "Güncelleme denetlenemedi",
                 "Mevcut sürüm değiştirilmedi. Bağlantı daha sonra tekrar denetlenebilir.");
             await Task.Delay(400);
-            reportProgress(86, "Güncelleme kontrolü tamamlandı", "Mevcut Control Center sürümüyle devam ediliyor.");
+            reportProgress(86, "Güncelleme kontrolü tamamlandı", "Mevcut NFSU2 Server control sürümüyle devam ediliyor.");
             return false;
         }
     }
@@ -2095,7 +2095,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     {
         var dialog = new Window
         {
-            Title = "TRPOLARIS Control Center · Update Center",
+            Title = "NFSU2 Server control - Güncelleme merkezi",
             Owner = this,
             Width = 590,
             Height = updateAvailable ? 690 : 475,
@@ -2352,7 +2352,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             releaseStack.Children.Add(new TextBlock
             {
-                Text = "TRPOLARIS Control Center güncel. Yeni bir kararlı sürüm yayımlandığında uygulama açılışında otomatik olarak kontrol edilir.",
+                Text = "NFSU2 Server control güncel. Yeni bir kararlı sürüm yayımlandığında uygulama açılışında otomatik olarak kontrol edilir.",
                 FontSize = 10,
                 LineHeight = 17,
                 Foreground = BrushHex("#AFC0D2"),
@@ -2504,8 +2504,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         }
 
         if (checkButton is not null) checkButton.IsEnabled = false;
-        FooterStatus.Text = "Control Center güncellemeleri denetleniyor...";
-        AppendLog($"Control Center güncellemesi denetleniyor. Kaynak: https://github.com/{UpdateEngine.Repository}",
+        FooterStatus.Text = "NFSU2 Server control güncellemeleri denetleniyor...";
+        AppendLog($"NFSU2 Server control güncellemesi denetleniyor. Kaynak: https://github.com/{UpdateEngine.Repository}",
             "INFO", "APP");
         try
         {
@@ -2529,12 +2529,12 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             bool mandatory = UpdateEngine.IsMandatoryUpdate(ControlCenterCurrentVersion, release.MinimumSupportedVersion);
             if (!updateAvailable && !mandatory)
             {
-                FooterStatus.Text = $"Control Center güncel · v{ControlCenterCurrentVersion}";
-                AppendLog($"Control Center güncel. Yüklü=v{ControlCenterCurrentVersion}; yayın=v{release.Version}.",
+                FooterStatus.Text = $"NFSU2 Server control güncel · v{ControlCenterCurrentVersion}";
+                AppendLog($"NFSU2 Server control güncel. Yüklü=v{ControlCenterCurrentVersion}; yayın=v{release.Version}.",
                     "OK", "APP");
                 ShowModernUpdateDialog(
                     "Her şey güncel",
-                    "TRPOLARIS Control Center'ın seçili kanaldaki en güncel sürümünü kullanıyorsunuz.",
+                    "NFSU2 Server control'ın seçili kanaldaki en güncel sürümünü kullanıyorsunuz.",
                     "EN GÜNCEL SÜRÜM",
                     ControlCenterCurrentVersion,
                     "",
@@ -2574,8 +2574,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         }
         catch (Exception ex)
         {
-            FooterStatus.Text = "Control Center güncellemesi denetlenemedi.";
-            AppendLog("Control Center güncelleme denetimi başarısız: " + ex.Message, "HATA", "APP");
+            FooterStatus.Text = "NFSU2 Server control güncellemesi denetlenemedi.";
+            AppendLog("NFSU2 Server control güncelleme denetimi başarısız: " + ex.Message, "HATA", "APP");
             ShowModernUpdateDialog(
                 "Güncelleme denetlenemedi",
                 ex.Message,
@@ -2609,7 +2609,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         string targetDirectory = Path.GetDirectoryName(Path.GetFullPath(targetExe)) ?? string.Empty;
         if (string.IsNullOrWhiteSpace(targetDirectory) ||
             targetDirectory.StartsWith(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Control Center geçici klasörden çalışıyor. Önce uygulamayı kalıcı bir klasöre taşı ve oradan başlat.");
+            throw new InvalidOperationException("NFSU2 Server control geçici klasörden çalışıyor. Önce uygulamayı kalıcı bir klasöre taşı ve oradan başlat.");
 
         try
         {
@@ -2620,13 +2620,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         catch (Exception ex)
         {
             throw new UnauthorizedAccessException(
-                "Uygulama klasörüne yazma izni yok. Control Center'ı yazma izni olan bir klasöre kurup tekrar dene.", ex);
+                "Uygulama klasörüne yazma izni yok. NFSU2 Server control'ı yazma izni olan bir klasöre kurup tekrar dene.", ex);
         }
 
         FooterStatus.Text = $"v{release.Version} indiriliyor...";
         progress?.Invoke(52, "İmzalı güncelleme indiriliyor",
             $"v{release.Version} · {FormatBytes(release.AssetSize)}");
-        AppendLog($"Control Center v{release.Version} indiriliyor. Kanal={release.Channel}; paket={FormatBytes(release.AssetSize)}.",
+        AppendLog($"NFSU2 Server control v{release.Version} indiriliyor. Kanal={release.Channel}; paket={FormatBytes(release.AssetSize)}.",
             "INFO", "APP");
 
         var reporter = new Progress<(long Received, long Total)>(p =>
@@ -2637,12 +2637,12 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         });
         string downloaded = await UpdateEngine.DownloadPackageAsync(release, reporter);
         progress?.Invoke(92, "SHA-256 doğrulandı", "İndirilen EXE manifestteki dosyayla eşleşiyor.");
-        AppendLog($"Control Center v{release.Version} indirildi ve SHA-256 doğrulandı: {release.Sha256}.",
+        AppendLog($"NFSU2 Server control v{release.Version} indirildi ve SHA-256 doğrulandı: {release.Sha256}.",
             "OK", "APP");
 
         if (!automatic)
         {
-            MessageBox.Show(this,
+            ThemedDialogWindow.Show(this,
                 $"Yeni sürüm indirildi. Dijital imza ve SHA-256 doğrulamaları başarılı.\n\n"
                 + "Uygulama kapatılacak ve mevcut EXE yedek kopya oluşturmadan değiştirilecek.\n\n"
                 + $"v{ControlCenterCurrentVersion} → v{release.Version}",
@@ -2659,7 +2659,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private async Task UpdateServerAsync()
     {
         if (_operationBusy) { AppendLog("Güncelleme başlatılmadı: başka bir işlem sürüyor.", "UYARI"); return; }
-        var answer = MessageBox.Show(this, "GitHub main dalı indirilecek. WSL içindeki Python/WASI araçları ve bağımlılıkları güncellenecek; SPEED2.EXE mevcut oyun volume'ünden okunarak WASM modülü yeniden üretilecek. Docker içinde React npm paketleri ve Rust Cargo bağımlılıkları derlenecek. Yeni image ve modül sağlıklı olmazsa önceki sürüme geri dönülecek. Oyun dosyaları ile /state kayıt volume'ü korunur. Devam edilsin mi?", "NFSU2 güncellemesi", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        var answer = ThemedDialogWindow.Show(this, "GitHub main dalı indirilecek. WSL içindeki Python/WASI araçları ve bağımlılıkları güncellenecek; SPEED2.EXE mevcut oyun volume'ünden okunarak WASM modülü yeniden üretilecek. Docker içinde React npm paketleri ve Rust Cargo bağımlılıkları derlenecek. Yeni image ve modül sağlıklı olmazsa önceki sürüme geri dönülecek. Oyun dosyaları ile /state kayıt volume'ü korunur. Devam edilsin mi?", "NFSU2 güncellemesi", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.Yes) return;
         _operationBusy = true; BeginOperationProgress("GitHub güncellemesi hazırlanıyor"); ShowPage("Logs");
         try
@@ -2685,7 +2685,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             AppendLog("GitHub main indirildi; Python/WASI bağımlılıkları ve WASM modülü yenilendi; Docker içinde npm ci + Rust Cargo derlemesi yapıldı. Yeni container healthy oldu. Oyun ve /state volume'leri korundu; geri dönüş image etiketi oluşturuldu.", "OK", "WSL");
             ShowPage("Update");
         }
-        catch (Exception ex) { CompleteOperationProgress(false, "Güncelleme başarısız; mevcut veriler korundu", GetOperationFailureCode(ex)); AppendLog("NFSU2 güncellemesi başarısız: " + ex.Message, "HATA", "WSL"); MessageBox.Show(this, ex.Message, "Güncelleme hatası", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { CompleteOperationProgress(false, "Güncelleme başarısız; mevcut veriler korundu", GetOperationFailureCode(ex)); AppendLog("NFSU2 güncellemesi başarısız: " + ex.Message, "HATA", "WSL"); ThemedDialogWindow.Show(this, ex.Message, "Güncelleme hatası", MessageBoxButton.OK, MessageBoxImage.Error); }
         finally { _operationBusy = false; }
     }
 
@@ -3146,7 +3146,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private void ClearLogs()
     {
-        var answer = MessageBox.Show(this,
+        var answer = ThemedDialogWindow.Show(this,
             "Kontrol merkezi günlüklerindeki mevcut kayıtların tamamı silinecek. Çalışan kurulum veya sunucu durdurulmaz. Devam edilsin mi?",
             "Günlükleri temizle", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.Yes) return;
@@ -3798,7 +3798,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             _gameValidationStatus.Foreground = (Brush)FindResource(validation.IsValid ? "SuccessBrush" : "WarningBrush");
         }
         if (showDialog)
-            MessageBox.Show(this, validation.Message, validation.IsValid ? "Oyun dosyaları doğrulandı" : "Oyun klasörü doğrulanamadı", MessageBoxButton.OK, validation.IsValid ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            ThemedDialogWindow.Show(this, validation.Message, validation.IsValid ? "Oyun dosyaları doğrulandı" : "Oyun klasörü doğrulanamadı", MessageBoxButton.OK, validation.IsValid ? MessageBoxImage.Information : MessageBoxImage.Warning);
     }
 
     private static GameFolderValidation ValidateGameFolder(string gameDirectory)
@@ -3842,7 +3842,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     {
         if (_operationBusy || _gameArchiveBusy)
         {
-            MessageBox.Show(this, "Kurulum veya oyun arşivi işlemi devam ederken başka bir oyun arşivi başlatılamaz.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedDialogWindow.Show(this, "Kurulum veya oyun arşivi işlemi devam ederken başka bir oyun arşivi başlatılamaz.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         await ImportGameArchiveAsync();
@@ -3858,7 +3858,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         catch (Exception ex)
         {
             AppendLog("NFS Underground 2 tarayıcı indirme bağlantısı açılamadı: " + ex.Message, "HATA", "APP");
-            MessageBox.Show(this,
+            ThemedDialogWindow.Show(this,
                 "Varsayılan tarayıcı açılamadı. Aşağıdaki MediaFire adresini elle açabilirsin:\n\n" + GameArchiveDownloadUrl + "\n\n" + ex.Message,
                 "Oyunu indir", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
@@ -3868,7 +3868,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     {
         if (_operationBusy || _gameArchiveBusy)
         {
-            MessageBox.Show(this, "Kurulum veya oyun arşivi işlemi devam ederken yeni bir indirme başlatılamaz.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedDialogWindow.Show(this, "Kurulum veya oyun arşivi işlemi devam ederken yeni bir indirme başlatılamaz.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         await DownloadAndInstallGameArchiveAsync();
@@ -4230,7 +4230,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             string resumeText = saved > 0 ? " İndirilen " + FormatBytes(saved) + " veri korundu; aynı indirme düğmesine tekrar basarak devam edebilirsin." : string.Empty;
             if (_gameValidationStatus is not null) _gameValidationStatus.Text = "Oyun indirilemedi: " + ex.Message + resumeText;
             AppendLog("MediaFire oyun arşivi indirilemedi: " + ex, "HATA");
-            MessageBox.Show(this,
+            ThemedDialogWindow.Show(this,
                 "Oyun arşivi indirilemedi veya doğrulama aşamasına geçilemedi. Kurulum başlatılmadı.\n\n" + ex.Message + resumeText + "\n\nBağlantı tekrar geldiğinde indirmeyi yeniden başlatabilirsin.",
                 "Oyun indirilemedi", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
@@ -4287,7 +4287,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private void CancelGameArchiveDownload_Click(object sender, RoutedEventArgs e)
     {
         if (!_gameArchiveBusy) return;
-        var answer = MessageBox.Show(this,
+        var answer = ThemedDialogWindow.Show(this,
             "İndirme durdurulacak ve kısmi ZIP dosyası silinecek. Daha sonra tekrar indirmen gerekecek. Devam edilsin mi?",
             "İndirmeyi iptal et", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.Yes) return;
@@ -4393,14 +4393,14 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 : "\nÖnceki oyun klasörü yedek olarak korundu: " + importResult.BackupDirectory;
             string messageText = $"Oyun arşivi içe aktarıldı.\nÇıkarılan dosya: {importResult.ExtractedFiles:N0}\nAçılan veri: {FormatBytes(importResult.ExpandedBytes)}\nHedef: {importResult.TargetDirectory}{backupText}";
             AppendLog(messageText.Replace("\n", " · "), "OK");
-            MessageBox.Show(this, messageText, "Oyun dosyaları hazır", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedDialogWindow.Show(this, messageText, "Oyun dosyaları hazır", MessageBoxButton.OK, MessageBoxImage.Information);
             return ValidateGameFolder(importResult.TargetDirectory).IsValid;
         }
         catch (Exception ex)
         {
             if (_gameValidationStatus is not null) _gameValidationStatus.Text = "İçe aktarma başarısız: " + ex.Message;
             AppendLog("Oyun ZIP içe aktarımı başarısız: " + ex, "HATA");
-            MessageBox.Show(this, ex.Message, "Oyun arşivi içe aktarılamadı", MessageBoxButton.OK, MessageBoxImage.Error);
+            ThemedDialogWindow.Show(this, ex.Message, "Oyun arşivi içe aktarılamadı", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
     }
@@ -4553,14 +4553,14 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private async void Install_Click(object sender, RoutedEventArgs e)
     {
-        if (_operationBusy || _gameArchiveBusy) { MessageBox.Show(this, "Bir işlem zaten çalışıyor.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        if (_operationBusy || _gameArchiveBusy) { ThemedDialogWindow.Show(this, "Bir işlem zaten çalışıyor.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information); return; }
         int port = GetInstallPort(); string gameDir = _gameDirBox?.Text.Trim() ?? Path.Combine(RootDir, "game");
-        if (port < 1024 || port > 65535 || port is 80 or 443) { MessageBox.Show(this, "Port 1024-65535 arasında olmalı; 80 ve 443 kullanılamaz.", "Port geçersiz", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+        if (port < 1024 || port > 65535 || port is 80 or 443) { ThemedDialogWindow.Show(this, "Port 1024-65535 arasında olmalı; 80 ve 443 kullanılamaz.", "Port geçersiz", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
         var gameValidation = ValidateGameFolder(gameDir);
         if (!gameValidation.IsValid)
         {
             AppendLog("Kurulum öncesi oyun doğrulaması başarısız: " + gameValidation.Message, "UYARI");
-            var answer = MessageBox.Show(this,
+            var answer = ThemedDialogWindow.Show(this,
                 "Oyun dosyaları bulunamadı veya doğrulanamadı.\n\n" + gameValidation.Message + "\n\n" +
                 "Sana ait MediaFire bağlantısından oyun arşivi indirilsin mi?\n\n" +
                 "Evet: Arşivi indir, güvenli biçimde aç, sürümünü ve dosyalarını doğrula ve C:\\nfsu2\\game klasörüne yerleştir.\n" +
@@ -4582,7 +4582,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             gameValidation = ValidateGameFolder(gameDir);
             if (!gameValidation.IsValid)
             {
-                MessageBox.Show(this, "İndirme ve yerleştirme sonrasında oyun dosyaları tekrar doğrulanamadı. Kurulum iptal edildi.\n\n" + gameValidation.Message, "Oyun doğrulaması başarısız", MessageBoxButton.OK, MessageBoxImage.Error);
+                ThemedDialogWindow.Show(this, "İndirme ve yerleştirme sonrasında oyun dosyaları tekrar doğrulanamadı. Kurulum iptal edildi.\n\n" + gameValidation.Message, "Oyun doğrulaması başarısız", MessageBoxButton.OK, MessageBoxImage.Error);
                 if (_installState is not null) _installState.Text = "Oyun doğrulaması başarısız. Kurulum başlatılmadı.";
                 return;
             }
@@ -4590,7 +4590,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         gameDir = gameValidation.GameDirectory ?? Path.GetFullPath(gameDir);
         if (_gameValidationStatus is not null) _gameValidationStatus.Text = "DOĞRULANDI · " + gameValidation.Message;
         var choice = (_installAccessCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "local";
-        if (choice == "public" && MessageBox.Show(this, "Public geçici HTTPS bağlantısı oluşturulacak. URL'yi bilen herkes sunucuya erişebilir ve bağlantı tünel açıkken çalışır. Devam edilsin mi?", "Public erişim uyarısı", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (choice == "public" && ThemedDialogWindow.Show(this, "Public geçici HTTPS bağlantısı oluşturulacak. URL'yi bilen herkes sunucuya erişebilir ve bağlantı tünel açıkken çalışır. Devam edilsin mi?", "Public erişim uyarısı", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         using var installCancellation = new CancellationTokenSource();
         _installCancellation = installCancellation;
         _operationBusy = true;
@@ -4639,7 +4639,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 string installerCode = ExtractInstallerFailureCode(result.Output, result.ExitCode);
                 CompleteOperationProgress(false, "Kurulum hata ile durdu — günlükleri kontrol et", installerCode);
                 await AppendDockerDiagnosticsAsync();
-                MessageBox.Show(this, $"Kurulum başarısız (kod {result.ExitCode}). Canlı günlüğün son satırlarına bak.\n\nWSL logları: {RootDir}", "Kurulum hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+                ThemedDialogWindow.Show(this, $"Kurulum başarısız (kod {result.ExitCode}). Canlı günlüğün son satırlarına bak.\n\nWSL logları: {RootDir}", "Kurulum hatası", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             // The WSL installer checks Docker's internal health; verify the published Windows endpoint too.
@@ -4723,7 +4723,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 if (_installState is not null) _installState.Text = "Kurulum güvenli biçimde durduruldu.";
             }
         }
-        catch (Exception ex) { CompleteOperationProgress(false, "Kurulum hata ile durdu — ayrıntılar günlükte", GetOperationFailureCode(ex)); AppendLog("Kurulum hatası: " + ex, "HATA"); MessageBox.Show(this, ex.Message, "Kurulum hatası", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { CompleteOperationProgress(false, "Kurulum hata ile durdu — ayrıntılar günlükte", GetOperationFailureCode(ex)); AppendLog("Kurulum hatası: " + ex, "HATA"); ThemedDialogWindow.Show(this, ex.Message, "Kurulum hatası", MessageBoxButton.OK, MessageBoxImage.Error); }
         finally
         {
             if (ReferenceEquals(_installCancellation, installCancellation)) _installCancellation = null;
@@ -4789,7 +4789,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private async Task OfferLanFirewallRuleAsync(int port)
     {
-        var answer = MessageBox.Show(this,
+        var answer = ThemedDialogWindow.Show(this,
             $"LAN HTTPS adresi hazır: {GetActiveServerUrl()}\n\nAynı ağdaki diğer cihazlar Windows Güvenlik Duvarı tarafından engellenebilir. Yalnızca Özel ağlarda TCP {port} portuna izin veren bir kural oluşturalım mı? Yönetici onayı (UAC) istenir.",
             "LAN bağlantısı / Güvenlik Duvarı", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (answer != MessageBoxResult.Yes)
@@ -4800,7 +4800,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         try
         {
-            const string displayName = "TRPOLARIS NFSU2 Web Control Center LAN";
+            const string displayName = "TRPOLARIS NFSU2 Web NFSU2 Server control LAN";
             string script = "$displayName = '" + displayName + "'; " +
                 "Get-NetFirewallRule -DisplayName $displayName -ErrorAction SilentlyContinue | Remove-NetFirewallRule; " +
                 "New-NetFirewallRule -DisplayName $displayName -Direction Inbound -Action Allow -Protocol TCP -LocalPort " + port.ToString(CultureInfo.InvariantCulture) + " -Profile Private | Out-Null";
@@ -4849,9 +4849,9 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private async Task<bool> ApplyAccessProfileAsync(string mode, string portText, bool fromInstall = false, int? lanPortOverride = null, int lanRetryDepth = 0, CancellationToken cancellationToken = default)
     {
-        if (_operationBusy && !fromInstall) { MessageBox.Show(this, "Başka bir işlem devam ediyor.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information); return false; }
-        if (!int.TryParse(portText, out var port) || port < 1024 || port > 65535 || port is 80 or 443) { MessageBox.Show(this, "Port 1024-65535 arasında olmalı; 80 ve 443 kullanılamaz.", "Port geçersiz", MessageBoxButton.OK, MessageBoxImage.Warning); return false; }
-        if (mode == "public" && !fromInstall && MessageBox.Show(this, "Geçici Cloudflare HTTPS tüneli oluşturulacak. URL'yi bilen herkes kimlik doğrulaması olmadan erişebilir. Devam edilsin mi?", "Public erişim", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return false;
+        if (_operationBusy && !fromInstall) { ThemedDialogWindow.Show(this, "Başka bir işlem devam ediyor.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information); return false; }
+        if (!int.TryParse(portText, out var port) || port < 1024 || port > 65535 || port is 80 or 443) { ThemedDialogWindow.Show(this, "Port 1024-65535 arasında olmalı; 80 ve 443 kullanılamaz.", "Port geçersiz", MessageBoxButton.OK, MessageBoxImage.Warning); return false; }
+        if (mode == "public" && !fromInstall && ThemedDialogWindow.Show(this, "Geçici Cloudflare HTTPS tüneli oluşturulacak. URL'yi bilen herkes kimlik doğrulaması olmadan erişebilir. Devam edilsin mi?", "Public erişim", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return false;
         if (!_operationBusy)
         {
             _operationBusy = true;
@@ -4955,7 +4955,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             AppendLog("Erişim profili hatası: " + ex.Message, "HATA", "WSL");
             if (_accessStateLabel is not null) _accessStateLabel.Text = ex.Message;
             if (!fromInstall) CompleteOperationProgress(false, "Erişim profili hata ile durdu", _lastOperationErrorCode);
-            MessageBox.Show(this, ex.Message, "Erişim profili", MessageBoxButton.OK, MessageBoxImage.Error);
+            ThemedDialogWindow.Show(this, ex.Message, "Erişim profili", MessageBoxButton.OK, MessageBoxImage.Error);
             try { if (File.Exists(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"))) File.Delete(Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh")); } catch { }
             return false;
         }
@@ -4984,13 +4984,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private async Task RestartWslAsync()
     {
         if (_operationBusy) { AppendLog("WSL kurtarma başlatılmadı: başka bir işlem sürüyor.", "UYARI", "WSL"); return; }
-        var answer = MessageBox.Show(this,
+        var answer = ThemedDialogWindow.Show(this,
             "WSL --shutdown tüm açık WSL dağıtımlarını kapatır. Ubuntu içindeki servisler ve Docker Desktop'ın WSL altyapısı geçici olarak durabilir. Linux dosyaları silinmez; ancak çalışan diğer WSL işlerin kesilir. Devam edilsin mi?",
             "WSL bağlantısını kurtar", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.Yes) return;
 
         var wsl = FindWslExe();
-        if (wsl is null) { MessageBox.Show(this, "wsl.exe bulunamadı.", "WSL", MessageBoxButton.OK, MessageBoxImage.Error); return; }
+        if (wsl is null) { ThemedDialogWindow.Show(this, "wsl.exe bulunamadı.", "WSL", MessageBoxButton.OK, MessageBoxImage.Error); return; }
         _operationBusy = true;
         BeginOperationProgress("WSL dağıtımları güvenli biçimde kapatılıyor");
         ShowPage("Logs");
@@ -5030,7 +5030,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             CompleteOperationProgress(false, "WSL bağlantı kurtarma tamamlanamadı", GetOperationFailureCode(ex));
             AppendLog("WSL bağlantı kurtarma hatası: " + ex.Message, "HATA", "WSL");
-            MessageBox.Show(this, ex.Message, "WSL kurtarma", MessageBoxButton.OK, MessageBoxImage.Error);
+            ThemedDialogWindow.Show(this, ex.Message, "WSL kurtarma", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally { _operationBusy = false; }
     }
@@ -5055,7 +5055,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private async Task SafeRepairAsync()
     {
         if (_operationBusy) { AppendLog("Onarım başlatılmadı: başka bir işlem sürüyor.", "UYARI"); return; }
-        if (MessageBox.Show(this, "WSL içinde paket durumu denetlenecek. Aktif apt/dpkg süreçleri bulunursa onarım yapılmadan durulacak. Devam edilsin mi?", "Güvenli onarım", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (ThemedDialogWindow.Show(this, "WSL içinde paket durumu denetlenecek. Aktif apt/dpkg süreçleri bulunursa onarım yapılmadan durulacak. Devam edilsin mi?", "Güvenli onarım", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         _operationBusy = true; ShowPage("Logs");
         try
         {
@@ -5074,14 +5074,14 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private async Task UninstallAsync(bool containers, bool images, bool tunnel, bool volume, bool projectFiles, bool gameFiles, bool removeUbuntu, bool removeDockerDesktop)
     {
-        if (_operationBusy) { MessageBox.Show(this, "Başka bir işlem devam ediyor.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        if (_operationBusy) { ThemedDialogWindow.Show(this, "Başka bir işlem devam ediyor.", "İşlem sürüyor", MessageBoxButton.OK, MessageBoxImage.Information); return; }
         var warnings = new StringBuilder("Seçili NFSU2 kaynakları kaldırılacak:\n");
         if (containers) warnings.AppendLine("• NFSU2 konteynerleri"); if (images) warnings.AppendLine("• NFSU2 imajları"); if (tunnel) warnings.AppendLine("• NFSU2 Local/Public erişim işaretçileri ve yalnızca sahip olunan tünel süreci"); if (volume) warnings.AppendLine("• Kayıt hacmi ve oyun kayıtları (kalıcı silme)"); if (projectFiles) warnings.AppendLine("• C:\\nfsu2 kaynak kodu/modül/ayarları ve doğrulanmış NFSU2 WSL proje klasörü"); if (gameFiles) warnings.AppendLine("• C:\\nfsu2\\game (oyun dosyaları)");
         if (removeUbuntu) warnings.AppendLine("• Ubuntu* WSL dağıtımları ve içindeki tüm Linux dosyaları"); if (removeDockerDesktop) warnings.AppendLine("• Docker Desktop uygulaması");
         warnings.AppendLine("Diğer Docker projeleri NFSU2 temizliği sırasında hedeflenmez.");
-        if (MessageBox.Show(this, warnings.ToString(), "NFSU2 kaldırma onayı", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-        if (removeUbuntu && MessageBox.Show(this, "Ubuntu ile başlayan WSL dağıtımları tek tek kaldırılacak. Dağıtım içindeki tüm kullanıcı dosyaları kalıcı olarak silinir. Devam edilsin mi?", "Ubuntu verileri silinecek", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-        if (removeDockerDesktop && MessageBox.Show(this, "Docker Desktop kaldırılırsa diğer projelerin konteynerlerini çalıştıramazsın. Devam edilsin mi?", "Docker Desktop kaldırma", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (ThemedDialogWindow.Show(this, warnings.ToString(), "NFSU2 kaldırma onayı", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (removeUbuntu && ThemedDialogWindow.Show(this, "Ubuntu ile başlayan WSL dağıtımları tek tek kaldırılacak. Dağıtım içindeki tüm kullanıcı dosyaları kalıcı olarak silinir. Devam edilsin mi?", "Ubuntu verileri silinecek", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (removeDockerDesktop && ThemedDialogWindow.Show(this, "Docker Desktop kaldırılırsa diğer projelerin konteynerlerini çalıştıramazsın. Devam edilsin mi?", "Docker Desktop kaldırma", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         _operationBusy = true; ShowPage("Logs"); AppendLog("=== NFSU2 KALDIRMA BAŞLADI ===", "WARN");
         bool cleanupHadWarnings = false;
         try
@@ -5185,7 +5185,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 : "Kaldırma adımları tamamlandı. Seçilmeyen bileşenler korunmuştur.", cleanupHadWarnings ? "UYARI" : "OK");
             if (!removeDockerDesktop && !removeUbuntu) await RefreshStatusAsync(true);
         }
-        catch (Exception ex) { AppendLog("Kaldırma hatası: " + ex, "HATA"); MessageBox.Show(this, ex.Message, "Kaldırma hatası", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { AppendLog("Kaldırma hatası: " + ex, "HATA"); ThemedDialogWindow.Show(this, ex.Message, "Kaldırma hatası", MessageBoxButton.OK, MessageBoxImage.Error); }
         finally { _operationBusy = false; }
     }
 
@@ -5442,7 +5442,7 @@ rm -f "$root/NFSU2-PUBLIC-URL.txt" "$root/nfsu2-access-url.txt" "$root/nfsu2-acc
     {
         try
         {
-            string script = "$names = @('TRPOLARIS NFSU2 LAN HTTPS','TRPOLARIS NFSU2 Web Control Center LAN'); " +
+            string script = "$names = @('TRPOLARIS NFSU2 LAN HTTPS','TRPOLARIS NFSU2 Web Control Center LAN','TRPOLARIS NFSU2 Web NFSU2 Server control LAN'); " +
                 "foreach ($name in $names) { Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue }";
             string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
             var result = await RunCommandAsync(GetPowerShellExe(),

@@ -24,23 +24,88 @@ internal sealed class UpdatePreferencesWindow : Window
             BetaReleaseJson = settings.BetaReleaseJson
         };
 
-        Title = "TRPOLARIS Control Center · Update Preferences";
-        Width = 620;
-        Height = 660;
-        MinWidth = 560;
-        MinHeight = 580;
+        Title = "NFSU2 Server control - Güncelleme tercihleri";
+        Width = 650;
+        Height = 650;
+        MinWidth = 650;
+        MinHeight = 650;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Owner = Application.Current.MainWindow;
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
         Background = Brush("#081523");
         Foreground = Brush("#EDF4FC");
-        FontFamily = new FontFamily("Segoe UI");
-        ResizeMode = ResizeMode.CanResizeWithGrip;
+        FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI");
+        ShowInTaskbar = false;
+        UseLayoutRounding = true;
+        SnapsToDevicePixels = true;
 
-        var root = new Grid { Margin = new Thickness(24) };
+        var windowGrid = new Grid();
+        windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(42) });
+        windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+        var root = new Grid { Margin = new Thickness(24, 18, 24, 20) };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var caption = new Border
+        {
+            Background = Brush("#0A1828"),
+            BorderBrush = Brush("#20384E"),
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Padding = new Thickness(17, 0, 8, 0)
+        };
+        var captionGrid = new Grid();
+        captionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        captionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var captionText = new TextBlock
+        {
+            Text = "NFSU2 SERVER CONTROL",
+            FontSize = 9,
+            FontWeight = FontWeights.Bold,
+            Foreground = Brush("#68DCCC"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        captionGrid.Children.Add(captionText);
+        var close = new Button
+        {
+            Content = "×",
+            Width = 38,
+            Height = 32,
+            Padding = new Thickness(0),
+            FontSize = 19,
+            Focusable = false,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            Foreground = Brush("#D9E8F5"),
+            Background = Brush("Transparent"),
+            BorderThickness = new Thickness(0)
+        };
+        try { close.Style = (Style)Application.Current.FindResource("WindowCloseButton"); } catch { }
+        close.Click += (_, _) => Close();
+        Grid.SetColumn(close, 1);
+        captionGrid.Children.Add(close);
+        caption.Child = captionGrid;
+        caption.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.OriginalSource is DependencyObject source && IsInsideButton(source)) return;
+            if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                DragMove();
+        };
+        Grid.SetRow(caption, 0);
+        windowGrid.Children.Add(caption);
+        Grid.SetRow(root, 1);
+        windowGrid.Children.Add(root);
+        Content = new Border
+        {
+            Background = Brush("#081523"),
+            BorderBrush = Brush("#31506A"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            ClipToBounds = true,
+            Child = windowGrid
+        };
 
         var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 18) };
         heading.Children.Add(new TextBlock
@@ -105,11 +170,9 @@ internal sealed class UpdatePreferencesWindow : Window
         });
         var historyList = new ListBox
         {
-            Background = Brush("#0D1C2B"),
-            BorderBrush = Brush("#2A435A"),
-            BorderThickness = new Thickness(1),
-            Foreground = Brush("#DCE8F5"),
-            Padding = new Thickness(7),
+            Style = (Style)Application.Current.FindResource("DarkListBox"),
+            MinHeight = 76,
+            MaxHeight = 260,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
         if (history.Count == 0)
@@ -132,7 +195,6 @@ internal sealed class UpdatePreferencesWindow : Window
                     Content = text,
                     Padding = new Thickness(8),
                     Margin = new Thickness(0, 0, 0, 4),
-                    Background = Brush("#13273A"),
                     Foreground = Brush("#DCE8F5")
                 });
             }
@@ -164,7 +226,14 @@ internal sealed class UpdatePreferencesWindow : Window
         Grid.SetRow(footer, 3);
         root.Children.Add(footer);
 
-        Content = root;
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                Close();
+                e.Handled = true;
+            }
+        };
     }
 
     private static void AddField(StackPanel parent, string label, ComboBox combo, IEnumerable<ComboBoxItem> items, int selectedIndex)
@@ -178,18 +247,29 @@ internal sealed class UpdatePreferencesWindow : Window
             Margin = new Thickness(0, 0, 0, 7)
         });
         foreach (var item in items) combo.Items.Add(item);
+        combo.Style = (Style)Application.Current.FindResource("DarkComboBox");
         combo.SelectedIndex = selectedIndex;
-        combo.Height = 36;
-        combo.Margin = new Thickness(0, 0, 0, 15);
-        combo.Background = Brush("#142A3D");
-        combo.Foreground = Brush("#EDF4FC");
-        combo.BorderBrush = Brush("#38566F");
-        combo.Padding = new Thickness(7, 4, 7, 4);
+        combo.Height = 42;
+        combo.MaxDropDownHeight = 270;
+        combo.Margin = new Thickness(0, 0, 0, 18);
+        combo.Background = Brush("#0D1D2D");
+        combo.Foreground = Brush("#EDF5FF");
+        combo.BorderBrush = Brush("#3B5872");
+        combo.Padding = new Thickness(10, 7, 10, 7);
         parent.Children.Add(combo);
+    }
+
+    private static bool IsInsideButton(DependencyObject source)
+    {
+        for (DependencyObject? current = source; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (current is Button) return true;
+        return false;
     }
 
     private static void StyleButton(Button button, string background, string foreground)
     {
+        try { button.Style = (Style)Application.Current.FindResource(background == "#176B70" ? "ModernButton" : "SecondaryButton"); } catch { }
+        button.MinHeight = 40;
         button.Background = Brush(background);
         button.Foreground = Brush(foreground);
         button.BorderBrush = Brush("#36536A");

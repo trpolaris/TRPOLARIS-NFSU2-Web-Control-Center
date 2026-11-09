@@ -7,15 +7,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\TRPOLARIS-NFSU2.ico</ApplicationIcon>
-    <AssemblyName>TRPOLARIS.ControlCenter</AssemblyName>
+    <AssemblyName>NFSU2 Server control</AssemblyName>
     <RootNamespace>TRPOLARIS.NFSU2.WebControlCenter</RootNamespace>
-    <Version>1.8.0</Version>
-    <AssemblyVersion>1.8.0.0</AssemblyVersion>
-    <FileVersion>1.8.0.0</FileVersion>
+    <Version>1.8.3</Version>
+    <AssemblyVersion>1.8.3.0</AssemblyVersion>
+    <FileVersion>1.8.3.0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
-    <Product>TRPOLARIS Control Center</Product>
+    <Product>NFSU2 Server control</Product>
     <Authors>TRPOLARIS</Authors>
-    <Description>TRPOLARIS Control Center for installing and maintaining the browser-playable Need for Speed Underground 2 web server.</Description>
+    <Description>NFSU2 Server control for installing and maintaining the Need for Speed Underground 2 web server.</Description>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>

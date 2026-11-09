@@ -1,4 +1,4 @@
-name: Verify Control Center Build
+name: Verify NFSU2 Server control Build
 
 on:
   push:
@@ -17,6 +17,66 @@ permissions:
   contents: read
 
 jobs:
+  validate-installer-bash:
+    name: Validate embedded WSL Bash installer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract and syntax-check the embedded Bash script
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          source = pathlib.Path(
+              "src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1"
+          ).read_text(encoding="utf-8")
+          matches = re.findall(
+              r"(?ms)^[ \t]*\$BashScript[ \t]*=[ \t]*@'\r?\n(.*?)^[ \t]*'@[ \t]*$",
+              source,
+          )
+          if len(matches) != 1:
+              raise SystemExit(f"Expected one embedded Bash here-string, found {len(matches)}")
+          target = pathlib.Path(os.environ["RUNNER_TEMP"]) / "nfsu2-one-click-wsl.sh"
+          bash_script = matches[0].replace("\r\n", "\n")
+          required = (
+              "fetch --unshallow origin main",
+              "merge --ff-only FETCH_HEAD",
+              "diff --quiet --",
+          )
+          missing = [needle for needle in required if needle not in bash_script]
+          if missing:
+              raise SystemExit(f"Existing-checkout refresh safeguards are missing: {missing}")
+          target.write_text(bash_script, encoding="utf-8")
+          print(f"Extracted {len(bash_script.splitlines())} embedded Bash lines to {target}")
+          PY
+          bash -n "$RUNNER_TEMP/nfsu2-one-click-wsl.sh"
+          bash -n 'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/nfsu2-project-lookup.sh'
+          bash .github/verify-project-lookup.sh
+          bash .github/verify-checkout-refresh.sh "$RUNNER_TEMP/nfsu2-one-click-wsl.sh"
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1").read_text(encoding="utf-8")
+          forbidden = "find . -type f -name '*.sh' -exec chmod u+x {} +"
+          if forbidden in source:
+              raise SystemExit("Installer must not mass-chmod tracked shell files.")
+          if "generated_script_modes" not in source or "generated_docker_files" not in source:
+              raise SystemExit("Safe recovery for older installer-generated Git changes is missing.")
+          source_lines = source.splitlines()
+          recovery_start = next(i for i, line in enumerate(source_lines) if "update_existing_checkout() {" in line)
+          recovery_end = next(i for i in range(recovery_start + 1, len(source_lines)) if source_lines[i].strip() == 'if [[ -d "$PROJECT" ]]; then')
+          recovery = "\n".join(source_lines[recovery_start:recovery_end])
+          if r"\${" in recovery:
+              raise SystemExit("Updater contains escaped shell variable expansions.")
+          if "validated without modifying tracked files" not in source:
+              raise SystemExit("Docker source validation must be read-only.")
+          print("PASS: installer no longer self-dirties tracked source files.")
+          PY
+
   build-win-x64:
     runs-on: windows-latest
     steps:
@@ -54,8 +114,8 @@ jobs:
           dotnet publish $project -c Release -r win-x64 --self-contained true -o publish
           if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
-          $exe = 'publish/TRPOLARIS.ControlCenter.exe'
-          if (-not (Test-Path $exe)) { throw 'Published Control Center executable not found.' }
+          $exe = 'publish/NFSU2 Server control.exe'
+          if (-not (Test-Path $exe)) { throw 'Published NFSU2 Server control executable not found.' }
 
           $sidecarScripts = @(Get-ChildItem 'publish' -Recurse -File -Filter '*.ps1')
           if ($sidecarScripts.Count -gt 0) {
@@ -71,7 +131,7 @@ jobs:
       - name: Upload single-file executable
         uses: actions/upload-artifact@v4
         with:
-          name: TRPOLARIS-ControlCenter-v1.8.0-win-x64
-          path: publish/TRPOLARIS.ControlCenter.exe
+          name: NFSU2-Server-control-v1.8.3-win-x64
+          path: publish/NFSU2 Server control.exe
           if-no-files-found: error
           retention-days: 30

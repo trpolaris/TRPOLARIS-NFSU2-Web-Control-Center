@@ -58,7 +58,7 @@ jobs:
           $size = (Get-Item -LiteralPath $exe).Length
           $channel = if ($version -match '-') { 'beta' } else { 'stable' }
           $publishedAt = (Get-Date).ToUniversalTime().ToString('o')
-          $minimumSupportedVersion = '1.8.0'
+          $minimumSupportedVersion = '1.8.1'
 
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT

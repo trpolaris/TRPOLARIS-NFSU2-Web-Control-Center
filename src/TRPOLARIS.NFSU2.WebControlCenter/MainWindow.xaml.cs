@@ -26,7 +26,7 @@ namespace TRPOLARIS.NFSU2.WebControlCenter;
 
 public partial class MainWindow : Window
 {
-    private const string ProductName = "TRPOLARIS NFSU2 Web Control Center";
+    private const string ProductName = "TRPOLARIS Control Center";
     private const string InstallerResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.NFSU2-Windows-OneClick-Installer.ps1";
     private const string AccessResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-access.sh";
     private const string ProjectLookupResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-project-lookup.sh";

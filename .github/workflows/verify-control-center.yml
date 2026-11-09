@@ -62,3 +62,11 @@ jobs:
           $exe = 'publish/TRPOLARIS.NFSU2.WebControlCenter.exe'
           if (-not (Test-Path $exe)) { throw 'Published EXE not found.' }
           Get-FileHash $exe -Algorithm SHA256
+
+      - name: Upload single-file executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: TRPOLARIS-Control-Center-v1.7.3-win-x64
+          path: publish/TRPOLARIS.NFSU2.WebControlCenter.exe
+          if-no-files-found: error
+          retention-days: 30

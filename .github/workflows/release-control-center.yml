@@ -78,7 +78,7 @@ jobs:
           Missing required GitHub Actions secret: UPDATE_SIGNING_PRIVATE_KEY
 
           Create a repository Actions secret with this exact name:
-            gh secret set UPDATE_SIGNING_PRIVATE_KEY --repo trpolaris/TRPOLARIS-NFSU2-Web-Control-Center < UPDATE_SIGNING_PRIVATE_KEY.pem
+            Get-Content -Raw .\\UPDATE_SIGNING_PRIVATE_KEY.pem | gh secret set UPDATE_SIGNING_PRIVATE_KEY --repo trpolaris/TRPOLARIS-NFSU2-Web-Control-Center
 
           The secret must contain the complete RSA PEM private key. Do not commit the PEM file.
           '@

@@ -191,7 +191,7 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 
 Tek dosyalı yayın ayarları doğrudan `TRPOLARIS.NFSU2.WebControlCenter.csproj` içinde tanımlıdır. Ayrı bir yayın PowerShell betiği gerekmez. WPF arayüzü, uygulama kodu ve kurulum/güncelleme otomasyon kaynakları tek Windows x64 EXE dosyasına gömülür.
 
-Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir. Çıktı `publish\TRPOLARIS.ControlCenter.exe` konumuna yazılır.
+Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme araçları gereklidir. Çıktı `publish\NFSU2 Server control.exe` konumuna yazılır.
 
 ## 🔗 Bağlantılar
 

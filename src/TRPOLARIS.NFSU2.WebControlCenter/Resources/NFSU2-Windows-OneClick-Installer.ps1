@@ -607,7 +607,7 @@ try {
         $probeErrorActionPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'
-            $dockerProbe = @(& wsl.exe -d $Distro -u root -- docker info --format '{{.OSType}}' 2>$null)
+            $dockerProbe = @(& wsl.exe -d $Distro -u root -- env -u DOCKER_HOST -u DOCKER_CONTEXT docker info --format '{{.OSType}}' 2>$null)
             $dockerProbeCode = $LASTEXITCODE
         } finally {
             $ErrorActionPreference = $probeErrorActionPreference
@@ -705,10 +705,14 @@ export DEBIAN_PRIORITY=critical
 root_run() {
   local -a docker_env=()
   if [[ -n "${NFSU2_DOCKER_CONFIG:-}" ]]; then docker_env+=("DOCKER_CONFIG=$NFSU2_DOCKER_CONFIG"); fi
+  # Windows may export DOCKER_HOST=npipe://... into WSL. That endpoint is
+  # invalid inside Linux and makes Docker CLI fail before it reaches the
+  # Docker Desktop WSL Integration socket. Explicitly clear host/context for
+  # every installer Docker command; keep the isolated DOCKER_CONFIG intact.
   if [[ "$(id -u)" == 0 ]]; then
-    env DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none NEEDRESTART_MODE=a "${docker_env[@]}" "$@"
+    env -u DOCKER_HOST -u DOCKER_CONTEXT DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none NEEDRESTART_MODE=a "${docker_env[@]}" "$@"
   else
-    sudo env DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none NEEDRESTART_MODE=a "${docker_env[@]}" "$@"
+    sudo env -u DOCKER_HOST -u DOCKER_CONTEXT DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none NEEDRESTART_MODE=a "${docker_env[@]}" "$@"
   fi
 }
 configure_nfsu2_docker_config() {

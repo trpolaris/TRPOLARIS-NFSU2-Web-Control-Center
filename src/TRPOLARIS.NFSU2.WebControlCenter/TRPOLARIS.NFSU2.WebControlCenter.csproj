@@ -10,8 +10,8 @@
     <AssemblyName>TRPOLARIS.ControlCenter</AssemblyName>
     <RootNamespace>TRPOLARIS.NFSU2.WebControlCenter</RootNamespace>
     <Version>1.8.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.8.0.0</AssemblyVersion>
+    <FileVersion>1.8.0.0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <Product>TRPOLARIS Control Center</Product>
     <Authors>TRPOLARIS</Authors>

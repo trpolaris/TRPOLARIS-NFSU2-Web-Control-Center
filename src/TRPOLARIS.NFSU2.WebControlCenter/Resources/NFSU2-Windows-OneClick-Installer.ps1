@@ -729,13 +729,18 @@ try:
         data = json.loads(source.read_text(encoding="utf-8"))
 except Exception:
     data = {}
-# This isolated public-image build config deliberately avoids Windows-only
-# Docker Desktop credential helper executables inside Linux/WSL.
+# This isolated config avoids Windows-only credential helpers and saved
+# Docker contexts. A copied "desktop-linux" context may retain an npipe://
+# Windows endpoint, which the Linux Docker CLI inside WSL cannot open. WSL
+# Integration exposes the Linux engine through the default Unix socket.
 data.pop("credsStore", None)
 data.pop("credHelpers", None)
+data.pop("currentContext", None)
 target.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
 PYDOCKERCFG
-  if [[ -d "$source_config/contexts" && ! -d "$safe_config/contexts" ]]; then cp -a "$source_config/contexts" "$safe_config/contexts"; fi
+  # Remove context metadata left by previous installer runs; never import a
+  # Windows Docker Desktop npipe endpoint into the WSL-only CLI config.
+  rm -rf -- "$safe_config/contexts"
   NFSU2_DOCKER_CONFIG="$safe_config"
   export NFSU2_DOCKER_CONFIG DOCKER_CONFIG="$safe_config"
   echo "[INFO] WSL Docker için uygulamaya özel kimlik doğrulama yapılandırması hazırlandı; kullanıcının orijinal Docker ayarları değiştirilmedi."

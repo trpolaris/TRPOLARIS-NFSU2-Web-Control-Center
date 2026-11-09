@@ -998,7 +998,7 @@ save_project_changes_and_stop() {
 }
 
 update_existing_checkout() {
-  local shallow path numstat mode entry
+  local shallow path mode entry
   local -a generated_docker_files=() generated_script_modes=() unexpected=()
 
   if ! git -C "$PROJECT" diff --cached --quiet --; then
@@ -1039,9 +1039,9 @@ update_existing_checkout() {
         continue
         ;;
       *.sh)
-        numstat="$(git -C "$PROJECT" diff --numstat -- "$path")"
         mode="$(git -C "$PROJECT" ls-files -s -- "$path" | awk 'NR == 1 { print $1 }')"
-        if [[ -z "$numstat" && ( "$mode" == "100644" || "$mode" == "100755" ) ]]; then
+        if git -C "$PROJECT" show ":$path" 2>/dev/null | cmp -s "$PROJECT/$path" - &&
+           [[ "$mode" == "100644" || "$mode" == "100755" ]]; then
           generated_script_modes+=("$mode:$path")
         else
           unexpected+=("$path")

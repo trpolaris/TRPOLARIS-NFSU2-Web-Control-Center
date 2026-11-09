@@ -13,7 +13,6 @@ namespace TRPOLARIS.NFSU2.WebControlCenter;
 /// </summary>
 internal sealed class ThemedDialogWindow : Window
 {
-    private readonly MessageBoxButton _buttons;
     private MessageBoxResult _result = MessageBoxResult.Cancel;
 
     private ThemedDialogWindow(
@@ -22,7 +21,6 @@ internal sealed class ThemedDialogWindow : Window
         MessageBoxButton buttons,
         MessageBoxImage image)
     {
-        _buttons = buttons;
         Title = string.IsNullOrWhiteSpace(caption) ? "NFSU2 Server control" : caption;
         Width = 570;
         MinWidth = 500;
@@ -91,6 +89,7 @@ internal sealed class ThemedDialogWindow : Window
         captionBar.Child = captionGrid;
         captionBar.MouseLeftButtonDown += (_, e) =>
         {
+            if (e.OriginalSource is DependencyObject source && IsInsideButton(source)) return;
             if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 1)
                 DragMove();
         };
@@ -139,8 +138,19 @@ internal sealed class ThemedDialogWindow : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             CanContentScroll = false
         };
-        Grid.SetColumn(messageScroll, 1);
-        messagePanel.Children.Add(messageScroll);
+        var messageContent = new StackPanel();
+        messageContent.Children.Add(new TextBlock
+        {
+            Text = caption,
+            FontSize = 16,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = Brush("#F1F7FF"),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 10)
+        });
+        messageContent.Children.Add(messageScroll);
+        Grid.SetColumn(messageContent, 1);
+        messagePanel.Children.Add(messageContent);
         Grid.SetRow(messagePanel, 1);
         layout.Children.Add(messagePanel);
 
@@ -242,6 +252,13 @@ internal sealed class ThemedDialogWindow : Window
     {
         _result = result;
         DialogResult = result is MessageBoxResult.OK or MessageBoxResult.Yes;
+    }
+
+    private static bool IsInsideButton(DependencyObject source)
+    {
+        for (DependencyObject? current = source; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (current is Button) return true;
+        return false;
     }
 
     private static (string Accent, string Glyph) GetIconStyle(MessageBoxImage image) => image switch

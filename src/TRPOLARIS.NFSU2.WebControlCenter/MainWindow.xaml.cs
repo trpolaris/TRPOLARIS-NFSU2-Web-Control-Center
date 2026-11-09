@@ -5702,6 +5702,19 @@ echo "NFSU2 access URL/profile markers cleared."
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName) ?? throw new FileNotFoundException("Embedded resource missing: " + resourceName);
         using var ms = new MemoryStream(); stream.CopyTo(ms); var bytes = ms.ToArray();
+
+        // WSL Bash scripts must use Unix LF endings. Windows Git checkouts may
+        // convert embedded .sh resources to CRLF; Bash then rejects options such
+        // as "pipefail" (the carriage return becomes part of the option name).
+        if (fileName.EndsWith(".sh", StringComparison.OrdinalIgnoreCase))
+        {
+            string scriptText = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true).GetString(bytes);
+            scriptText = scriptText.TrimStart('\uFEFF')
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n');
+            bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(scriptText);
+        }
+
         File.WriteAllBytes(destination, bytes);
         AppendLog($"Kaynak hazırlandı: {Path.GetFileName(destination)} ({bytes.Length:N0} bayt)");
         return destination;

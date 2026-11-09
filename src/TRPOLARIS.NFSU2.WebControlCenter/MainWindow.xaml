@@ -37,7 +37,7 @@
                         <TextBlock Text="TRPOLARIS" FontSize="10" FontWeight="Bold" Foreground="#EAF5FF" VerticalAlignment="Center" />
                         <TextBlock Text="  /  INFRASTRUCTURE CONTROL" FontSize="9" FontWeight="SemiBold" Foreground="#8299B0" VerticalAlignment="Center" />
                         <Border Background="#123D45" BorderBrush="#286D70" BorderThickness="1" CornerRadius="5" Padding="7,2" Margin="11,0,0,0">
-                            <TextBlock x:Name="AppVersionText" Text="v1.7.3" FontSize="9" FontWeight="Bold" Foreground="#6FF5E3" />
+                            <TextBlock x:Name="AppVersionText" Text="" FontSize="9" FontWeight="Bold" Foreground="#6FF5E3" />
                         </Border>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

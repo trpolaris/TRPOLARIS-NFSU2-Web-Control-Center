@@ -72,6 +72,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: NFSU2-Server-control-v1.8.1-win-x64
-          path: publish/TRPOLARIS.ControlCenter.exe
+          path: publish/NFSU2 Server control.exe
           if-no-files-found: error
           retention-days: 30

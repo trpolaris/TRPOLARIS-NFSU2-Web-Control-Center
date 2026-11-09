@@ -2090,7 +2090,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         string publishedVersion,
         string releaseName,
         string releaseNotes,
-        bool updateAvailable)
+        bool updateAvailable,
+        bool mandatory = false)
     {
         var dialog = new Window
         {
@@ -2384,7 +2385,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             releaseStack.Children.Add(new TextBlock
             {
-                Text = "İndirme sonrası EXE SHA-256 ile doğrulanır. Uygulama güvenli biçimde kapatılıp yedekli olarak güncellenir.",
+                Text = "İndirme sonrası imza ve SHA-256 doğrulaması yapılır. Uygulama kapatılıp yedek kopya oluşturmadan güncellenir.",
                 FontSize = 9,
                 Foreground = BrushHex("#829CB4"),
                 TextWrapping = TextWrapping.Wrap,
@@ -2429,7 +2430,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        if (updateAvailable)
+        if (updateAvailable && !mandatory)
         {
             var laterButton = new Button
             {

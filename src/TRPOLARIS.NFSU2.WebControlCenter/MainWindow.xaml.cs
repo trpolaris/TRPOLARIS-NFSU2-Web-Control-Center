@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     private const string ControlCenterRepo = "trpolaris/TRPOLARIS-NFSU2-Web-Control-Center";
     private const string ControlCenterExeName = "TRPOLARIS.NFSU2.WebControlCenter.exe";
     private const string UpdaterResource = "TRPOLARIS.NFSU2.WebControlCenter.Resources.ControlCenterUpdater.ps1";
-    private const string ControlCenterCurrentVersion = "1.7.2";
+    private const string ControlCenterCurrentVersion = "1.7.3";
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/trpolaris/TRPOLARIS-NFSU2-Web-Control-Center/releases/latest";
     private const string GameArchiveDownloadUrl = "https://download938.mediafire.com/mx7g8vs33jeg0V_t4F5UZJPrgX8ctsn7N2xSFzUFj_hdmmIvChJLispk-Zwh863xQe4redTD5RQMrrMyVEdBK0R7SATfcze5DSfEdXXAmzmbI24bEaFQQ2f7b8eRAv1UQjXRqxgM89xfa5RciNGEqiW3_aoMaEoNohzq4wYRf_M/rlvg6fi4lxlla97/Need+For+Speed+Underground+2.zip";
     private const long MaxGameArchiveDownloadBytes = 20L * 1024 * 1024 * 1024;

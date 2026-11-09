@@ -1,0 +1,52 @@
+name: Verify Control Center Build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/verify-control-center.yml'
+      - 'src/TRPOLARIS.NFSU2.WebControlCenter/**'
+  pull_request:
+    paths:
+      - '.github/workflows/verify-control-center.yml'
+      - 'src/TRPOLARIS.NFSU2.WebControlCenter/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-win-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        shell: pwsh
+        run: |
+          $project = 'src/TRPOLARIS.NFSU2.WebControlCenter/TRPOLARIS.NFSU2.WebControlCenter.csproj'
+          dotnet restore $project -r win-x64
+          if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
+
+      - name: Publish single-file executable
+        shell: pwsh
+        run: |
+          $project = 'src/TRPOLARIS.NFSU2.WebControlCenter/TRPOLARIS.NFSU2.WebControlCenter.csproj'
+          dotnet publish $project -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o publish
+          if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
+          $exe = 'publish/TRPOLARIS.NFSU2.WebControlCenter.exe'
+          if (-not (Test-Path $exe)) { throw 'Published EXE not found.' }
+          Get-FileHash $exe -Algorithm SHA256

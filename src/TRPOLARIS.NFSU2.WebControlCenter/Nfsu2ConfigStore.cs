@@ -186,6 +186,19 @@ internal static class Nfsu2ConfigStore
             TryDelete(Path.Combine(runtime, name));
         }
 
+        // Preserve an active tunnel's PID when upgrading from versions that kept it at the root.
+        string legacyTunnelPid = Path.Combine(root, ".nfsu2-cloudflared.pid");
+        string runtimeTunnelPid = Path.Combine(runtime, ".nfsu2-cloudflared.pid");
+        try
+        {
+            if (File.Exists(legacyTunnelPid))
+            {
+                if (!File.Exists(runtimeTunnelPid)) File.Move(legacyTunnelPid, runtimeTunnelPid);
+                else TryDelete(legacyTunnelPid);
+            }
+        }
+        catch { }
+
         try
         {
             foreach (string oldLog in Directory.EnumerateFiles(root, "nfsu2-one-click-wsl-*.log", SearchOption.TopDirectoryOnly))

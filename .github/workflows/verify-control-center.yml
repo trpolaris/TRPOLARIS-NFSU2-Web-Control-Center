@@ -28,6 +28,18 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Validate embedded PowerShell syntax
+        shell: pwsh
+        run: |
+          $script = 'src/TRPOLARIS.NFSU2.WebControlCenter/Resources/NFSU2-Windows-OneClick-Installer.ps1'
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List *
+            throw 'Installer PowerShell syntax validation failed.'
+          }
+
       - name: Restore
         shell: pwsh
         run: |

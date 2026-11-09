@@ -5239,7 +5239,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             {
                 await RemoveWslProjectDirectoryAsync();
                 var projectCleanupFailures = new List<string>();
-                foreach (var path in new[] { Path.Combine(RootDir, "source"), Path.Combine(RootDir, "module"), Path.Combine(RootDir, "logs"), Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), Path.Combine(RootDir, "compose.yml"), Path.Combine(RootDir, "compose.local.yml"), Path.Combine(RootDir, ".env"), Path.Combine(RootDir, ".env.local"), Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-one-click-wsl.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-stop-owned-tunnel.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-remove-verified-project.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-project-lookup.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-git-update.sh"), Path.Combine(RootDir, "nfsu2-config.json"), Path.Combine(RootDir, "runtime"), Path.Combine(RootDir, "NFSU2-SETUP-REPORT.txt"), Path.Combine(RootDir, "NFSU2-UPDATE-REPORT.txt"), Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), Path.Combine(RootDir, "NFSU2-LAN-PORT.txt"), Path.Combine(RootDir, "nfsu2-access-mode.txt"), Path.Combine(RootDir, "nfsu2-access-url.txt"), Path.Combine(RootDir, "NFSU2-PUBLIC-URL.txt"), Path.Combine(RootDir, ".nfsu2-cloudflared.pid") })
+                foreach (var path in new[] { Path.Combine(RootDir, "source"), Path.Combine(RootDir, "module"), Path.Combine(RootDir, "logs"), Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), Path.Combine(RootDir, "compose.yml"), Path.Combine(RootDir, "compose.local.yml"), Path.Combine(RootDir, ".env"), Path.Combine(RootDir, ".env.local"), Path.Combine(RuntimeScriptsDir, "nfsu2-access.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-one-click-wsl.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-stop-owned-tunnel.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-remove-verified-project.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-project-lookup.sh"), Path.Combine(RuntimeScriptsDir, "nfsu2-git-update.sh"), Path.Combine(RootDir, "nfsu2-config.json"), Path.Combine(RootDir, "runtime"), Path.Combine(RootDir, "NFSU2-SETUP-REPORT.txt"), Path.Combine(RootDir, "NFSU2-UPDATE-REPORT.txt"), Path.Combine(RootDir, "NFSU2-PROJECT-PATH.txt"), Path.Combine(RootDir, "NFSU2-LAN-PORT.txt"), Path.Combine(RootDir, "nfsu2-access-mode.txt"), Path.Combine(RootDir, "nfsu2-access-url.txt"), Path.Combine(RootDir, "NFSU2-PUBLIC-URL.txt"), Path.Combine(RuntimeScriptsDir, ".nfsu2-cloudflared.pid") })
                 {
                     if (Directory.Exists(path))
                     {
@@ -5489,7 +5489,7 @@ fi
 set -u
 root=${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}
 config="${NFSU2_CONFIG_FILE:-$root/nfsu2-config.json}"
-pf="$root/.nfsu2-cloudflared.pid"
+pf="$root/runtime/.nfsu2-cloudflared.pid"
 port="${1:-9093}"
 if [[ -f "$pf" ]]; then
   p="$(cat "$pf" 2>/dev/null || true)"

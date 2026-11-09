@@ -5,6 +5,7 @@ HTTP_PORT="${2:?http port missing}"
 LAN_IP="${3:-}"
 LAN_PORT="${4:-8443}"
 ROOT="${NFSU2_CONTROL_ROOT:-/mnt/c/nfsu2}"
+RUNTIME_DIR="${NFSU2_RUNTIME_DIR:-$ROOT/runtime}"
 CONFIG_FILE="${NFSU2_CONFIG_FILE:-$ROOT/nfsu2-config.json}"
 PROJECT="${NFSU2_PROJECT_DIR:-}"
 if [[ -z "$PROJECT" ]]; then
@@ -16,11 +17,11 @@ COMPOSE="$PROJECT/compose.local.yml"
 ENV_FILE="$PROJECT/.env.local"
 LOG="$ROOT/logs/nfsu2-access-mode.log"
 STOP_REQUEST_FILE="${NFSU2_STOP_REQUEST_FILE:-$ROOT/logs/.nfsu2-safe-stop.request}"
-mkdir -p "$ROOT/logs"
+mkdir -p "$ROOT/logs" "$RUNTIME_DIR"
 exec > >(tee -a "$LOG") 2>&1
 say() { printf '[%s] %s\n' "$(date '+%F %T')" "$*"; }
 cleanup_owned_tunnel_on_stop() {
-  local pid_file="$ROOT/.nfsu2-cloudflared.pid" pid='' command_line=''
+  local pid_file="$RUNTIME_DIR/.nfsu2-cloudflared.pid" pid='' command_line=''
   [[ -f "$pid_file" ]] || return 0
   pid="$(cat "$pid_file" 2>/dev/null || true)"
   if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
@@ -132,7 +133,7 @@ root_run() {
 }
 if [[ "$(id -u)" != 0 ]]; then sudo -v || die "sudo authentication failed."; fi
 stop_owned_tunnel() {
-  local pf="$ROOT/.nfsu2-cloudflared.pid" p=''
+  local pf="$RUNTIME_DIR/.nfsu2-cloudflared.pid" p=''
   if [[ -f "$pf" ]]; then
     p="$(cat "$pf" 2>/dev/null || true)"
     if [[ "$p" =~ ^[0-9]+$ ]] && kill -0 "$p" 2>/dev/null; then
@@ -480,7 +481,7 @@ if [[ "$MODE" == public ]]; then
   rm -f "$ROOT/logs/cloudflared.stdout.log" "$ROOT/logs/cloudflared.stderr.log" "$ROOT/NFSU2-PUBLIC-URL.txt"
   nohup "$CF_BIN" tunnel --no-autoupdate --url "http://127.0.0.1:$HTTP_PORT" > "$ROOT/logs/cloudflared.stdout.log" 2> "$ROOT/logs/cloudflared.stderr.log" < /dev/null &
   CF_PID=$!
-  printf '%s\n' "$CF_PID" > "$ROOT/.nfsu2-cloudflared.pid"
+  printf '%s\n' "$CF_PID" > "$RUNTIME_DIR/.nfsu2-cloudflared.pid"
   for _ in $(seq 1 60); do
     URL="$(grep -hEo 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$ROOT/logs/cloudflared.stdout.log" "$ROOT/logs/cloudflared.stderr.log" 2>/dev/null | head -n 1 || true)"
     if [[ "$URL" == https://*.trycloudflare.com ]]; then break; fi

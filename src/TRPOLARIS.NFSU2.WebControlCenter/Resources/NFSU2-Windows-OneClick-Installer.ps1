@@ -599,8 +599,19 @@ try {
     $DockerOstype = ''
     for ($dockerAttempt = 1; $dockerAttempt -le 90; $dockerAttempt++) {
         Assert-InstallNotStopped
-        $dockerProbe = @(& wsl.exe -d $Distro -u root -- docker info --format '{{.OSType}}' 2>$null)
-        $dockerProbeCode = $LASTEXITCODE
+        # Windows PowerShell 5.1 promotes redirected native stderr to a
+        # PowerShell error record. With the installer's global Stop policy,
+        # Docker's expected not-ready response aborts this retry loop.
+        # Relax the preference only for this readiness probe; use the native
+        # exit code below to decide whether Docker is actually ready.
+        $probeErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $dockerProbe = @(& wsl.exe -d $Distro -u root -- docker info --format '{{.OSType}}' 2>$null)
+            $dockerProbeCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $probeErrorActionPreference
+        }
         $DockerOstype = ([string]($dockerProbe | Select-Object -First 1)).Trim()
         if ($dockerProbeCode -eq 0 -and $DockerOstype -eq 'linux') {
             $DockerWslReady = $true

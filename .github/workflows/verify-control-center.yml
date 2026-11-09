@@ -65,6 +65,12 @@ jobs:
               raise SystemExit("Installer must not mass-chmod tracked shell files.")
           if "generated_script_modes" not in source or "generated_docker_files" not in source:
               raise SystemExit("Safe recovery for older installer-generated Git changes is missing.")
+          source_lines = source.splitlines()
+          recovery_start = next(i for i, line in enumerate(source_lines) if "update_existing_checkout() {" in line)
+          recovery_end = next(i for i in range(recovery_start + 1, len(source_lines)) if source_lines[i].strip() == 'if [[ -d "$PROJECT" ]]; then')
+          recovery = "\n".join(source_lines[recovery_start:recovery_end])
+          if r"\${" in recovery:
+              raise SystemExit("Updater contains escaped shell variable expansions.")
           if "validated without modifying tracked files" not in source:
               raise SystemExit("Docker source validation must be read-only.")
           print("PASS: installer no longer self-dirties tracked source files.")

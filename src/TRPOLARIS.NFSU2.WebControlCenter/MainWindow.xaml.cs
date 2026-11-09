@@ -5442,7 +5442,7 @@ rm -f "$root/NFSU2-PUBLIC-URL.txt" "$root/nfsu2-access-url.txt" "$root/nfsu2-acc
     {
         try
         {
-            string script = "$names = @('TRPOLARIS NFSU2 LAN HTTPS','TRPOLARIS NFSU2 Web NFSU2 Server control LAN'); " +
+            string script = "$names = @('TRPOLARIS NFSU2 LAN HTTPS','TRPOLARIS NFSU2 Web Control Center LAN','TRPOLARIS NFSU2 Web NFSU2 Server control LAN'); " +
                 "foreach ($name in $names) { Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue }";
             string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
             var result = await RunCommandAsync(GetPowerShellExe(),

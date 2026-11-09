@@ -301,6 +301,33 @@
             </Setter>
         </Style>
 
+        <Style x:Key="DarkComboToggle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border x:Name="ToggleSurface" Background="Transparent" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ToggleSurface" Property="Background" Value="#18334A" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ToggleSurface" Property="Background" Value="#143B47" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ToggleSurface" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="DarkComboBox" TargetType="{x:Type ComboBox}">
             <Setter Property="Background" Value="#0D1D2D" />
             <Setter Property="Foreground" Value="#EDF5FF" />
@@ -338,6 +365,7 @@
                                               ClickMode="Press"
                                               Background="Transparent"
                                               BorderThickness="0"
+                                              Style="{StaticResource DarkComboToggle}"
                                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                                     <Grid>
                                         <Path Data="M 0,0 L 4,4 L 8,0"

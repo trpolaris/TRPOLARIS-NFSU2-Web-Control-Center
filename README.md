@@ -2,7 +2,7 @@
 
 # 🏁 NFSU2 Server control
 
-### 🔥 Carbon Forge · Windows Infrastructure Control
+### 🌌 Blue Nebula · Server Operations Control
 
 **NFSU2 Web sunucusunu Windows üzerinden kurun, güncelleyin, çalıştırın ve güvenle kaldırın.**
 
@@ -39,7 +39,9 @@ Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanl
 | 🛡️ | **İmzalı otomatik güncelleme** | GitHub Releases API, RSA imzalı manifest, SHA-256, SemVer ve devam ettirilebilir indirme kullanır. |
 | 🗂️ | **Dosya yöneticisi** | WSL içindeki proje dosyalarını görüntüler, düzenler ve aktarır. |
 | 🌐 | **Erişim ve paylaşım** | Local, LAN/HTTPS ve geçici Public Tunnel profillerini yapılandırır. |
-| 🖥️ | **Uzak Linux / VPS yönetimi** | SSH parola/özel anahtar bağlantısı, host-key doğrulaması, SFTP ile doğrulanmış oyun/modül aktarımı, Docker/Caddy kurulumu, servis kontrolü, güncelleme ve günlükler. |
+| 🖥️ | **Uzak Linux / VPS yönetimi** | SSH profilleri, host-key doğrulaması, bağımsız uzak dağıtım ve SFTP çalışma alanları; LAN / Public IP / Domain HTTPS. |
+| 🧭 | **Operasyon dashboard'u** | Yerel ortam ve kayıtlı VPS profilleri tek envanterde, hızlı işlem kısayollarıyla görüntülenir. |
+| 🗂️ | **Ayrılmış çalışma alanları** | SSH bağlantıları, uzak dağıtım ve uzak dosya yönetimi ayrı menülerde açılır; kurulum ayarları bağlantı ekranına karışmaz. |
 | 📋 | **Canlı işlem günlükleri** | Aşamaları, ilerlemeyi, komut çıktılarını ve hata kayıtlarını tek ekranda gösterir. |
 | 🧹 | **Kontrollü kaldırma** | NFSU2 bileşenlerini seçerek kaldırır; kalıcı verileri ve diğer Docker projelerini varsayılan olarak korur. |
 
@@ -51,6 +53,25 @@ Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar 
   <img src="docs/screenshots/control-center-tour.gif" alt="NFSU2 Server control arayüz ekran turu" width="900">
 </p>
 
+
+## 🧭 Yeni kontrol paneli ve menü yapısı
+
+**Blue Nebula** arayüzü, tek bir uzun uzak sunucu formu yerine görev odaklı sayfalardan oluşur.
+
+| Menü grubu | Ekranlar |
+|---|---|
+| **Genel** | Control room: yerel ortam sağlığı, kayıtlı VPS profilleri ve hızlı operasyonlar |
+| **Yerel ortam** | Yerel sunucu kurulumu, altyapı güncelleme, yerel ağ erişimi ve yerel dosyalar |
+| **Uzak sunucular** | SSH bağlantı profilleri, uzak dağıtım ve SFTP uzak dosya yöneticisi |
+| **Yönetim** | Kaldırma merkezi ve işlem günlükleri |
+
+Uzak sunucu iş akışı üç ayrı ekrana ayrılmıştır:
+
+- **SSH bağlantıları:** profil seçimi, ana bilgisayar / port, kullanıcı, parola veya özel anahtar, host-key onayı ve uzak sunucu tanılama bilgileri.
+- **Uzak dağıtım:** oyun ve WASM kaynakları, LAN / Public IP / Domain hedefi, kurulum dizini, HTTPS tercihi, dağıtım ilerlemesi ve servis yaşam döngüsü.
+- **Uzak dosyalar:** solda kurulum köküne bağlı dosya tarayıcısı; sağda yükleme, indirme, klasör oluşturma ve güvenli silme işlemleri.
+
+Ana Control room ekranı yerel Windows/WSL/Docker sağlığını ve uzak sunucu envanterini ayrı kartlar halinde sunar. Yerel ve uzak operasyonlar kendi ekranlarında kalır.
 
 ## 🖥️ Uzak Linux sunucu modu
 
@@ -164,6 +185,14 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 - **Altyapı güncellemesi:** WSL içindeki web kaynaklarını, derleme araçlarını ve Docker sunucu imajını yeniler.
 
 ## 🆕 Sürüm notları
+### v2.0.0 · Blue Nebula Control Room
+- Ana pencere, sol menü, üst kontrol çubuğu ve alt durum alanı sıfırdan düzenlendi.
+- Control room dashboard'u yerel ortam sağlığını, sunucu envanterini ve hızlı operasyonları tek bakışta gösterir.
+- Yerel ortam, uzak sunucular ve yönetim araçları ayrı menü gruplarına ayrıldı.
+- SSH bağlantıları, VPS dağıtımı ve SFTP dosya yöneticisi üç bağımsız ekrana ayrıldı.
+- Uzak dağıtım; kaynak dosyaları, yayın hedefi, dağıtım iş akışı, servis kontrolleri ve kaldırma işlemlerini ayrı panellerde sunar.
+- Yeni Blue Nebula tasarım sistemi: gece mavisi yüzeyler, elektrik mavisi odak vurguları ve ölçülü mor ikincil tonlar.
+
 
 ### v1.8.1 · NFSU2 Server control adı ve temalı arayüz
 - Uygulama adı, Windows ürün bilgisi ve yayımlanan dosya adı `NFSU2 Server control` / `NFSU2 Server control.exe` olarak değiştirildi.
@@ -236,7 +265,7 @@ Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme ar
 
 <div align="center">
 
-**NFSU2 Server control** · **v1.9.0**
+**NFSU2 Server control** · **v2.0.0**
 
 *Install · Update · Maintain · Remove*
 

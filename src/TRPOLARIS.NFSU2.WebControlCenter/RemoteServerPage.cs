@@ -461,6 +461,7 @@ public partial class MainWindow
 
     private void NewRemoteProfile()
     {
+        if (_remoteServerSession?.IsConnected == true) DisconnectRemoteSession();
         if (_remoteProfileBox is not null) _remoteProfileBox.SelectedItem = null;
         _activeRemoteProfileId = null;
         if (_remoteNameBox is not null) _remoteNameBox.Text = "";
@@ -477,6 +478,9 @@ public partial class MainWindow
     private void RemoteProfileSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_remoteProfileBox?.SelectedItem is not RemoteServerProfile profile) return;
+        if (_remoteServerSession?.IsConnected == true &&
+            !string.Equals(_activeRemoteProfileId, profile.Id, StringComparison.Ordinal))
+            DisconnectRemoteSession();
         _remoteNameBox!.Text = profile.Name;
         _remoteHostBox!.Text = profile.Host;
         _remotePortBox!.Text = profile.Port.ToString();
@@ -484,6 +488,8 @@ public partial class MainWindow
         _remoteAuthenticationBox!.SelectedIndex =
             string.Equals(profile.AuthenticationMode, "private-key", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         _remotePrivateKeyBox!.Text = profile.PrivateKeyPath;
+        if (_remoteInstallRootBox is not null)
+            _remoteInstallRootBox.Text = string.IsNullOrWhiteSpace(profile.RemoteProjectDirectory) ? "/srv/nfsu2" : profile.RemoteProjectDirectory;
         if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
         if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
         _activeRemoteProfileId = profile.Id;
@@ -519,7 +525,7 @@ public partial class MainWindow
             AuthenticationMode = privateKey ? "private-key" : "password",
             PrivateKeyPath = privateKey ? keyPath : "",
             HostKeyFingerprint = selected?.HostKeyFingerprint ?? "",
-            RemoteProjectDirectory = selected?.RemoteProjectDirectory ?? "/opt/nfsu2-web",
+            RemoteProjectDirectory = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "/srv/nfsu2"),
             LastConnectedUtc = selected?.LastConnectedUtc
         };
     }
@@ -680,6 +686,9 @@ public partial class MainWindow
             MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             return;
 
+        if (_remoteServerSession?.IsConnected == true &&
+            string.Equals(_activeRemoteProfileId, profile.Id, StringComparison.Ordinal))
+            DisconnectRemoteSession();
         profile.HostKeyFingerprint = "";
         RemoteServerProfileStore.SaveOrUpdate(profile);
         RefreshRemoteProfileList(profile.Id);

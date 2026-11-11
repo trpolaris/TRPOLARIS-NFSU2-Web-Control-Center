@@ -105,6 +105,7 @@ jobs:
           deploy = (root / "RemoteDeploymentPage.cs").read_text(encoding="utf-8")
           profile = (root / "RemoteServerProfile.cs").read_text(encoding="utf-8")
           window = (root / "MainWindow.xaml").read_text(encoding="utf-8")
+          main = (root / "MainWindow.xaml.cs").read_text(encoding="utf-8")
           app = (root / "App.xaml").read_text(encoding="utf-8")
 
           assert 'public string AccessMode { get; set; } = "domain";' in profile
@@ -114,7 +115,7 @@ jobs:
               assert token in deploy, f"Secure endpoint implementation missing: {token}"
           assert 'DownloadRemoteLanCertificateAsync' in remote
           assert 'DownloadRemoteFileAsync(root + "/lan-ca-root.crt"' in deploy
-          assert 'LAN / PUBLIC / DOMAIN' in window
+          assert 'LAN / PUBLIC / DOMAIN' in main
           assert 'Carbon Forge' in app
           for name in (
               'WindowTitleBar', 'NavDashboard', 'NavInstall', 'NavRemote', 'NavUpdate',

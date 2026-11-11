@@ -623,8 +623,8 @@ public partial class MainWindow
             ShellQuote("for attempt in $(seq 1 45); do test -s /data/caddy/pki/authorities/local/root.crt && exit 0; sleep 1; done; exit 1") +
             $" && docker compose --project-name {project} -f compose.yml cp caddy:/data/caddy/pki/authorities/local/root.crt ./lan-ca-root.crt" +
             $" && chmod 644 {ShellQuote(root + "/lan-ca-root.crt")}";
-        return "set -eu\\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(compose) +
-            "; else sudo -n sh -c " + ShellQuote(compose) + "; fi\\n";
+        return "set -eu\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(compose) +
+            "; else sudo -n sh -c " + ShellQuote(compose) + "; fi\n";
     }
 
     private static string BuildRemoteHealthCommand(string root, string address, int port, string accessMode, bool useCaddy)

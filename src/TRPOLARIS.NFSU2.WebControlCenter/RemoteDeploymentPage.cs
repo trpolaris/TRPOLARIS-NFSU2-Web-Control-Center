@@ -732,7 +732,7 @@ public partial class MainWindow
 
         if (accessMode == "public-ip")
         {
-            if (IsPrivateIpv4(ip) || ip.IsLoopback || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.None) ||
+            if (IsPrivateIpv4(ip) || IPAddress.IsLoopback(ip) || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.None) ||
                 ip.GetAddressBytes()[0] == 169 || ip.GetAddressBytes()[0] >= 224 ||
                 ip.Equals(IPAddress.Broadcast) || IsReservedOrSharedIpv4(ip))
                 throw new InvalidOperationException("Public IP modunda internete yönlendirilebilir, sabit bir IPv4 adresi kullan.");

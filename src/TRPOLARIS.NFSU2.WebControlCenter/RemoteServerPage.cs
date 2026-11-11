@@ -216,6 +216,19 @@ public partial class MainWindow
 
         root.Children.Add(columns);
 
+        RefreshRemoteProfileList(_activeRemoteProfileId);
+        return new ScrollViewer
+        {
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Content = root
+        };
+    }
+
+    private UIElement BuildRemoteDeploymentPage()
+    {
+        var root = NewStack(22);
+        root.Children.Add(Heading("Uzak sunucu dağıtımı", "Oyun dosyaları, WASM modülü, yayın adresi ve servis yaşam döngüsü. SSH oturumunu ayrı Bağlantılar ekranından yönet."));
         var deployPanel = RemotePanel();
         var deployStack = NewStack(10);
         deployStack.Children.Add(RemoteSectionTitle("UZAK SUNUCU KURULUMU VE YÖNETİMİ"));
@@ -359,6 +372,22 @@ public partial class MainWindow
         deployPanel.Child = deployStack;
         root.Children.Add(deployPanel);
 
+        if (_remoteProfileBox?.SelectedItem is RemoteServerProfile selectedProfile)
+        {
+            _remoteInstallRootBox.Text = string.IsNullOrWhiteSpace(selectedProfile.RemoteProjectDirectory) ? "/srv/nfsu2" : selectedProfile.RemoteProjectDirectory;
+            _remoteDomainBox.Text = selectedProfile.Domain ?? "";
+            _remoteAccessModeBox.SelectedIndex = selectedProfile.AccessMode switch { "lan" => 0, "public-ip" => 1, _ => 2 };
+            _remoteHttpPortBox.Text = selectedProfile.HttpPort.ToString();
+            _remoteProxyModeBox.SelectedIndex = string.Equals(selectedProfile.ProxyMode, "existing-proxy", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        }
+        ApplyRemoteAccessModeUi();
+        return WrapScrollable(root);
+    }
+
+    private UIElement BuildRemoteFilesPage()
+    {
+        var root = NewStack(22);
+        root.Children.Add(Heading("Uzak dosyalar", "SFTP çalışma alanı. Gezinti yalnızca seçili NFSU2 kurulumunun işaretlenmiş dizini içinde kalır."));
         var filePanel = RemotePanel();
         var fileStack = NewStack(9);
         fileStack.Children.Add(RemoteSectionTitle("UZAK DOSYA YÖNETİCİSİ · SFTP"));
@@ -370,7 +399,7 @@ public partial class MainWindow
             TextWrapping = TextWrapping.Wrap
         });
         _remoteFilePathBox = RemoteTextBox();
-        _remoteFilePathBox.Text = (_remoteInstallRootBox?.Text ?? "/srv/nfsu2").TrimEnd('/');
+        _remoteFilePathBox.Text = GetRemoteInstallRootValue().TrimEnd('/');
         _remoteFilePathBox.IsReadOnly = true;
         var pathRow = new DockPanel { LastChildFill = true };
         var listButton = MakeButton("Listele", "SecondaryButton", async (_, _) => await RefreshRemoteFileListAsync(), new Thickness(8, 0, 0, 0));
@@ -429,14 +458,7 @@ public partial class MainWindow
         filePanel.Child = fileStack;
         root.Children.Add(filePanel);
 
-        RefreshRemoteProfileList(_activeRemoteProfileId);
-        ApplyRemoteAccessModeUi();
-        return new ScrollViewer
-        {
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Content = root
-        };
+        return WrapScrollable(root);
     }
 
     private static Border RemotePanel() => new()

@@ -472,6 +472,7 @@ public partial class MainWindow
         if (_remotePrivateKeyBox is not null) _remotePrivateKeyBox.Text = "";
         if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
         if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
+        if (_remoteInstallRootBox is not null) _remoteInstallRootBox.Text = "/srv/nfsu2";
         SetRemoteStatus("Yeni bağlantı profili oluşturuluyor.", connected: false);
     }
 
@@ -535,6 +536,15 @@ public partial class MainWindow
         try
         {
             var profile = ReadRemoteProfile();
+            var previous = _remoteProfileBox?.SelectedItem as RemoteServerProfile;
+            bool connectionChanged = previous is not null &&
+                (!string.Equals(previous.Host, profile.Host, StringComparison.OrdinalIgnoreCase) ||
+                 previous.Port != profile.Port ||
+                 !string.Equals(previous.Username, profile.Username, StringComparison.Ordinal) ||
+                 !string.Equals(previous.AuthenticationMode, profile.AuthenticationMode, StringComparison.OrdinalIgnoreCase) ||
+                 !string.Equals(previous.PrivateKeyPath, profile.PrivateKeyPath, StringComparison.OrdinalIgnoreCase));
+            if (_remoteServerSession?.IsConnected == true && (previous is null || connectionChanged))
+                DisconnectRemoteSession();
             RemoteServerProfileStore.SaveOrUpdate(profile);
             _activeRemoteProfileId = profile.Id;
             RefreshRemoteProfileList(profile.Id);
@@ -550,6 +560,8 @@ public partial class MainWindow
         try
         {
             var profile = ReadRemoteProfile();
+            if (_remoteServerSession?.IsConnected == true)
+                DisconnectRemoteSession();
             string password = _remotePasswordBox?.Password ?? "";
             string keyPassphrase = _remoteKeyPassphraseBox?.Password ?? "";
             if (!string.Equals(profile.AuthenticationMode, "private-key", StringComparison.OrdinalIgnoreCase) &&
@@ -579,6 +591,8 @@ public partial class MainWindow
             }
 
             string diagnostics = await session.GetServerDiagnosticsAsync();
+            if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
+            if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
             profile.LastConnectedUtc = DateTimeOffset.UtcNow;
             RemoteServerProfileStore.SaveOrUpdate(profile);
             _activeRemoteProfileId = profile.Id;
@@ -645,6 +659,8 @@ public partial class MainWindow
     {
         _remoteServerSession?.Dispose();
         _remoteServerSession = null;
+        if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
+        if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
         SetRemoteStatus("SSH bağlantısı kapatıldı.", connected: false);
         AppendLog("Uzak sunucu SSH bağlantısı kapatıldı.", "INFO", "REMOTE");
     }

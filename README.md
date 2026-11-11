@@ -59,7 +59,8 @@ Uygulama aynı Windows EXE içinden yerel Windows/WSL kurulumunu veya uzak Ubunt
 - **SSH bağlantısı:** parola veya SSH özel anahtarı; birden fazla kayıtlı sunucu profili.
 - **Host-key güvenliği:** ilk bağlantıda SHA-256 parmak izi kullanıcıya gösterilir; kullanıcı onaylamadan anahtar kabul edilmez. Daha sonraki bağlantılarda anahtar değişikliği algılanırsa bağlantı reddedilir.
 - **VPS kurulumu:** yerel oyun klasöründeki desteklenen `SPEED2.EXE` doğrulanır. Yalnızca sunucunun kullandığı oyun veri klasörleri ile yerel olarak üretilmiş `nfsu2.wasm` / `nfsu2.json` SFTP üzerinden aktarılır.
-- **Docker dağıtımı:** Ubuntu/Debian üzerinde Docker Engine ve Compose denetlenir; eksikse root veya parola istemeyen sudo ile kurulur.
+- **Docker dağıtımı:** Ubuntu/Debian üzerinde Docker Engine ve Compose denetlenir; eksikse root veya parola istemeyen sudo ile kurulur. Kurulum dizini doluysa ve uygulamaya ait sahiplik işaretçisi yoksa işlem durur; mevcut dosyalar üzerine yazılmaz.
+- **Sürüm eşleşmesi:** yerel kurulumun kaynak commit'i kayıtlıysa uzak sunucu aynı commit'in GHCR `sha-` imajıyla kurulur; commit bilgisi yoksa `latest` kullanılır. Güncellemede Compose imaj referansı ve modül birlikte yenilenir.
 - **HTTPS seçenekleri:** boş 80/443 portlarında Caddy otomatik HTTPS veya mevcut Nginx/OpenLiteSpeed/CyberPanel reverse proxy'si arkasında çalışma.
 - **Servis yönetimi:** imaj çekme, başlatma, durdurma, yeniden başlatma, sağlık kontrolü ve canlı servis günlükleri.
 - **SFTP dosya yöneticisi:** kurulum dizini içinde klasör listeleme, dosya yükleme/indirme, klasör oluşturma ve dosya/boş klasör silme. Sembolik bağlantılar listelenmez; üst dizine çıkılamaz.

@@ -729,15 +729,6 @@ public partial class MainWindow
         throw new InvalidOperationException("Erişim modu tanınmıyor.");
     }
 
-    private static bool IsPrivateIpv4(IPAddress ip)
-    {
-        byte[] b = ip.GetAddressBytes();
-        return b.Length == 4 &&
-            (b[0] == 10 ||
-             (b[0] == 172 && b[1] >= 16 && b[1] <= 31) ||
-             (b[0] == 192 && b[1] == 168));
-    }
-
     private static bool IsReservedOrSharedIpv4(IPAddress ip)
     {
         byte[] b = ip.GetAddressBytes();

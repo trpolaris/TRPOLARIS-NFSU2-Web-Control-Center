@@ -1,5 +1,7 @@
 using Microsoft.Win32;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
@@ -44,19 +46,21 @@ public partial class MainWindow
             string gameRoot = Path.GetFullPath(_remoteGameFolderBox?.Text.Trim() ?? "");
             string wasmPath = Path.GetFullPath(_remoteWasmPathBox?.Text.Trim() ?? "");
             string jsonPath = Path.GetFullPath(_remoteJsonPathBox?.Text.Trim() ?? "");
-            string domain = (_remoteDomainBox?.Text ?? "").Trim().ToLowerInvariant();
+            string accessMode = GetRemoteAccessMode();
+            string addressInput = (_remoteDomainBox?.Text ?? "").Trim().ToLowerInvariant();
+            string address = await ResolveRemoteAccessAddressAsync(accessMode, addressInput);
             string installRoot = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
             int port = ParseRemoteHttpPort();
-            bool useCaddy = _remoteProxyModeBox?.SelectedIndex == 0;
+            bool useCaddy = accessMode != "domain" || _remoteProxyModeBox?.SelectedIndex == 0;
             string imageReference = GetRemoteImageReference();
 
-            ValidateRemoteDomain(domain);
+            ValidateRemoteAccessAddress(accessMode, address);
             ValidateLocalGameFolder(gameRoot);
             ValidateModuleFiles(wasmPath, jsonPath);
             var uploadItems = BuildRemoteUploadPlan(gameRoot, wasmPath, jsonPath, installRoot);
             long totalBytes = uploadItems.Sum(x => new FileInfo(x.LocalPath).Length);
-            string accessMode = useCaddy ? "Caddy otomatik HTTPS (80/443 boş olmalı)" : "Mevcut reverse proxy";
-            string prompt = $"Sunucu: {profile.Host}:{profile.Port}\nDomain: {domain}\nKurulum: {installRoot}\nErişim: {accessMode}\nSunucu imajı: {imageReference}\n\nYaklaşık {FormatRemoteBytes(totalBytes)} veri SSH/SFTP ile aktarılacak. Docker eksikse Ubuntu/Debian paketleri kurulacak.\nYalnızca seçilmiş oyun veri klasörleri ve WASM modülü gönderilecek.\n\nBaşlatılsın mı?";
+            string accessDescription = BuildRemoteAccessDescription(accessMode, address, useCaddy);
+            string prompt = $"SSH hedefi: {profile.Host}:{profile.Port}\nOyuncu adresi: {BuildRemotePlayerUrl(accessMode, address)}\nKurulum: {installRoot}\nErişim: {accessDescription}\nSunucu imajı: {imageReference}\n\nYaklaşık {FormatRemoteBytes(totalBytes)} veri SSH/SFTP ile aktarılacak. Docker eksikse Ubuntu/Debian paketleri kurulacak.\nYalnızca seçilmiş oyun veri klasörleri ve WASM modülü gönderilecek.\n\nBaşlatılsın mı?";
             if (MessageBox.Show(prompt, "Uzak NFSU2 kurulumu", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
             await RunRemoteDeploymentOperationAsync("Uzak sunucu kurulumu", async progress =>
@@ -73,20 +77,32 @@ public partial class MainWindow
                 }));
 
                 progress.Report((83, "Docker Compose yapılandırması yükleniyor"));
-                await UploadRemoteComposeFilesAsync(profile.Id, installRoot, domain, port, useCaddy, imageReference);
+                await UploadRemoteComposeFilesAsync(profile.Id, installRoot, address, port, useCaddy, imageReference, accessMode);
                 progress.Report((87, "Docker imajı indiriliyor"));
                 string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(
                     BuildRemoteComposeCommand(installRoot, "pull") + BuildRemoteComposeCommand(installRoot, "up -d --remove-orphans"),
                     TimeSpan.FromMinutes(20));
                 AppendRemoteOutput("Uzak Compose kurulumu", output);
 
+                if (accessMode == "lan")
+                {
+                    string caOutput = await _remoteServerSession.ExecuteDeploymentCommandAsync(
+                        BuildRemoteComposeCommand(installRoot, "cp caddy:/data/caddy/pki/authorities/local/root.crt ./lan-ca-root.crt && chmod 644 ./lan-ca-root.crt"),
+                        TimeSpan.FromSeconds(45));
+                    AppendRemoteOutput("LAN HTTPS sertifika yetkilisi", caOutput);
+                }
+
                 progress.Report((94, "NFSU2 sağlık kontrolü"));
-                string health = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteHealthCommand(installRoot, domain, port, useCaddy), TimeSpan.FromMinutes(4));
+                string health = await _remoteServerSession.ExecuteDeploymentCommandAsync(
+                    BuildRemoteHealthCommand(installRoot, address, port, accessMode, useCaddy), TimeSpan.FromMinutes(4));
                 AppendRemoteOutput("Uzak sağlık kontrolü", health);
                 progress.Report((100, "Uzak NFSU2 kurulumu tamamlandı"));
             });
 
-            if (_remoteDiagnosticsBox is not null) _remoteDiagnosticsBox.Text = await _remoteServerSession.GetServerDiagnosticsAsync();
+            if (_remoteDiagnosticsBox is not null)
+                _remoteDiagnosticsBox.Text = $"Oyuncu adresi: {BuildRemotePlayerUrl(accessMode, address)}\n\n" + await _remoteServerSession.GetServerDiagnosticsAsync();
+            if (accessMode == "lan")
+                await DownloadRemoteLanCertificateAsync(true);
         }
         catch (Exception ex)
         {
@@ -104,12 +120,14 @@ public partial class MainWindow
             string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
             string wasm = Path.GetFullPath(_remoteWasmPathBox?.Text.Trim() ?? "");
             string json = Path.GetFullPath(_remoteJsonPathBox?.Text.Trim() ?? "");
-            string domain = (_remoteDomainBox?.Text ?? "").Trim().ToLowerInvariant();
+            string accessMode = GetRemoteAccessMode();
+            string addressInput = (_remoteDomainBox?.Text ?? "").Trim().ToLowerInvariant();
+            string address = await ResolveRemoteAccessAddressAsync(accessMode, addressInput);
             int port = ParseRemoteHttpPort();
-            bool useCaddy = _remoteProxyModeBox?.SelectedIndex == 0;
+            bool useCaddy = accessMode != "domain" || _remoteProxyModeBox?.SelectedIndex == 0;
             string imageReference = GetRemoteImageReference();
             ValidateModuleFiles(wasm, json);
-            ValidateRemoteDomain(domain);
+            ValidateRemoteAccessAddress(accessMode, address);
 
             if (MessageBox.Show($"Seçilen nfsu2.wasm ve nfsu2.json dosyaları aktarılacak. {imageReference} imajı çekilecek ve NFSU2 yeniden başlatılacak. Oyun klasörü ve kalıcı kayıt volume'ü korunur. Devam edilsin mi?",
                 "Uzak altyapıyı güncelle", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
@@ -129,17 +147,27 @@ public partial class MainWindow
                 }));
                 progress.Report((36, "Docker Compose sürüm eşleşmesi güncelleniyor"));
                 string profileId = (_remoteProfileBox?.SelectedItem as RemoteServerProfile)?.Id ?? GetRemoteComposeProjectName(root);
-                await UploadRemoteComposeFilesAsync(profileId, root, domain, port, useCaddy, imageReference);
+                await UploadRemoteComposeFilesAsync(profileId, root, address, port, useCaddy, imageReference, accessMode);
                 progress.Report((40, "Docker imajı güncelleniyor"));
                 string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(
                     BuildRemoteComposeCommand(root, "pull") + BuildRemoteComposeCommand(root, "up -d --remove-orphans"), TimeSpan.FromMinutes(20));
                 AppendRemoteOutput("Uzak altyapı güncellemesi", output);
                 progress.Report((90, "Sunucu sağlık kontrolü"));
-                string health = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteHealthCommand(root, domain, port, useCaddy), TimeSpan.FromMinutes(4));
+                if (accessMode == "lan")
+                {
+                    string caOutput = await _remoteServerSession.ExecuteDeploymentCommandAsync(
+                        BuildRemoteComposeCommand(root, "cp caddy:/data/caddy/pki/authorities/local/root.crt ./lan-ca-root.crt && chmod 644 ./lan-ca-root.crt"),
+                        TimeSpan.FromSeconds(45));
+                    AppendRemoteOutput("LAN HTTPS sertifika yetkilisi", caOutput);
+                }
+                string health = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteHealthCommand(root, address, port, accessMode, useCaddy), TimeSpan.FromMinutes(4));
                 AppendRemoteOutput("Uzak sağlık kontrolü", health);
                 progress.Report((100, "Uzak altyapı güncellendi"));
             });
-            if (_remoteDiagnosticsBox is not null) _remoteDiagnosticsBox.Text = await _remoteServerSession.GetServerDiagnosticsAsync();
+            if (_remoteDiagnosticsBox is not null)
+                _remoteDiagnosticsBox.Text = $"Oyuncu adresi: {BuildRemotePlayerUrl(accessMode, address)}\n\n" + await _remoteServerSession.GetServerDiagnosticsAsync();
+            if (accessMode == "lan")
+                await DownloadRemoteLanCertificateAsync(false);
         }
         catch (Exception ex)
         {
@@ -187,7 +215,7 @@ public partial class MainWindow
         {
             string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteComposeCommand(root, "down --remove-orphans"), TimeSpan.FromMinutes(3));
             AppendRemoteOutput("Uzak NFSU2 kaldırma", output);
-            await _remoteServerSession.ExecuteDeploymentCommandAsync($"rm -f {ShellQuote(root + "/compose.yml")} {ShellQuote(root + "/Caddyfile")}", TimeSpan.FromSeconds(30));
+            await _remoteServerSession.ExecuteDeploymentCommandAsync($"rm -f {ShellQuote(root + "/compose.yml")} {ShellQuote(root + "/Caddyfile")} {ShellQuote(root + "/lan-ca-root.crt")}", TimeSpan.FromSeconds(30));
             SetRemoteDeploymentState("Konteynerler kaldırıldı. Oyun/modül dosyaları ve kayıt volume'ü korundu.", true);
         }
         catch (Exception ex) { SetRemoteDeploymentState("Kaldırma başarısız: " + ex.Message, false); ShowRemoteError(ex.Message); }

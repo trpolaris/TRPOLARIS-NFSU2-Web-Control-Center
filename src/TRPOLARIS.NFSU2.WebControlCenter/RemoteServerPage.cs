@@ -493,77 +493,134 @@ public partial class MainWindow
 
     private UIElement BuildRemoteFilesPage()
     {
-        var root = NewStack(22);
-        root.Children.Add(Heading("Uzak dosyalar", "SFTP çalışma alanı. Gezinti yalnızca seçili NFSU2 kurulumunun işaretlenmiş dizini içinde kalır."));
-        var filePanel = RemotePanel();
-        var fileStack = NewStack(9);
-        fileStack.Children.Add(RemoteSectionTitle("UZAK DOSYA YÖNETİCİSİ · SFTP"));
-        fileStack.Children.Add(new TextBlock
+        var root = NewStack(19);
+        var profile = GetSelectedRemoteProfile();
+        root.Children.Add(Heading("Uzak dosyalar", "SFTP dosya çalışma alanı. Gezinme, aktarım ve klasör işlemleri uzak dağıtım ekranından bağımsızdır."));
+
+        var context = RemotePanel();
+        var contextRow = new DockPanel { LastChildFill = true };
+        contextRow.Children.Add(new TextBlock
         {
-            Text = "Dosyalar yalnızca yukarıdaki kurulum dizini içinde görüntülenebilir. Sembolik bağlantılar gösterilmez. Klasör silme işlemi yalnızca boş klasörlerde çalışır.",
-            Foreground = BrushHex("#9FB4C8"),
+            Text = profile is null ? "Bağlantı profili seçilmedi" : "HEDEF  /  " + profile.Name + "  ·  " + (profile.RemoteProjectDirectory ?? "/srv/nfsu2"),
             FontSize = 10,
-            TextWrapping = TextWrapping.Wrap
+            FontWeight = FontWeights.SemiBold,
+            Foreground = BrushHex("#AFC4E4"),
+            VerticalAlignment = VerticalAlignment.Center
         });
+        var openConnections = MakeButton("SSH bağlantılarına git", "SecondaryButton", (_, _) => ShowPage("Remote"));
+        DockPanel.SetDock(openConnections, Dock.Right);
+        contextRow.Children.Add(openConnections);
+        context.Child = contextRow;
+        root.Children.Add(context);
+
+        var workspace = new Grid();
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.7, GridUnitType.Star) });
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.8, GridUnitType.Star) });
+
+        var browserPanel = RemotePanel();
+        browserPanel.Margin = new Thickness(0, 0, 10, 0);
+        var browser = NewStack(11);
+        var browserHeader = new DockPanel { LastChildFill = true };
+        browserHeader.Children.Add(RemoteSectionTitle("DOSYA SİSTEMİ"));
+        var refreshList = MakeButton("Yenile", "SecondaryButton", async (_, _) => await RefreshRemoteFileListAsync());
+        DockPanel.SetDock(refreshList, Dock.Right);
+        browserHeader.Children.Add(refreshList);
+        browser.Children.Add(browserHeader);
+
         _remoteFilePathBox = RemoteTextBox();
         _remoteFilePathBox.Text = GetRemoteInstallRootValue().TrimEnd('/');
         _remoteFilePathBox.IsReadOnly = true;
         var pathRow = new DockPanel { LastChildFill = true };
-        var listButton = MakeButton("Listele", "SecondaryButton", async (_, _) => await RefreshRemoteFileListAsync(), new Thickness(8, 0, 0, 0));
-        DockPanel.SetDock(listButton, Dock.Right);
-        var upButton = MakeButton("Üst klasör", "SecondaryButton", async (_, _) => await NavigateRemoteParentAsync(), new Thickness(8, 0, 0, 0));
-        DockPanel.SetDock(upButton, Dock.Right);
-        pathRow.Children.Add(listButton);
-        pathRow.Children.Add(upButton);
+        var parentButton = MakeButton("Üst klasör", "SecondaryButton", async (_, _) => await NavigateRemoteParentAsync(), new Thickness(8, 0, 0, 0));
+        DockPanel.SetDock(parentButton, Dock.Right);
+        pathRow.Children.Add(parentButton);
         pathRow.Children.Add(_remoteFilePathBox);
-        var pathField = new StackPanel { Orientation = Orientation.Vertical };
-        pathField.Children.Add(new TextBlock { Text = "Uzak klasör yolu", FontSize = 10, Foreground = BrushHex("#9FB4C8"), Margin = new Thickness(0, 0, 0, 5) });
-        pathField.Children.Add(pathRow);
-        fileStack.Children.Add(pathField);
+        browser.Children.Add(pathRow);
 
         _remoteFileList = new ListBox
         {
-            MinHeight = 190,
-            MaxHeight = 280,
-            Background = BrushHex("#07111C"),
-            Foreground = BrushHex("#CFE1EF"),
-            BorderBrush = BrushHex("#263D52"),
+            Style = (Style)FindResource("DarkListBox"),
+            MinHeight = 450,
+            MaxHeight = 610,
+            Background = BrushHex("#101A2C"),
+            Foreground = BrushHex("#D7E3F8"),
+            BorderBrush = BrushHex("#263858"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(6),
-            FontFamily = new FontFamily("Consolas"),
+            Padding = new Thickness(8),
+            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
             FontSize = 10,
-            SelectionMode = SelectionMode.Single
+            SelectionMode = SelectionMode.Single,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
         _remoteFileList.MouseDoubleClick += RemoteFileList_MouseDoubleClick;
-        fileStack.Children.Add(_remoteFileList);
+        browser.Children.Add(_remoteFileList);
 
-        var fileActions = new WrapPanel { Orientation = Orientation.Horizontal };
-        fileActions.Children.Add(MakeButton("Dosya indir", "SecondaryButton", async (_, _) => await DownloadSelectedRemoteFileAsync(), new Thickness(0, 0, 7, 7)));
-        fileActions.Children.Add(MakeButton("Dosya yükle", "SecondaryButton", async (_, _) => await UploadRemoteFileAsync(), new Thickness(0, 0, 7, 7)));
-        fileActions.Children.Add(MakeButton("Seçileni sil", "DangerButton", async (_, _) => await DeleteSelectedRemoteEntryAsync(), new Thickness(0, 0, 7, 7)));
-        fileStack.Children.Add(fileActions);
-
-        _remoteNewFolderBox = RemoteTextBox();
-        _remoteNewFolderBox.Width = 240;
-        var folderRow = new DockPanel { LastChildFill = true };
-        var createFolderButton = MakeButton("Klasör oluştur", "SecondaryButton", async (_, _) => await CreateRemoteFolderAsync(), new Thickness(8, 0, 0, 0));
-        DockPanel.SetDock(createFolderButton, Dock.Right);
-        folderRow.Children.Add(createFolderButton);
-        folderRow.Children.Add(_remoteNewFolderBox);
-        var folderField = new StackPanel { Orientation = Orientation.Vertical };
-        folderField.Children.Add(new TextBlock { Text = "Yeni klasör adı", FontSize = 10, Foreground = BrushHex("#9FB4C8"), Margin = new Thickness(0, 0, 0, 5) });
-        folderField.Children.Add(folderRow);
-        fileStack.Children.Add(folderField);
         _remoteFileStatus = new TextBlock
         {
-            Text = "SSH bağlantısı kurulduğunda Listele ile uzak dosyaları görüntüleyebilirsin.",
-            Foreground = BrushHex("#8FA8BD"),
+            Text = "SSH bağlantısı kurulduğunda Listele ile uzak klasörü görüntüleyebilirsin.",
+            Foreground = BrushHex("#91A3BE"),
             FontSize = 10,
             TextWrapping = TextWrapping.Wrap
         };
-        fileStack.Children.Add(_remoteFileStatus);
-        filePanel.Child = fileStack;
-        root.Children.Add(filePanel);
+        browser.Children.Add(_remoteFileStatus);
+        browserPanel.Child = browser;
+        Grid.SetColumn(browserPanel, 0);
+        workspace.Children.Add(browserPanel);
+
+        var actionsPanel = RemotePanel();
+        actionsPanel.Margin = new Thickness(10, 0, 0, 0);
+        var actions = NewStack(14);
+        actions.Children.Add(RemoteSectionTitle("DOSYA İŞLEMLERİ"));
+        actions.Children.Add(new TextBlock
+        {
+            Text = "Seçili dosya veya klasör üzerinde işlem yap. Dosya ağacı çift tıklamayla açılır.",
+            FontSize = 10,
+            Foreground = BrushHex("#91A3BE"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        actions.Children.Add(MakeButton("Seçili dosyayı indir", "SecondaryButton", async (_, _) => await DownloadSelectedRemoteFileAsync()));
+        actions.Children.Add(MakeButton("Bilgisayardan dosya yükle", "ModernButton", async (_, _) => await UploadRemoteFileAsync()));
+        actions.Children.Add(new Border { Height = 1, Background = BrushHex("#263858"), Margin = new Thickness(0, 3, 0, 1) });
+        actions.Children.Add(RemoteSectionTitle("YENİ KLASÖR"));
+        _remoteNewFolderBox = RemoteTextBox();
+        _remoteNewFolderBox.Text = "";
+        actions.Children.Add(RemoteField("Klasör adı", _remoteNewFolderBox));
+        actions.Children.Add(MakeButton("Klasör oluştur", "SecondaryButton", async (_, _) => await CreateRemoteFolderAsync()));
+        new Border
+        {
+            Height = 1,
+            Background = BrushHex("#263858"),
+            Margin = new Thickness(0, 3, 0, 1)
+        };
+        actions.Children.Add(new Border { Height = 1, Background = BrushHex("#263858"), Margin = new Thickness(0, 3, 0, 1) });
+        actions.Children.Add(RemoteSectionTitle("KALICI SİLME"));
+        actions.Children.Add(new TextBlock
+        {
+            Text = "Dosyalar kalıcı silinir. Klasörler yalnızca boş olduklarında silinebilir. Kurulum kökü ve sahiplik işaretçisi korunur.",
+            FontSize = 10,
+            Foreground = BrushHex("#91A3BE"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        actions.Children.Add(MakeButton("Seçili dosya / boş klasörü sil", "DangerButton", async (_, _) => await DeleteSelectedRemoteEntryAsync()));
+        actions.Children.Add(new Border
+        {
+            Background = BrushHex("#101A2C"),
+            BorderBrush = BrushHex("#263858"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(11),
+            Child = new TextBlock
+            {
+                Text = "Güvenlik sınırları\n• Yalnızca uygulama kurulum dizini\n• Üst dizine çıkış engelli\n• Sembolik bağlantılar gizli\n• Sahiplik işaretçisi korumalı",
+                FontSize = 9,
+                Foreground = BrushHex("#AFC4E4"),
+                TextWrapping = TextWrapping.Wrap
+            }
+        });
+        actionsPanel.Child = actions;
+        Grid.SetColumn(actionsPanel, 1);
+        workspace.Children.Add(actionsPanel);
+        root.Children.Add(workspace);
 
         return WrapScrollable(root);
     }

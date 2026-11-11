@@ -14,7 +14,7 @@ internal sealed class RemoteServerProfile
     public string AuthenticationMode { get; set; } = "password";
     public string PrivateKeyPath { get; set; } = "";
     public string HostKeyFingerprint { get; set; } = "";
-    public string RemoteProjectDirectory { get; set; } = "/opt/nfsu2-web";
+    public string RemoteProjectDirectory { get; set; } = "/srv/nfsu2";
     public DateTimeOffset? LastConnectedUtc { get; set; }
 }
 

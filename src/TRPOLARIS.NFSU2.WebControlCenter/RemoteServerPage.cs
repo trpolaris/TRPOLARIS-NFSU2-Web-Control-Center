@@ -51,6 +51,7 @@ public partial class MainWindow
         _remoteProfileBox = new ComboBox
         {
             Height = 36,
+            Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#0A1724"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#34506A"),
@@ -86,6 +87,7 @@ public partial class MainWindow
         _remoteAuthenticationBox = new ComboBox
         {
             Height = 36,
+            Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#0A1724"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#34506A"),
@@ -241,6 +243,7 @@ public partial class MainWindow
         _remoteProxyModeBox = new ComboBox
         {
             Height = 36,
+            Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#0A1724"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#34506A"),

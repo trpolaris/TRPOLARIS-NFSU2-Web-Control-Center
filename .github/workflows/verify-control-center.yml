@@ -77,6 +77,27 @@ jobs:
           print("PASS: installer no longer self-dirties tracked source files.")
           PY
 
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("src/TRPOLARIS.NFSU2.WebControlCenter")
+          ssh = (root / "RemoteServerSession.cs").read_text(encoding="utf-8")
+          remote_page = (root / "RemoteServerPage.cs").read_text(encoding="utf-8")
+          app = (root / "App.xaml").read_text(encoding="utf-8")
+          installer = (root / "Resources/NFSU2-Windows-OneClick-Installer.ps1").read_text(encoding="utf-8")
+          main = (root / "MainWindow.xaml.cs").read_text(encoding="utf-8")
+
+          assert 'Replace("\\r\\n", "\\n", StringComparison.Ordinal)' in ssh, "SSH command transport must normalize CRLF to LF."
+          assert remote_page.count('Style = (Style)FindResource("DarkComboBox")') == 3, "All remote page ComboBoxes must use the dark template."
+          assert 'x:Key="DarkComboBox"' in app, "Dark ComboBox template is missing."
+          assert 'if ($null -eq $dockerProbeLine)' in installer, "Docker readiness probe must handle empty output."
+          assert '$DockerProbeDetail' in installer, "Docker readiness failure must retain diagnostic output."
+          assert 'bool dockerEngineReady = false;' in main, "Uninstall must probe Docker Engine before container cleanup."
+          assert 'containerQueryFailed' in main, "Uninstall must distinguish query failures from an absent container."
+          assert 'Docker CLI bulundu ancak Docker Engine yanıt vermiyor' in main, "Docker diagnostics must report engine unavailability."
+          print("PASS: SSH LF normalization, dark remote selectors, and Docker Engine safety checks.")
+          PY
+
   build-win-x64:
     runs-on: windows-latest
     steps:
@@ -131,7 +152,7 @@ jobs:
       - name: Upload single-file executable
         uses: actions/upload-artifact@v4
         with:
-          name: NFSU2-Server-control-v1.8.3-win-x64
+          name: NFSU2-Server-control-v1.8.4-win-x64
           path: publish/NFSU2 Server control.exe
           if-no-files-found: error
           retention-days: 30

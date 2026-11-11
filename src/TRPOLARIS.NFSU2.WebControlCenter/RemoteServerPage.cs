@@ -315,10 +315,11 @@ public partial class MainWindow
         deployButtons.Children.Add(MakeButton("Yeniden başlat", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("restart"), new Thickness(0, 0, 7, 7)));
         deployButtons.Children.Add(MakeButton("Canlı günlükler", "SecondaryButton", async (_, _) => await ReadRemoteLogsAsync(), new Thickness(0, 0, 7, 7)));
         deployButtons.Children.Add(MakeButton("Uzak kurulumu kaldır", "DangerButton", async (_, _) => await UninstallRemoteServerAsync(), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("Tüm verileri kalıcı sil", "DangerButton", async (_, _) => await PurgeRemoteServerAsync(), new Thickness(0, 0, 7, 7)));
         deployStack.Children.Add(deployButtons);
         deployStack.Children.Add(new TextBlock
         {
-            Text = "Kaldırma işlemi varsayılan olarak Docker konteynerlerini ve uygulama tanım dosyalarını kaldırır; oyun dosyaları, modül ve kalıcı kayıt hacmi korunur. Kalıcı verileri silen seçenek ayrıca ve açık onayla sunulacaktır.",
+            Text = "Normal kaldırma oyun dosyalarını ve kayıt hacmini korur. 'Tüm verileri kalıcı sil' ayrı iki onay ister ve yalnızca bu uzak kurulumun oyun/modül klasörünü, konteynerlerini ve Compose volume'lerini kaldırır.",
             Foreground = BrushHex("#8FA8BD"),
             FontSize = 10,
             TextWrapping = TextWrapping.Wrap

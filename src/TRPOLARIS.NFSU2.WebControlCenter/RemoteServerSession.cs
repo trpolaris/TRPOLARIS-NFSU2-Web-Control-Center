@@ -132,7 +132,11 @@ internal sealed class RemoteServerSession : IDisposable
 
         return await Task.Run(() =>
         {
-            using var command = client.CreateCommand(commandText);
+            // Git working trees on Windows may check this source out with CRLF line endings.
+            // Bash on the Linux host must receive LF-only commands; otherwise it sees
+            // tokens such as "hostname\r" and fails with misleading shell syntax errors.
+            string linuxCommand = commandText.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+            using var command = client.CreateCommand(linuxCommand);
             command.CommandTimeout = timeout;
             string output = command.Execute();
             string error = command.Error;

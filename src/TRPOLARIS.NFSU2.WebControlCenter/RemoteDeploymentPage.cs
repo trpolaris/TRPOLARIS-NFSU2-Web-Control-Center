@@ -493,8 +493,8 @@ public partial class MainWindow
             exit 34
         fi
         $SUDO mkdir -p {quotedRoot}
-        if [ -L {quotedRoot}/game ] || [ -L {quotedRoot}/module ]; then
-            echo '[ERROR] The game or module path is a symbolic link. Deployment was refused.' >&2
+        if [ -L {quotedRoot}/game ] || [ -L {quotedRoot}/module ] || [ -L {markerPath} ]; then
+            echo '[ERROR] The game, module or ownership marker path is a symbolic link. Deployment was refused.' >&2
             exit 35
         fi
         if [ -f {markerPath} ]; then

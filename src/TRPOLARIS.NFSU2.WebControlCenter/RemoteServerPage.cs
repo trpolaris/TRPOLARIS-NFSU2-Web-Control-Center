@@ -396,6 +396,10 @@ public partial class MainWindow
         proxyField.Margin = new Thickness(0, 9, 0, 0);
         configGrid.Children.Add(proxyField);
         targetStack.Children.Add(configGrid);
+        targetStack.Children.Add(MakeButton(
+            "Dağıtım ayarlarını bağlantı profiline kaydet",
+            "SecondaryButton",
+            (_, _) => SaveRemoteDeploymentSettings()));
         targetPanel.Child = targetStack;
         Grid.SetColumn(targetPanel, 1);
         columns.Children.Add(targetPanel);
@@ -668,6 +672,35 @@ public partial class MainWindow
         var profiles = RemoteServerProfileStore.LoadAll().ToList();
         return profiles.FirstOrDefault(x => string.Equals(x.Id, _activeRemoteProfileId, StringComparison.Ordinal))
             ?? profiles.FirstOrDefault();
+    }
+
+    private void SaveRemoteDeploymentSettings()
+    {
+        try
+        {
+            var profile = GetSelectedRemoteProfile();
+            if (profile is null)
+                throw new InvalidOperationException("Önce SSH bağlantıları ekranından bir sunucu profili oluştur veya seç.");
+
+            profile.RemoteProjectDirectory = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? profile.RemoteProjectDirectory);
+            profile.AccessMode = GetRemoteAccessMode();
+            profile.Domain = _remoteDomainBox?.Text.Trim() ?? "";
+            profile.HttpPort = ParseRemoteHttpPort();
+            profile.ProxyMode = _remoteProxyModeBox?.SelectedIndex == 1 ? "existing-proxy" : "caddy";
+            RemoteServerProfileStore.SaveOrUpdate(profile);
+            _activeRemoteProfileId = profile.Id;
+
+            AppendLog($"Uzak dağıtım ayarları kaydedildi: {profile.Name} ({profile.AccessMode})", "OK", "REMOTE");
+            if (_remoteDeploymentState is not null)
+            {
+                _remoteDeploymentState.Text = "Dağıtım ayarları seçili bağlantı profiline kaydedildi.";
+                _remoteDeploymentState.Foreground = BrushHex("#3DD6AE");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowRemoteError(ex.Message);
+        }
     }
 
     private string GetRemoteInstallRootValue()

@@ -61,7 +61,7 @@ public partial class MainWindow
             await RunRemoteDeploymentOperationAsync("Uzak sunucu kurulumu", async progress =>
             {
                 progress.Report((2, "Linux ve Docker ön koşulları denetleniyor"));
-                string prepared = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemotePrepareCommand(installRoot, useCaddy, port), TimeSpan.FromMinutes(8));
+                string prepared = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemotePrepareCommand(installRoot, useCaddy, port, GetRemoteComposeProjectName(installRoot)), TimeSpan.FromMinutes(8));
                 AppendRemoteOutput("Uzak Docker hazırlığı", prepared);
 
                 progress.Report((8, "Oyun dosyaları ve modül SFTP ile aktarılıyor"));
@@ -209,7 +209,9 @@ public partial class MainWindow
         try
         {
             string rootQuoted = ShellQuote(root);
+            string marker = ShellQuote(root + "/.nfsu2-control-center-managed");
             string inner = $"set -eu\n" +
+                $"if [ -L {rootQuoted} ] || ! grep -Fxq {ShellQuote(project)} {marker}; then echo '[ERROR] Ownership marker does not match this NFSU2 install. Refusing to purge.' >&2; exit 50; fi\n" +
                 $"if [ -f {ShellQuote(root + "/compose.yml")} ]; then cd {rootQuoted} && docker compose --project-name {project} -f compose.yml down -v --remove-orphans; fi\n" +
                 $"docker ps -aq --filter label=com.docker.compose.project={project} | xargs -r docker rm -f\n" +
                 $"docker volume ls -q --filter label=com.docker.compose.project={project} | xargs -r docker volume rm\n" +
@@ -437,7 +439,7 @@ public partial class MainWindow
         " {\n        header_up CF-Connecting-IP {client_ip}\n    }\n    header -Server\n    header -Via\n" +
         "    handle_errors {\n        header -Server\n    }\n}\n";
 
-    private static string BuildRemotePrepareCommand(string root, bool useCaddy, int port)
+    private static string BuildRemotePrepareCommand(string root, bool useCaddy, int port, string project)
     {
         string checkPorts = useCaddy ? """
         if ss -ltnH '( sport = :80 or sport = :443 )' 2>/dev/null | grep -q .; then
@@ -446,6 +448,8 @@ public partial class MainWindow
         fi
         """ : "";
         string quotedRoot = ShellQuote(root);
+        string markerPath = ShellQuote(root + "/.nfsu2-control-center-managed");
+        string projectValue = ShellQuote(project);
         string internalPortCheck = $"""
         if ss -ltnH 'sport = :{port}' 2>/dev/null | grep -q .; then
             echo '[ERROR] The selected internal HTTP port is already in use. Choose another port.' >&2
@@ -481,6 +485,28 @@ public partial class MainWindow
         fi
         $SUDO systemctl enable --now docker
         $SUDO docker compose version
+        if [ -L {quotedRoot} ] || [ -e {quotedRoot} ] && [ ! -d {quotedRoot} ]; then
+            echo '[ERROR] The selected install path is a symlink or not a directory. Choose a different path.' >&2
+            exit 34
+        fi
+        $SUDO mkdir -p {quotedRoot}
+        if [ -L {quotedRoot}/game ] || [ -L {quotedRoot}/module ]; then
+            echo '[ERROR] The game or module path is a symbolic link. Deployment was refused.' >&2
+            exit 35
+        fi
+        if [ -f {markerPath} ]; then
+            if ! grep -Fxq {projectValue} {markerPath}; then
+                echo '[ERROR] The install path belongs to a different Control Center project. Choose a new empty path.' >&2
+                exit 36
+            fi
+        else
+            existing_entry="$(find {quotedRoot} -mindepth 1 -maxdepth 1 -print -quit)"
+            if [ -n "$existing_entry" ]; then
+                echo '[ERROR] The install path is not empty and has no Control Center ownership marker. Choose another path; existing files were not touched.' >&2
+                exit 37
+            fi
+            printf '%s\n' {projectValue} | $SUDO tee {markerPath} >/dev/null
+        fi
         $SUDO mkdir -p {quotedRoot}/game {quotedRoot}/module
         $SUDO chown -R "$(id -u):$(id -g)" {quotedRoot}
         chmod 755 {quotedRoot} {quotedRoot}/game {quotedRoot}/module
@@ -496,7 +522,8 @@ public partial class MainWindow
     private static string BuildRemoteComposeCommand(string root, string operation)
     {
         string project = GetRemoteComposeProjectName(root);
-        string compose = $"cd {ShellQuote(root)} && docker compose --project-name {project} -f compose.yml {operation}";
+        string marker = ShellQuote(root + "/.nfsu2-control-center-managed");
+        string compose = $"cd {ShellQuote(root)} && grep -Fxq {ShellQuote(project)} {marker} && docker compose --project-name {project} -f compose.yml {operation}";
         return "set -eu\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(compose) +
             "; else sudo -n sh -c " + ShellQuote(compose) + "; fi\n";
     }

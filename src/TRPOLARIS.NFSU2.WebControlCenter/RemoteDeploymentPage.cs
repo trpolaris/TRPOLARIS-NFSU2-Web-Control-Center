@@ -48,6 +48,7 @@ public partial class MainWindow
             string installRoot = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
             int port = ParseRemoteHttpPort();
             bool useCaddy = _remoteProxyModeBox?.SelectedIndex == 0;
+            string imageReference = GetRemoteImageReference();
 
             ValidateRemoteDomain(domain);
             ValidateLocalGameFolder(gameRoot);
@@ -55,7 +56,7 @@ public partial class MainWindow
             var uploadItems = BuildRemoteUploadPlan(gameRoot, wasmPath, jsonPath, installRoot);
             long totalBytes = uploadItems.Sum(x => new FileInfo(x.LocalPath).Length);
             string accessMode = useCaddy ? "Caddy otomatik HTTPS (80/443 boş olmalı)" : "Mevcut reverse proxy";
-            string prompt = $"Sunucu: {profile.Host}:{profile.Port}\nDomain: {domain}\nKurulum: {installRoot}\nErişim: {accessMode}\n\nYaklaşık {FormatRemoteBytes(totalBytes)} veri SSH/SFTP ile aktarılacak. Docker eksikse Ubuntu/Debian paketleri kurulacak.\nYalnızca seçilmiş oyun veri klasörleri ve WASM modülü gönderilecek.\n\nBaşlatılsın mı?";
+            string prompt = $"Sunucu: {profile.Host}:{profile.Port}\nDomain: {domain}\nKurulum: {installRoot}\nErişim: {accessMode}\nSunucu imajı: {imageReference}\n\nYaklaşık {FormatRemoteBytes(totalBytes)} veri SSH/SFTP ile aktarılacak. Docker eksikse Ubuntu/Debian paketleri kurulacak.\nYalnızca seçilmiş oyun veri klasörleri ve WASM modülü gönderilecek.\n\nBaşlatılsın mı?";
             if (MessageBox.Show(prompt, "Uzak NFSU2 kurulumu", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
             await RunRemoteDeploymentOperationAsync("Uzak sunucu kurulumu", async progress =>
@@ -72,7 +73,7 @@ public partial class MainWindow
                 }));
 
                 progress.Report((83, "Docker Compose yapılandırması yükleniyor"));
-                await UploadRemoteComposeFilesAsync(profile.Id, installRoot, domain, port, useCaddy);
+                await UploadRemoteComposeFilesAsync(profile.Id, installRoot, domain, port, useCaddy, imageReference);
                 progress.Report((87, "Docker imajı indiriliyor"));
                 string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(
                     BuildRemoteComposeCommand(installRoot, "pull") + BuildRemoteComposeCommand(installRoot, "up -d"),
@@ -106,10 +107,11 @@ public partial class MainWindow
             string domain = (_remoteDomainBox?.Text ?? "").Trim().ToLowerInvariant();
             int port = ParseRemoteHttpPort();
             bool useCaddy = _remoteProxyModeBox?.SelectedIndex == 0;
+            string imageReference = GetRemoteImageReference();
             ValidateModuleFiles(wasm, json);
             ValidateRemoteDomain(domain);
 
-            if (MessageBox.Show("Seçilen nfsu2.wasm ve nfsu2.json dosyaları aktarılacak, yeni Docker imajı çekilecek ve NFSU2 yeniden başlatılacak. Oyun klasörü ve kalıcı kayıt volume'ü korunur. Devam edilsin mi?",
+            if (MessageBox.Show($"Seçilen nfsu2.wasm ve nfsu2.json dosyaları aktarılacak. {imageReference} imajı çekilecek ve NFSU2 yeniden başlatılacak. Oyun klasörü ve kalıcı kayıt volume'ü korunur. Devam edilsin mi?",
                 "Uzak altyapıyı güncelle", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
             await RunRemoteDeploymentOperationAsync("Uzak altyapı güncellemesi", async progress =>
@@ -125,6 +127,9 @@ public partial class MainWindow
                     int pct = p.TotalBytes <= 0 ? 5 : 5 + (int)(p.BytesTransferred * 30L / p.TotalBytes);
                     progress.Report((pct, $"Modül aktarılıyor · {p.CompletedFiles}/{p.TotalFiles}"));
                 }));
+                progress.Report((36, "Docker Compose sürüm eşleşmesi güncelleniyor"));
+                string profileId = (_remoteProfileBox?.SelectedItem as RemoteServerProfile)?.Id ?? GetRemoteComposeProjectName(root);
+                await UploadRemoteComposeFilesAsync(profileId, root, domain, port, useCaddy, imageReference);
                 progress.Report((40, "Docker imajı güncelleniyor"));
                 string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(
                     BuildRemoteComposeCommand(root, "pull") + BuildRemoteComposeCommand(root, "up -d"), TimeSpan.FromMinutes(20));
@@ -366,13 +371,13 @@ public partial class MainWindow
             throw new InvalidDataException("Sembolik bağlantı/junction içeren dosya gönderilmiyor: " + path);
     }
 
-    private async Task UploadRemoteComposeFilesAsync(string profileId, string root, string domain, int port, bool useCaddy)
+    private async Task UploadRemoteComposeFilesAsync(string profileId, string root, string domain, int port, bool useCaddy, string imageReference)
     {
         string temp = Path.Combine(RuntimeDir, "remote-deploy", profileId);
         Directory.CreateDirectory(temp);
         string composePath = Path.Combine(temp, "compose.yml");
         string caddyPath = Path.Combine(temp, "Caddyfile");
-        File.WriteAllText(composePath, BuildRemoteComposeYaml(domain, port, useCaddy), new UTF8Encoding(false));
+        File.WriteAllText(composePath, BuildRemoteComposeYaml(domain, port, useCaddy, imageReference), new UTF8Encoding(false));
         var files = new List<RemoteUploadItem> { new(composePath, root + "/compose.yml", "compose.yml") };
         if (useCaddy)
         {
@@ -383,7 +388,7 @@ public partial class MainWindow
         finally { try { Directory.Delete(temp, true); } catch { } }
     }
 
-    private static string BuildRemoteComposeYaml(string domain, int port, bool useCaddy)
+    private static string BuildRemoteComposeYaml(string domain, int port, bool useCaddy, string imageReference)
     {
         string caddy = useCaddy ? """
           caddy:
@@ -403,7 +408,7 @@ public partial class MainWindow
         services:
         {caddy}
           server:
-            image: ghcr.io/trpolaris/need-for-speed-underground-2-web-rs:latest
+            image: {imageReference}
             restart: unless-stopped
             network_mode: host
             command: ["--behind-proxy"]
@@ -428,6 +433,15 @@ public partial class MainWindow
           state:
         {volumes}
         """;
+    }
+
+    private static string GetRemoteImageReference()
+    {
+        const string image = "ghcr.io/trpolaris/need-for-speed-underground-2-web-rs";
+        string commit = (Nfsu2ConfigStore.Read(RootDir).Install.SourceCommit ?? "").Trim().ToLowerInvariant();
+        if (commit.Length >= 7 && commit.All(Uri.IsHexDigit))
+            return image + ":sha-" + commit[..7];
+        return image + ":latest";
     }
 
     private static string BuildRemoteCaddyfile(string domain, int port) =>

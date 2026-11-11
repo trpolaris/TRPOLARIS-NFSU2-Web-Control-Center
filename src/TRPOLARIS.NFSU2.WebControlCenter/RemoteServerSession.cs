@@ -28,8 +28,8 @@ internal sealed class RemoteHostKeyMismatchException : Exception
 }
 
 /// <summary>
-/// SSH transport for the remote Linux mode. This first milestone exposes only
-/// fixed application-owned diagnostics; it does not execute arbitrary shell input.
+/// SSH transport for the remote Linux mode. Remote shell operations are composed
+/// by the application from validated settings; secrets are held only for the live session.
 /// </summary>
 internal sealed class RemoteServerSession : IDisposable
 {

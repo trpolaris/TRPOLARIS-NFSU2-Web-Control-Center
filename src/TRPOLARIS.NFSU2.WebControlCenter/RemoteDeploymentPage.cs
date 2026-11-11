@@ -485,7 +485,10 @@ public partial class MainWindow
         fi
         $SUDO systemctl enable --now docker
         $SUDO docker compose version
-        if [ -L {quotedRoot} ] || [ -e {quotedRoot} ] && [ ! -d {quotedRoot} ]; then
+        invalid_root=0
+        if [ -L {quotedRoot} ]; then invalid_root=1; fi
+        if [ -e {quotedRoot} ] && [ ! -d {quotedRoot} ]; then invalid_root=1; fi
+        if [ "$invalid_root" -eq 1 ]; then
             echo '[ERROR] The selected install path is a symlink or not a directory. Choose a different path.' >&2
             exit 34
         fi

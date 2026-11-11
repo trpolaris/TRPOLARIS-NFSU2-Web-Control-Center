@@ -557,7 +557,7 @@ public partial class MainWindow
 
     private static string GetRemoteComposeProjectName(string root)
     {
-        string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(root.ToLowerInvariant())))
+        string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(root)))
             .ToLowerInvariant();
         return "nfsu2-" + digest[..10];
     }

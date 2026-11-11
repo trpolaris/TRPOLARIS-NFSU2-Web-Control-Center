@@ -219,6 +219,7 @@ internal sealed class RemoteServerSession : IDisposable
             sftp.Connect();
             try
             {
+                EnsureRemotePathIsSafe(sftp, remotePath, requireLeafDirectory: true);
                 return sftp.ListDirectory(remotePath)
                     .Where(x => x.Name is not ("." or ".." or ".nfsu2-control-center-managed"))
                     .Where(x => !x.Attributes.IsSymbolicLink && (x.IsDirectory || x.IsRegularFile))
@@ -242,6 +243,7 @@ internal sealed class RemoteServerSession : IDisposable
             sftp.Connect();
             try
             {
+                EnsureRemotePathIsSafe(sftp, remotePath, requireLeafDirectory: false);
                 var attributes = sftp.GetAttributes(remotePath);
                 if (attributes.IsSymbolicLink || attributes.IsDirectory || !attributes.IsRegularFile)
                     throw new InvalidOperationException("Yalnızca normal dosyalar indirilebilir.");
@@ -265,6 +267,7 @@ internal sealed class RemoteServerSession : IDisposable
             sftp.Connect();
             try
             {
+                EnsureRemotePathIsSafe(sftp, remotePath, requireLeafDirectory: false);
                 var attributes = sftp.GetAttributes(remotePath);
                 if (attributes.IsSymbolicLink)
                     throw new InvalidOperationException("Sembolik bağlantılar dosya yöneticisinden silinmez.");
@@ -286,6 +289,7 @@ internal sealed class RemoteServerSession : IDisposable
             sftp.Connect();
             try
             {
+                EnsureRemotePathIsSafe(sftp, GetRemoteDirectory(remotePath), requireLeafDirectory: true);
                 if (sftp.Exists(remotePath))
                     throw new IOException("Bu adla bir dosya veya klasör zaten bulunuyor.");
                 sftp.CreateDirectory(remotePath);
@@ -319,6 +323,33 @@ internal sealed class RemoteServerSession : IDisposable
             authentication = new PasswordAuthenticationMethod(_profile.Username, _password);
         }
         return new ConnectionInfo(_profile.Host, _profile.Port, _profile.Username, authentication);
+    }
+
+    private static void EnsureRemotePathIsSafe(SftpClient sftp, string path, bool requireLeafDirectory)
+    {
+        string normalized = (path ?? "").Replace('\\', '/');
+        if (!normalized.StartsWith("/", StringComparison.Ordinal) ||
+            normalized.Split('/').Any(part => part is "." or ".."))
+            throw new InvalidOperationException("SFTP yolu mutlak olmalı ve üst dizin parçaları içeremez.");
+
+        string current = "/";
+        string[] parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            throw new InvalidOperationException("Kök dizin SFTP dosya yöneticisinde kullanılamaz.");
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            current = current == "/" ? current + parts[i] : current + "/" + parts[i];
+            bool leaf = i == parts.Length - 1;
+            var attributes = sftp.GetAttributes(current);
+            if (attributes.IsSymbolicLink)
+                throw new InvalidOperationException("SFTP yolunda sembolik bağlantı bulundu; güvenlik nedeniyle işlem durduruldu.");
+            if (!leaf || requireLeafDirectory)
+            {
+                if (!attributes.IsDirectory)
+                    throw new InvalidOperationException("SFTP yolunun ara bileşeni normal bir klasör değil.");
+            }
+        }
     }
 
     private static void EnsureRemoteDirectory(SftpClient sftp, string path)

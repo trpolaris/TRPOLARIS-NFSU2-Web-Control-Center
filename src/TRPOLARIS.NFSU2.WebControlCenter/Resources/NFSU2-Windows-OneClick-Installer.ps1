@@ -597,6 +597,7 @@ try {
     Write-Host "[DOCKER/WSL] Ubuntu entegrasyonu bekleniyor ve gerçek Docker Engine bağlantısı test ediliyor: $Distro" -ForegroundColor Cyan
     $DockerWslReady = $false
     $DockerOstype = ''
+    $DockerProbeDetail = ''
     for ($dockerAttempt = 1; $dockerAttempt -le 90; $dockerAttempt++) {
         Assert-InstallNotStopped
         # Windows PowerShell 5.1 promotes redirected native stderr to a
@@ -607,12 +608,24 @@ try {
         $probeErrorActionPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'
-            $dockerProbe = @(& wsl.exe -d $Distro -u root -- env -u DOCKER_HOST -u DOCKER_CONTEXT docker --context default info --format '{{.OSType}}' 2>$null)
+            $dockerProbe = @(& wsl.exe -d $Distro -u root -- env -u DOCKER_HOST -u DOCKER_CONTEXT docker --context default info --format '{{.OSType}}' 2>&1)
             $dockerProbeCode = $LASTEXITCODE
         } finally {
             $ErrorActionPreference = $probeErrorActionPreference
         }
-        $DockerOstype = ([string]($dockerProbe | Select-Object -First 1)).Trim()
+        # A stopped/unavailable Engine often returns no stdout at all. Do not
+        # call .Trim() on a null pipeline result: keep retrying until the
+        # bounded readiness window expires, then show the captured diagnostic.
+        $dockerProbeLine = $dockerProbe | Select-Object -First 1
+        if ($null -eq $dockerProbeLine) {
+            $DockerOstype = ''
+        } else {
+            $DockerOstype = ([string]$dockerProbeLine).Trim()
+        }
+        $DockerProbeDetail = ($dockerProbe | ForEach-Object { [string]$_ }) -join ' | '
+        if ($DockerProbeDetail.Length -gt 700) {
+            $DockerProbeDetail = $DockerProbeDetail.Substring(0, 700)
+        }
         if ($dockerProbeCode -eq 0 -and $DockerOstype -eq 'linux') {
             $DockerWslReady = $true
             break
@@ -628,7 +641,8 @@ try {
         Start-Sleep -Seconds 2
     }
     if (-not $DockerWslReady) {
-        throw "Docker Desktop Ubuntu WSL Integration doğrulanamadı. Ayar dosyası ve varsayılan dağıtım güncellendi; Docker Engine yanıtı: '$DockerOstype'. Docker Desktop > Settings > Resources > WSL Integration bölümünde '$Distro' seçili olmalı."
+        $probeSummary = if ([string]::IsNullOrWhiteSpace($DockerProbeDetail)) { 'Docker komutu çıktı üretmedi.' } else { $DockerProbeDetail }
+        throw "Docker Desktop Ubuntu WSL Integration doğrulanamadı. Ayar dosyası ve varsayılan dağıtım güncellendi; Docker Engine yanıtı: '$DockerOstype'. Son tanılama: $probeSummary. Docker Desktop > Settings > Resources > WSL Integration bölümünde '$Distro' seçili olmalı."
     }
     Write-Host "[DOCKER/WSL] BAŞARILI: $Distro için WSL Integration etkin, Apply/Restart tamam ve Linux Docker Engine erişilebilir." -ForegroundColor Green
 

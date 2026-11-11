@@ -231,6 +231,11 @@ public partial class MainWindow
         _remoteDomainBox = RemoteTextBox();
         _remoteInstallRootBox = RemoteTextBox();
         _remoteInstallRootBox.Text = "/srv/nfsu2";
+        _remoteInstallRootBox.TextChanged += (_, _) =>
+        {
+            if (_remoteFilePathBox is not null)
+                _remoteFilePathBox.Text = _remoteInstallRootBox.Text.TrimEnd('/');
+        };
         _remoteHttpPortBox = RemoteTextBox();
         _remoteHttpPortBox.Text = "8080";
         _remoteProxyModeBox = new ComboBox
@@ -474,6 +479,10 @@ public partial class MainWindow
         if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
         if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
         if (_remoteInstallRootBox is not null) _remoteInstallRootBox.Text = "/srv/nfsu2";
+        if (_remoteDomainBox is not null) _remoteDomainBox.Text = "";
+        if (_remoteHttpPortBox is not null) _remoteHttpPortBox.Text = "8080";
+        if (_remoteProxyModeBox is not null) _remoteProxyModeBox.SelectedIndex = 0;
+        if (_remoteFilePathBox is not null) _remoteFilePathBox.Text = "/srv/nfsu2";
         SetRemoteStatus("Yeni bağlantı profili oluşturuluyor.", connected: false);
     }
 
@@ -492,6 +501,12 @@ public partial class MainWindow
         _remotePrivateKeyBox!.Text = profile.PrivateKeyPath;
         if (_remoteInstallRootBox is not null)
             _remoteInstallRootBox.Text = string.IsNullOrWhiteSpace(profile.RemoteProjectDirectory) ? "/srv/nfsu2" : profile.RemoteProjectDirectory;
+        if (_remoteDomainBox is not null) _remoteDomainBox.Text = profile.Domain ?? "";
+        if (_remoteHttpPortBox is not null) _remoteHttpPortBox.Text = profile.HttpPort.ToString();
+        if (_remoteProxyModeBox is not null)
+            _remoteProxyModeBox.SelectedIndex = string.Equals(profile.ProxyMode, "existing-proxy", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        if (_remoteFilePathBox is not null)
+            _remoteFilePathBox.Text = (profile.RemoteProjectDirectory ?? "/srv/nfsu2").TrimEnd('/');
         if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
         if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
         _activeRemoteProfileId = profile.Id;
@@ -528,6 +543,9 @@ public partial class MainWindow
             PrivateKeyPath = privateKey ? keyPath : "",
             HostKeyFingerprint = selected?.HostKeyFingerprint ?? "",
             RemoteProjectDirectory = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "/srv/nfsu2"),
+            Domain = _remoteDomainBox?.Text.Trim() ?? "",
+            HttpPort = ParseRemoteHttpPort(),
+            ProxyMode = _remoteProxyModeBox?.SelectedIndex == 1 ? "existing-proxy" : "caddy",
             LastConnectedUtc = selected?.LastConnectedUtc
         };
     }

@@ -3344,7 +3344,49 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private UIElement WrapScrollable(UIElement element) => new ScrollViewer { Content = element, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
 
-    private static SolidColorBrush BrushHex(string value) => new((Color)ColorConverter.ConvertFromString(value));
+    private static SolidColorBrush BrushHex(string value)
+    {
+        // Normalize the older page builders onto the Carbon Forge token palette.
+        string color = value.ToUpperInvariant() switch
+        {
+            "#07111C" or "#07111E" or "#091421" or "#091625" or "#0A1118" or "#0A1724" or
+            "#0B1929" or "#0F1923" or "#101C2A" or "#101E31" or "#101C30" or "#0C1A29" or
+            "#111C26" or "#111B25" or "#0D1A22" or "#131F2A" or "#141F2A" or "#15222D" or
+            "#10231D" or "#102C35" or "#0D1D2D" or "#0B1A29" => "#1B2224",
+
+            "#143448" or "#142B45" or "#122438" or "#18334A" or "#19334A" or "#1B2B36" or
+            "#20384F" or "#172B40" or "#102338" or "#102237" or "#0D2030" or "#15283B" => "#2A3133",
+
+            "#EAF3FD" or "#EAF5FF" or "#F1F7FF" or "#EDF4FC" or "#DDE5EC" or "#DDEAF6" or
+            "#CFE1EF" or "#B8C5D2" or "#D4E1EC" or "#F7FFFF" or "#E5F0FC" or "#E0EAF4" => "#F3F0E8",
+
+            "#9FB4C8" or "#A9BED1" or "#9CB1C6" or "#8FA8BD" or "#AFC0CB" or "#829CB4" or
+            "#91A3B1" or "#9EAFBC" or "#91A6BC" or "#B8CBDD" or "#B6C8E2" or "#7896B2" or
+            "#7F97A8" or "#7F96AD" or "#607990" or "#55728A" or "#718CA6" or "#829CB4" or
+            "#AFC0D2" or "#6F879E" or "#7F96AD" => "#A8B0AB",
+
+            "#70CFC8" or "#6BCFC7" or "#61D4C7" or "#76F0E0" or "#43E4D0" or "#42C9C0" or
+            "#4DD1C7" or "#63CEC5" or "#62DCCB" or "#77DCD1" or "#65E8D6" or "#8CEDE2" or
+            "#63E7D2" or "#6FE3C1" or "#9CC8FF" or "#6D9BFF" => "#FF7043",
+
+            "#E5B65B" or "#F4C15D" or "#F8C45C" or "#FFCA78" or "#F0BE69" or "#E0B86C" or
+            "#FFC875" or "#E7BD67" => "#EAB96A",
+
+            "#38D996" or "#65D6B0" or "#65D8B5" or "#4BD6AC" or "#43D6A1" => "#78C69A",
+            "#FF687D" or "#FF8798" or "#783340" or "#FF6E83" => "#F27C82",
+
+            "#34506A" or "#263D52" or "#2B3A47" or "#29445D" or "#263E55" or "#35536F" or
+            "#315F81" or "#31516B" or "#344550" or "#20364B" or "#2D414F" => "#3A4648",
+
+            "#172B40" => "#2A3133",
+            "#3D8292" or "#28616A" or "#287B7A" or "#286D68" or "#286C68" => "#B45E41",
+            "#123D45" or "#12332F" or "#103B3A" or "#19332F" => "#3D3829",
+            "#2B2021" or "#652838" or "#744447" => "#503031",
+            _ => value
+        };
+
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+    }
 
     private void AppendLog(string message, string level = "INFO", string category = "APP")
     {

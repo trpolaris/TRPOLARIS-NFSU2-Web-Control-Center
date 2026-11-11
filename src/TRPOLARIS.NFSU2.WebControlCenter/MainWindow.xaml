@@ -112,6 +112,12 @@
                                     <TextBlock Text="Sunucu kurulumu" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
+                            <Button x:Name="NavRemote" Tag="Remote" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE839;" FontFamily="Segoe MDL2 Assets" FontSize="16" Width="29" VerticalAlignment="Center" />
+                                    <TextBlock Text="Uzak sunucu" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="NavUpdate" Tag="Update" Click="Navigation_Click" Style="{StaticResource NavButton}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="16" Width="29" VerticalAlignment="Center" />

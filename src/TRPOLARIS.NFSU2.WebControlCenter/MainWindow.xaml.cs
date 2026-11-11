@@ -711,13 +711,15 @@ public partial class MainWindow : Window
             Foreground = BrushHex("#83AEF8"),
             VerticalAlignment = VerticalAlignment.Center
         });
-        DockPanel.SetDock(new TextBlock
+        var inventoryHint = new TextBlock
         {
             Text = "Yönetim alanını seçerek ayrıntılara geç",
             FontSize = 9,
             Foreground = BrushHex("#91A3C1"),
             VerticalAlignment = VerticalAlignment.Center
-        }, Dock.Right);
+        };
+        DockPanel.SetDock(inventoryHint, Dock.Right);
+        inventoryHeading.Children.Add(inventoryHint);
         var remoteCount = RemoteServerProfileStore.LoadAll().Count;
         var inventoryGrid = new Grid();
         inventoryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

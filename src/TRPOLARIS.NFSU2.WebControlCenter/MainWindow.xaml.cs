@@ -597,9 +597,9 @@ public partial class MainWindow : Window
         foreach (var b in nav)
         {
             bool active = Equals(b.Tag, selected);
-            b.Background = active ? BrushHex("#143448") : Brushes.Transparent;
-            b.BorderBrush = active ? BrushHex("#3D8292") : Brushes.Transparent;
-            b.Foreground = active ? BrushHex("#76F0E0") : BrushHex("#AFC0D2");
+            b.Background = active ? BrushHex("#1A2D4D") : Brushes.Transparent;
+            b.BorderBrush = active ? BrushHex("#3F5F92") : Brushes.Transparent;
+            b.Foreground = active ? BrushHex("#B7CBFF") : BrushHex("#91A3BE");
         }
     }
 
@@ -3494,7 +3494,10 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         Map("#EDF3FF",
             "#EAF3FD", "#EAF5FF", "#F1F7FF", "#EDF4FC", "#DDE5EC", "#DDEAF6", "#CFE1EF",
             "#B8C5D2", "#D4E1EC", "#F7FFFF", "#E5F0FC", "#E0EAF4", "#FFF9EE", "#EAF4FF",
-            "#F4FFFF", "#D4E1EC", "#EAF3FC");
+            "#F4FFFF", "#EAF3FC", "#F3F0E8", "#F1F7FF", "#F4FFFF");
+
+        Map("#70A5FF", "#FF8968", "#FF9878", "#FF9B78", "#76F0E0", "#8CEDE2", "#6FF5E3",
+            "#6FF5E3", "#76F0E0", "#43E4D0", "#D8DE73");
 
         Map("#91A3BE",
             "#9FB4C8", "#A9BED1", "#9CB1C6", "#8FA8BD", "#AFC0CB", "#829CB4", "#91A3B1",

@@ -15,6 +15,8 @@ internal sealed class RemoteServerProfile
     public string PrivateKeyPath { get; set; } = "";
     public string HostKeyFingerprint { get; set; } = "";
     public string RemoteProjectDirectory { get; set; } = "/srv/nfsu2";
+    // "domain", "lan", or "public-ip". Older profiles default to domain.
+    public string AccessMode { get; set; } = "domain";
     public string Domain { get; set; } = "";
     public int HttpPort { get; set; } = 8080;
     public string ProxyMode { get; set; } = "caddy";

@@ -188,6 +188,47 @@ public partial class MainWindow
         catch (Exception ex) { SetRemoteDeploymentState("Kaldırma başarısız: " + ex.Message, false); ShowRemoteError(ex.Message); }
     }
 
+    private async Task PurgeRemoteServerAsync()
+    {
+        if (_remoteServerSession?.IsConnected != true)
+        {
+            ShowRemoteError("Önce SSH bağlantısı kur.");
+            return;
+        }
+
+        string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+        string project = GetRemoteComposeProjectName(root);
+        string prompt = $"DİKKAT: '{root}' altındaki tüm NFSU2 oyun dosyaları, modül, yapılandırma ve günlükler kalıcı olarak silinecek.\n\n" +
+            $"Ayrıca yalnızca '{project}' Compose projesine ait konteynerler ve kalıcı Docker volume'leri silinecek. Bu işlem geri alınamaz.\n\nDevam etmek istiyor musun?";
+        if (MessageBox.Show(prompt, "TÜM UZAK NFSU2 VERİLERİNİ SİL", MessageBoxButton.YesNo, MessageBoxImage.Stop) != MessageBoxResult.Yes)
+            return;
+        if (MessageBox.Show("Son onay: oyun verileri ve kayıt volume'ü de dahil olmak üzere bu kurulum tamamen silinsin mi?",
+            "Kalıcı silme için son onay", MessageBoxButton.YesNo, MessageBoxImage.Stop) != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            string rootQuoted = ShellQuote(root);
+            string inner = $"set -eu\n" +
+                $"if [ -f {ShellQuote(root + "/compose.yml")} ]; then cd {rootQuoted} && docker compose --project-name {project} -f compose.yml down -v --remove-orphans; fi\n" +
+                $"docker ps -aq --filter label=com.docker.compose.project={project} | xargs -r docker rm -f\n" +
+                $"docker volume ls -q --filter label=com.docker.compose.project={project} | xargs -r docker volume rm\n" +
+                $"rm -rf -- {rootQuoted}\n";
+            string command = "set -eu\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(inner) +
+                "; else sudo -n sh -c " + ShellQuote(inner) + "; fi\n";
+            string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(command, TimeSpan.FromMinutes(5));
+            AppendRemoteOutput("Uzak NFSU2 kalıcı silme", output);
+            SetRemoteDeploymentState("Uzak NFSU2 kurulumu ve verileri tamamen silindi.", true);
+            if (_remoteDiagnosticsBox is not null) _remoteDiagnosticsBox.Text = "Uzak NFSU2 verileri silindi.";
+            if (_remoteFileList is not null) _remoteFileList.ItemsSource = null;
+        }
+        catch (Exception ex)
+        {
+            SetRemoteDeploymentState("Kalıcı silme başarısız: " + ex.Message, false);
+            ShowRemoteError(ex.Message);
+        }
+    }
+
     private async Task RunRemoteDeploymentOperationAsync(string name, Func<IProgress<(int Percent, string Status)>, Task> operation)
     {
         var reporter = new Progress<(int Percent, string Status)>(p =>
@@ -447,9 +488,17 @@ public partial class MainWindow
 
     private static string BuildRemoteComposeCommand(string root, string operation)
     {
-        string compose = $"cd {ShellQuote(root)} && docker compose --project-name nfsu2-web -f compose.yml {operation}";
+        string project = GetRemoteComposeProjectName(root);
+        string compose = $"cd {ShellQuote(root)} && docker compose --project-name {project} -f compose.yml {operation}";
         return "set -eu\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(compose) +
             "; else sudo -n sh -c " + ShellQuote(compose) + "; fi\n";
+    }
+
+    private static string GetRemoteComposeProjectName(string root)
+    {
+        string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(root.ToLowerInvariant())))
+            .ToLowerInvariant();
+        return "nfsu2-" + digest[..10];
     }
 
     private static string BuildRemoteHealthCommand(string root, string domain, int port, bool useCaddy)

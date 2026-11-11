@@ -172,7 +172,13 @@ internal sealed class RemoteServerSession : IDisposable
                     EnsureRemoteDirectory(sftp, GetRemoteDirectory(item.RemotePath));
 
                     string temporaryRemotePath = item.RemotePath + ".uploading";
-                    if (sftp.Exists(temporaryRemotePath)) sftp.DeleteFile(temporaryRemotePath);
+                    if (sftp.Exists(temporaryRemotePath))
+                    {
+                        var temporaryAttributes = sftp.GetAttributes(temporaryRemotePath);
+                        if (temporaryAttributes.IsSymbolicLink || temporaryAttributes.IsDirectory || !temporaryAttributes.IsRegularFile)
+                            throw new InvalidOperationException("Geçici SFTP hedefi normal dosya değil; aktarım durduruldu.");
+                        sftp.DeleteFile(temporaryRemotePath);
+                    }
                     using var input = new FileStream(item.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                     ulong lastReported = 0;
                     sftp.UploadFile(input, temporaryRemotePath, true, uploaded =>
@@ -183,7 +189,13 @@ internal sealed class RemoteServerSession : IDisposable
                         progress?.Report(new RemoteUploadProgress(item.RelativePath, aggregate, totalBytes, completedFiles, items.Count));
                     });
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (sftp.Exists(item.RemotePath)) sftp.DeleteFile(item.RemotePath);
+                    if (sftp.Exists(item.RemotePath))
+                    {
+                        var targetAttributes = sftp.GetAttributes(item.RemotePath);
+                        if (targetAttributes.IsSymbolicLink || targetAttributes.IsDirectory || !targetAttributes.IsRegularFile)
+                            throw new InvalidOperationException("SFTP hedefi normal dosya değil veya sembolik bağlantı; mevcut hedefe dokunulmadı.");
+                        sftp.DeleteFile(item.RemotePath);
+                    }
                     sftp.RenameFile(temporaryRemotePath, item.RemotePath);
                     completedBytes += file.Length;
                     completedFiles++;
@@ -315,7 +327,15 @@ internal sealed class RemoteServerSession : IDisposable
         foreach (string part in path.Split('/', StringSplitOptions.RemoveEmptyEntries))
         {
             current = current == "/" ? current + part : current.Length == 0 ? part : current + "/" + part;
-            if (!sftp.Exists(current)) sftp.CreateDirectory(current);
+            if (!sftp.Exists(current))
+            {
+                sftp.CreateDirectory(current);
+                continue;
+            }
+
+            var attributes = sftp.GetAttributes(current);
+            if (attributes.IsSymbolicLink || !attributes.IsDirectory)
+                throw new InvalidOperationException("SFTP üst klasörü normal bir klasör değil veya sembolik bağlantı; aktarım durduruldu.");
         }
     }
 

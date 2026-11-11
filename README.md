@@ -2,7 +2,7 @@
 
 # 🏁 NFSU2 Server control
 
-### 🌌 Night Circuit · Windows Infrastructure Control
+### 🔥 Carbon Forge · Windows Infrastructure Control
 
 **NFSU2 Web sunucusunu Windows üzerinden kurun, güncelleyin, çalıştırın ve güvenle kaldırın.**
 
@@ -61,12 +61,27 @@ Uygulama aynı Windows EXE içinden yerel Windows/WSL kurulumunu veya uzak Ubunt
 - **VPS kurulumu:** yerel oyun klasöründeki desteklenen `SPEED2.EXE` doğrulanır. Yalnızca sunucunun kullandığı oyun veri klasörleri ile yerel olarak üretilmiş `nfsu2.wasm` / `nfsu2.json` SFTP üzerinden aktarılır.
 - **Docker dağıtımı:** Ubuntu/Debian üzerinde Docker Engine ve Compose denetlenir; eksikse root veya parola istemeyen sudo ile kurulur. Kurulum dizini doluysa ve uygulamaya ait sahiplik işaretçisi yoksa işlem durur; mevcut dosyalar üzerine yazılmaz.
 - **Sürüm eşleşmesi:** yerel kurulumun kaynak commit'i kayıtlıysa uzak sunucu aynı commit'in GHCR `sha-` imajıyla kurulur; commit bilgisi yoksa `latest` kullanılır. Güncellemede Compose imaj referansı ve modül birlikte yenilenir.
-- **HTTPS seçenekleri:** boş 80/443 portlarında Caddy otomatik HTTPS veya mevcut Nginx/OpenLiteSpeed/CyberPanel reverse proxy'si arkasında çalışma.
+- **Erişim türleri:** Domain, LAN IPv4 ve Public IPv4 profilleri. Domain modunda Caddy otomatik TLS veya mevcut Nginx/OpenLiteSpeed/CyberPanel reverse proxy kullanılabilir. LAN ve Public IP modları Caddy ile HTTPS kullanır; düz HTTP olarak internete açılmaz.
 - **Servis yönetimi:** imaj çekme, başlatma, durdurma, yeniden başlatma, sağlık kontrolü ve canlı servis günlükleri.
 - **SFTP dosya yöneticisi:** kurulum dizini içinde klasör listeleme, dosya yükleme/indirme, klasör oluşturma ve dosya/boş klasör silme. Sembolik bağlantılar listelenmez; üst dizine çıkılamaz.
 - **Güncelleme/kaldırma:** oyun/modül verileri korunarak WASM ve sunucu imajı güncellenir. Normal kaldırma konteynerleri siler ama oyun dosyalarını ve kalıcı kayıt volume'ünü korur. Ayrı ve iki kez onaylanan tam silme seçeneği yalnızca ilgili Compose projesinin konteyner/volume'lerini ve seçilmiş kurulum dizinini kaldırır.
 
 SSH parolaları ve anahtar parolaları bağlantı profillerine kaydedilmez. İlk bağlantıda gösterilen host-key parmak izi sağlayıcının konsolu veya başka güvenilir bir kanal üzerinden doğrulanmalıdır. VPS kurulumu için kendi oyun klasörünüz ve yerel kurulumdan/derlemeden çıkan modül dosyaları gereklidir. Caddy modunda DNS kaydı VPS IP adresine yönlenmeli ve 80/443 portları boş olmalıdır; mevcut proxy modunda proxy, `127.0.0.1:8080` (veya seçtiğiniz iç port) hedefine yönlendirilmelidir.
+
+
+## 🌐 Uzak yayın profilleri
+
+Uzak sunucu dağıtımında oyuncuların erişeceği adres tipi ayrı seçilir. SSH bağlantısında kullanılan VPS adresi ile oyuncuların kullanacağı adres birbirinden bağımsızdır.
+
+| Mod | Oyuncu adresi | TLS davranışı |
+|---|---|---|
+| **Yerel ağ (LAN)** | `https://192.168.x.x/` | Caddy yalnızca seçilen özel LAN IPv4 adresine bağlanır ve yerel CA sertifikası üretir. Sertifika Windows'a indirilebilir; oyuna girecek her istemci cihazı da bu CA'yı güvenilir kök sertifikalara eklemelidir. |
+| **Public IP** | `https://PUBLIC_IPV4/` | Caddy, Let's Encrypt ACME `shortlived` profiliyle IP adresi sertifikası alır ve otomatik yeniler. Sabit/yönlendirilebilir IPv4 ve sunucuya ulaşan TCP 80/443 gerekir. Sertifika 160 saatlik kısa ömürlüdür. |
+| **Domain** | `https://game.example.com/` | DNS kaydı VPS'ye yönlendirilir. Caddy otomatik HTTPS alabilir veya mevcut Nginx/OpenLiteSpeed/CyberPanel proxy'si kullanılabilir. |
+
+LAN modunda uygulama `lan-ca-root.crt` dosyasını SFTP ile indirir. Windows sertifika sihirbazında **Geçerli Kullanıcı → Güvenilen Kök Sertifika Yetkilileri** deposuna yerleştir. Android, iOS ve diğer bilgisayarlarda da ilgili cihazın sertifika deposuna ayrıca eklenmesi gerekir. Bu güven kurulumu yapılmazsa tarayıcı HTTPS bağlantısını güvenilir saymayabilir.
+
+Public IP modu, IP sertifikası için ACME kısa ömürlü profilini kullanır. IP adresi dinamik/NAT arkasındaysa, port yönlendirmesi yoksa veya sağlayıcı güvenlik duvarı 80/443'ü kapatıyorsa doğrulama başarısız olur; böyle durumlarda domain ya da LAN profili kullan.
 
 ## ⚙️ Nasıl çalışır?
 
@@ -221,7 +236,7 @@ Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme ar
 
 <div align="center">
 
-**NFSU2 Server control** · **v1.8.1**
+**NFSU2 Server control** · **v1.9.0**
 
 *Install · Update · Maintain · Remove*
 

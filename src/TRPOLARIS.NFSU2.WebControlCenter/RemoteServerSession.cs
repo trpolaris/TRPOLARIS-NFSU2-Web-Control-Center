@@ -327,7 +327,7 @@ internal sealed class RemoteServerSession : IDisposable
 
     private static void EnsureRemotePathIsSafe(SftpClient sftp, string path, bool requireLeafDirectory)
     {
-        string normalized = (path ?? "").Replace('\\', '/');
+        string normalized = (path ?? "").Replace('\\\\', '/');
         if (!normalized.StartsWith("/", StringComparison.Ordinal) ||
             normalized.Split('/').Any(part => part is "." or ".."))
             throw new InvalidOperationException("SFTP yolu mutlak olmalı ve üst dizin parçaları içeremez.");
@@ -339,16 +339,21 @@ internal sealed class RemoteServerSession : IDisposable
 
         for (int i = 0; i < parts.Length; i++)
         {
-            current = current == "/" ? current + parts[i] : current + "/" + parts[i];
-            bool leaf = i == parts.Length - 1;
-            var attributes = sftp.GetAttributes(current);
-            if (attributes.IsSymbolicLink)
+            var entry = sftp.ListDirectory(current)
+                .FirstOrDefault(x => string.Equals(x.Name, parts[i], StringComparison.Ordinal));
+            if (entry is null)
+                throw new FileNotFoundException("SFTP yolunun bir bileşeni bulunamadı.", current + parts[i]);
+            if (entry.Attributes.IsSymbolicLink)
                 throw new InvalidOperationException("SFTP yolunda sembolik bağlantı bulundu; güvenlik nedeniyle işlem durduruldu.");
+
+            bool leaf = i == parts.Length - 1;
             if (!leaf || requireLeafDirectory)
             {
-                if (!attributes.IsDirectory)
+                if (!entry.IsDirectory)
                     throw new InvalidOperationException("SFTP yolunun ara bileşeni normal bir klasör değil.");
             }
+
+            current = current == "/" ? current + parts[i] : current + "/" + parts[i];
         }
     }
 

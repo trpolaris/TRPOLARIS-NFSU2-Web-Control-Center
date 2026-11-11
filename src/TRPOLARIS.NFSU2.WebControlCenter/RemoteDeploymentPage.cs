@@ -387,31 +387,14 @@ public partial class MainWindow
         """;
     }
 
-    private static string BuildRemoteCaddyfile(string domain, int port) => $"""
-        {{
-            admin off
-        }}
-        http://{domain} {{
-            header -Server
-            redir https://{{host}}{{uri}} 308
-        }}
-        :80 {{
-            abort
-        }}
-        :443 {{
-            abort
-        }}
-        {domain} {{
-            reverse_proxy 127.0.0.1:{port} {{
-                header_up CF-Connecting-IP {{client_ip}}
-            }}
-            header -Server
-            header -Via
-            handle_errors {{
-                header -Server
-            }}
-        }}
-        """;
+    private static string BuildRemoteCaddyfile(string domain, int port) =>
+        "{\n    admin off\n}\n" +
+        "http://" + domain + " {\n    header -Server\n    redir https://{host}{uri} 308\n}\n" +
+        ":80 {\n    abort\n}\n" +
+        ":443 {\n    abort\n}\n" +
+        domain + " {\n    reverse_proxy 127.0.0.1:" + port.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        " {\n        header_up CF-Connecting-IP {client_ip}\n    }\n    header -Server\n    header -Via\n" +
+        "    handle_errors {\n        header -Server\n    }\n}\n";
 
     private static string BuildRemotePrepareCommand(string root, bool useCaddy)
     {
@@ -426,7 +409,10 @@ public partial class MainWindow
         set -eu
         if [ "$(id -u)" -ne 0 ]; then
             command -v sudo >/dev/null 2>&1 || exit 20
-            sudo -n true || {{ echo '[ERROR] Root or passwordless sudo is required.' >&2; exit 21; }}
+            if ! sudo -n true; then
+                echo '[ERROR] Root or passwordless sudo is required.' >&2
+                exit 21
+            fi
             SUDO='sudo -n'
         else
             SUDO=''

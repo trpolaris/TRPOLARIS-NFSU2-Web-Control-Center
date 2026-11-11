@@ -33,8 +33,8 @@ internal sealed class ThemedDialogWindow : Window
         ShowInTaskbar = false;
         ShowActivated = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = Brush("#081523");
-        Foreground = Brush("#EDF4FC");
+        Background = Brush("#0A1020");
+        Foreground = Brush("#EDF3FF");
         FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI");
         SnapsToDevicePixels = true;
         UseLayoutRounding = true;
@@ -49,8 +49,8 @@ internal sealed class ThemedDialogWindow : Window
         var captionBar = new Border
         {
             Height = 44,
-            Background = Brush("#0A1828"),
-            BorderBrush = Brush("#20384E"),
+            Background = Brush("#0D1527"),
+            BorderBrush = Brush("#263858"),
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(17, 0, 8, 0)
         };
@@ -62,7 +62,7 @@ internal sealed class ThemedDialogWindow : Window
             Text = "NFSU2 SERVER CONTROL",
             FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = Brush("#68DCCC"),
+            Foreground = Brush("#70A5FF"),
             VerticalAlignment = VerticalAlignment.Center
         };
         captionGrid.Children.Add(appLabel);
@@ -74,7 +74,7 @@ internal sealed class ThemedDialogWindow : Window
             FontSize = 19,
             Padding = new Thickness(0),
             Margin = new Thickness(6, 0, 0, 0),
-            Foreground = Brush("#D9E8F5"),
+            Foreground = Brush("#D7E3F8"),
             Background = Brush("Transparent"),
             BorderBrush = Brush("Transparent"),
             BorderThickness = new Thickness(0),
@@ -104,7 +104,7 @@ internal sealed class ThemedDialogWindow : Window
             Width = 42,
             Height = 42,
             CornerRadius = new CornerRadius(14),
-            Background = Brush("#182A3D"),
+            Background = Brush("#182540"),
             BorderBrush = Brush(accent),
             BorderThickness = new Thickness(1),
             VerticalAlignment = VerticalAlignment.Top,
@@ -127,7 +127,7 @@ internal sealed class ThemedDialogWindow : Window
             FontSize = 13,
             LineHeight = 21,
             TextWrapping = TextWrapping.Wrap,
-            Foreground = Brush("#EAF3FC"),
+            Foreground = Brush("#EDF3FF"),
             VerticalAlignment = VerticalAlignment.Center
         };
         var messageScroll = new ScrollViewer
@@ -144,7 +144,7 @@ internal sealed class ThemedDialogWindow : Window
             Text = caption,
             FontSize = 16,
             FontWeight = FontWeights.SemiBold,
-            Foreground = Brush("#F1F7FF"),
+            Foreground = Brush("#EDF3FF"),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 10)
         });
@@ -156,8 +156,8 @@ internal sealed class ThemedDialogWindow : Window
 
         var footer = new Border
         {
-            Background = Brush("#0B1A2A"),
-            BorderBrush = Brush("#20384E"),
+            Background = Brush("#0D1527"),
+            BorderBrush = Brush("#263858"),
             BorderThickness = new Thickness(0, 1, 0, 0),
             Padding = new Thickness(20, 13, 20, 13)
         };
@@ -187,9 +187,9 @@ internal sealed class ThemedDialogWindow : Window
             }
             catch
             {
-                button.Background = Brush(item.IsDefault ? "#176B70" : "#1A2C40");
-                button.Foreground = Brush("#EDF4FC");
-                button.BorderBrush = Brush("#36536A");
+                button.Background = Brush(item.IsDefault ? "#3E6EB2" : "#182540");
+                button.Foreground = Brush("#EDF3FF");
+                button.BorderBrush = Brush("#354B70");
             }
             var result = item.Result;
             button.Click += (_, _) => Finish(result);
@@ -201,8 +201,8 @@ internal sealed class ThemedDialogWindow : Window
 
         var shell = new Border
         {
-            Background = Brush("#081523"),
-            BorderBrush = Brush("#31506A"),
+            Background = Brush("#0A1020"),
+            BorderBrush = Brush("#263858"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(13),
             ClipToBounds = true,
@@ -263,10 +263,10 @@ internal sealed class ThemedDialogWindow : Window
 
     private static (string Accent, string Glyph) GetIconStyle(MessageBoxImage image) => image switch
     {
-        MessageBoxImage.Error or MessageBoxImage.Hand or MessageBoxImage.Stop => ("#FF7187", "×"),
-        MessageBoxImage.Warning or MessageBoxImage.Exclamation => ("#FFC16F", "!"),
-        MessageBoxImage.Question => ("#83ACFF", "?"),
-        _ => ("#43E4D0", "i")
+        MessageBoxImage.Error or MessageBoxImage.Hand or MessageBoxImage.Stop => ("#F47C93", "×"),
+        MessageBoxImage.Warning or MessageBoxImage.Exclamation => ("#F6C66B", "!"),
+        MessageBoxImage.Question => ("#9C8CFF", "?"),
+        _ => ("#70A5FF", "i")
     };
 
     private static IEnumerable<(string Label, MessageBoxResult Result, bool IsDefault, bool IsCancel)> GetButtons(MessageBoxButton buttons)

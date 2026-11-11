@@ -21,6 +21,16 @@ public partial class MainWindow
     private PasswordBox? _remoteKeyPassphraseBox;
     private TextBlock? _remoteConnectionState;
     private TextBox? _remoteDiagnosticsBox;
+    private TextBox? _remoteGameFolderBox;
+    private TextBox? _remoteWasmPathBox;
+    private TextBox? _remoteJsonPathBox;
+    private TextBox? _remoteDomainBox;
+    private TextBox? _remoteInstallRootBox;
+    private TextBox? _remoteHttpPortBox;
+    private ComboBox? _remoteProxyModeBox;
+    private TextBlock? _remoteDeploymentState;
+    private ProgressBar? _remoteDeploymentProgress;
+
 
     private UIElement BuildRemotePage()
     {
@@ -194,6 +204,123 @@ public partial class MainWindow
         columns.Children.Add(statusPanel);
 
         root.Children.Add(columns);
+
+        var deployPanel = RemotePanel();
+        var deployStack = NewStack(10);
+        deployStack.Children.Add(RemoteSectionTitle("UZAK SUNUCU KURULUMU VE YÖNETİMİ"));
+        deployStack.Children.Add(new TextBlock
+        {
+            Text = "Kullanıcının kendi oyun klasöründen gerekli dosyalar güvenli dosya listesiyle VPS'ye aktarılır. WASM modülü yerel NFSU2 modül çıktısından alınır. Oyun arşivi veya başka kişisel dosyalar gönderilmez.",
+            Foreground = BrushHex("#9FB4C8"),
+            FontSize = 10,
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        _remoteGameFolderBox = RemoteTextBox();
+        _remoteGameFolderBox.Text = Nfsu2ConfigStore.Read(RootDir).Install.WindowsGameDirectory;
+        _remoteWasmPathBox = RemoteTextBox();
+        _remoteWasmPathBox.Text = Path.Combine(RootDir, "module", "nfsu2.wasm");
+        _remoteJsonPathBox = RemoteTextBox();
+        _remoteJsonPathBox.Text = Path.Combine(RootDir, "module", "nfsu2.json");
+        _remoteDomainBox = RemoteTextBox();
+        _remoteInstallRootBox = RemoteTextBox();
+        _remoteInstallRootBox.Text = "/srv/nfsu2";
+        _remoteHttpPortBox = RemoteTextBox();
+        _remoteHttpPortBox.Text = "8080";
+        _remoteProxyModeBox = new ComboBox
+        {
+            Height = 36,
+            Background = BrushHex("#0A1724"),
+            Foreground = BrushHex("#EAF3FD"),
+            BorderBrush = BrushHex("#34506A"),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(8, 5, 8, 5),
+            ItemsSource = new[] { "Caddy ile otomatik HTTPS (80/443 boş olmalı)", "Mevcut Nginx / OpenLiteSpeed / CyberPanel proxy" },
+            SelectedIndex = 0
+        };
+
+        var gameRow = new DockPanel { LastChildFill = true };
+        gameRow.Children.Add(RemoteField("Yerel NFSU2 oyun klasörü (SPEED2.EXE içermeli)", _remoteGameFolderBox));
+        var gameBrowse = MakeButton("Klasör seç", "SecondaryButton", BrowseRemoteGameFolder, new Thickness(8, 21, 0, 0));
+        DockPanel.SetDock(gameBrowse, Dock.Right);
+        gameRow.Children.Insert(0, gameBrowse);
+        deployStack.Children.Add(gameRow);
+
+        var wasmRow = new Grid();
+        wasmRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        wasmRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        wasmRow.Children.Add(RemoteField("WASM modülü", _remoteWasmPathBox));
+        var wasmBrowse = MakeButton("Dosya seç", "SecondaryButton", BrowseRemoteWasm, new Thickness(8, 21, 0, 0));
+        wasmBrowse.MinWidth = 84;
+        Grid.SetColumn(wasmBrowse, 1);
+        wasmRow.Children.Add(wasmBrowse);
+        deployStack.Children.Add(wasmRow);
+
+        var jsonRow = new Grid();
+        jsonRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        jsonRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        jsonRow.Children.Add(RemoteField("WASM sürüm bilgisi (nfsu2.json)", _remoteJsonPathBox));
+        var jsonBrowse = MakeButton("Dosya seç", "SecondaryButton", BrowseRemoteJson, new Thickness(8, 21, 0, 0));
+        jsonBrowse.MinWidth = 84;
+        Grid.SetColumn(jsonBrowse, 1);
+        jsonRow.Children.Add(jsonBrowse);
+        deployStack.Children.Add(jsonRow);
+
+        deployStack.Children.Add(RemoteField("Oyuncuların kullanacağı domain (DNS bu VPS IP adresine yönelmeli)", _remoteDomainBox));
+
+        var configGrid = new Grid();
+        configGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        configGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) });
+        configGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        configGrid.Children.Add(RemoteField("Kurulum dizini", _remoteInstallRootBox));
+        var httpField = RemoteField("İç HTTP portu", _remoteHttpPortBox);
+        httpField.Margin = new Thickness(8, 0, 0, 0);
+        Grid.SetColumn(httpField, 1);
+        configGrid.Children.Add(httpField);
+        var proxyField = RemoteField("HTTPS / reverse proxy", _remoteProxyModeBox);
+        proxyField.Margin = new Thickness(8, 0, 0, 0);
+        Grid.SetColumn(proxyField, 2);
+        configGrid.Children.Add(proxyField);
+        deployStack.Children.Add(configGrid);
+
+        _remoteDeploymentState = new TextBlock
+        {
+            Text = "Kurulum veya güncelleme için uzak sunucuya bağlan.",
+            Foreground = BrushHex("#E5B65B"),
+            FontSize = 10,
+            TextWrapping = TextWrapping.Wrap
+        };
+        deployStack.Children.Add(_remoteDeploymentState);
+        _remoteDeploymentProgress = new ProgressBar
+        {
+            Height = 7,
+            Minimum = 0,
+            Maximum = 100,
+            Value = 0,
+            Background = BrushHex("#091421"),
+            Foreground = BrushHex("#42C9C0")
+        };
+        deployStack.Children.Add(_remoteDeploymentProgress);
+
+        var deployButtons = new WrapPanel { Orientation = Orientation.Horizontal };
+        deployButtons.Children.Add(MakeButton("Uzak kurulumu başlat", "ModernButton", async (_, _) => await InstallRemoteServerAsync(), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("Altyapıyı güncelle", "SecondaryButton", async (_, _) => await UpdateRemoteServerAsync(), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("Sunucuyu başlat", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("start"), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("Sunucuyu durdur", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("stop"), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("Yeniden başlat", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("restart"), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("Canlı günlükler", "SecondaryButton", async (_, _) => await ReadRemoteLogsAsync(), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("Uzak kurulumu kaldır", "DangerButton", async (_, _) => await UninstallRemoteServerAsync(), new Thickness(0, 0, 7, 7)));
+        deployStack.Children.Add(deployButtons);
+        deployStack.Children.Add(new TextBlock
+        {
+            Text = "Kaldırma işlemi varsayılan olarak Docker konteynerlerini ve uygulama tanım dosyalarını kaldırır; oyun dosyaları, modül ve kalıcı kayıt hacmi korunur. Kalıcı verileri silen seçenek ayrıca ve açık onayla sunulacaktır.",
+            Foreground = BrushHex("#8FA8BD"),
+            FontSize = 10,
+            TextWrapping = TextWrapping.Wrap
+        });
+        deployPanel.Child = deployStack;
+        root.Children.Add(deployPanel);
+
         RefreshRemoteProfileList(_activeRemoteProfileId);
         return new ScrollViewer
         {

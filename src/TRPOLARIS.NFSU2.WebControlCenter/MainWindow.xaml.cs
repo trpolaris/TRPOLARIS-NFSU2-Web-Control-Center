@@ -3644,14 +3644,21 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             if (dockerReady && !string.IsNullOrWhiteSpace(dockerExe))
             {
                 var ps = await RunCommandAsync(dockerExe, new[] { "ps", "-a", "--format", "{{.Names}}|{{.Image}}|{{.Status}}" }, TimeSpan.FromSeconds(7), logOutput: false);
-                var found = ps.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .FirstOrDefault(line => line.Contains("nfsu2", StringComparison.OrdinalIgnoreCase)
-                        && (line.Contains("server", StringComparison.OrdinalIgnoreCase) || line.Contains("nfsu2-web-rs", StringComparison.OrdinalIgnoreCase)));
-                if (found is not null)
+                if (ps.ExitCode != 0)
                 {
-                    var columns = found.Split('|', 3);
-                    serverState = columns.Length >= 3 ? columns[2].Trim() : found.Trim();
-                    serverContainerRunning = serverState.StartsWith("Up ", StringComparison.OrdinalIgnoreCase);
+                    serverState = $"Docker Engine yanıt verdi ancak konteyner listesi alınamadı (kod {ps.ExitCode})";
+                }
+                else
+                {
+                    var found = ps.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                        .FirstOrDefault(line => line.Contains("nfsu2", StringComparison.OrdinalIgnoreCase)
+                            && (line.Contains("server", StringComparison.OrdinalIgnoreCase) || line.Contains("nfsu2-web-rs", StringComparison.OrdinalIgnoreCase)));
+                    if (found is not null)
+                    {
+                        var columns = found.Split('|', 3);
+                        serverState = columns.Length >= 3 ? columns[2].Trim() : found.Trim();
+                        serverContainerRunning = serverState.StartsWith("Up ", StringComparison.OrdinalIgnoreCase);
+                    }
                 }
             }
 
@@ -4831,6 +4838,17 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             return;
         }
         AppendLog("=== NFSU2 Docker tanılaması ===", "INFO");
+        var engine = await RunCommandAsync(docker,
+            new[] { "version", "--format", "{{.Server.Version}}" },
+            TimeSpan.FromSeconds(10), logOutput: false);
+        if (engine.ExitCode != 0 || string.IsNullOrWhiteSpace(engine.Output))
+        {
+            AppendLog("Docker CLI bulundu ancak Docker Engine yanıt vermiyor. Konteyner sorgusu yapılmadı; Docker Desktop/Linux Engine bağlantısını kontrol et.", "UYARI");
+            if (!string.IsNullOrWhiteSpace(engine.Output))
+                AppendLog(engine.Output.Trim(), "UYARI", "WSL");
+            return;
+        }
+        AppendLog("Docker Engine erişilebilir: " + engine.Output.Trim(), "OK");
         var list = await RunCommandAsync(docker,
             new[] { "ps", "-a", "--filter", "name=nfsu2", "--format", "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}" },
             TimeSpan.FromSeconds(12), logCategory: "WSL");
@@ -5091,17 +5109,33 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             var docker = FindDockerExe();
             if (tunnel) await StopOwnedTunnelAsync();
-            var targetContainers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (docker is not null && containers)
+            bool dockerEngineReady = false;
+            if (docker is not null && (containers || images || volume))
             {
+                var engineProbe = await RunCommandAsync(docker,
+                    new[] { "version", "--format", "{{.Server.Version}}" },
+                    TimeSpan.FromSeconds(10), logOutput: false);
+                dockerEngineReady = engineProbe.ExitCode == 0 && !string.IsNullOrWhiteSpace(engineProbe.Output);
+                if (!dockerEngineReady)
+                {
+                    cleanupHadWarnings = true;
+                    AppendLog("Docker CLI bulundu ancak Engine erişilemiyor. Güvenlik için konteyner, imaj ve volume temizliği atlandı; diğer seçili Windows/WSL adımları ayrıca işlenecek.", "UYARI");
+                    if (!string.IsNullOrWhiteSpace(engineProbe.Output))
+                        AppendLog(engineProbe.Output.Trim(), "UYARI", "WSL");
+                }
+            }
+            var targetContainers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (docker is not null && dockerEngineReady && containers)
+            {
+                bool containerQueryFailed = false;
                 foreach (var label in new[] { "nfsu2-web-local", "nfsu2-web", "nfsu2-web-rs" })
                 {
                     var query = await RunCommandAsync(docker, new[] { "ps", "-a", "--filter", "label=com.docker.compose.project=" + label, "--format", "{{.ID}}|{{.Names}}|{{.Image}}" }, TimeSpan.FromSeconds(10), logOutput: false);
-                    if (query.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"NFSU2 konteyner sorgusu başarısız (kod {query.ExitCode}); Docker Engine durumunu kontrol et.", "HATA"); }
+                    if (query.ExitCode != 0) { containerQueryFailed = true; cleanupHadWarnings = true; AppendLog($"NFSU2 konteyner sorgusu başarısız (kod {query.ExitCode}); bu sorguya göre konteyner bulunmadığı varsayılmayacak.", "HATA"); }
                     foreach (var line in query.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) { var parts = line.Split('|'); if (parts.Length >= 3) targetContainers.Add(parts[0].Trim()); }
                 }
                 var all = await RunCommandAsync(docker, new[] { "ps", "-a", "--format", "{{.ID}}|{{.Names}}|{{.Image}}" }, TimeSpan.FromSeconds(10), logOutput: false);
-                if (all.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"Docker konteyner listesi alınamadı (kod {all.ExitCode}).", "HATA"); }
+                if (all.ExitCode != 0) { containerQueryFailed = true; cleanupHadWarnings = true; AppendLog($"Docker konteyner listesi alınamadı (kod {all.ExitCode}).", "HATA"); }
                 foreach (var line in all.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     var p = line.Split('|'); if (p.Length < 3) continue; var name=p[1].Trim(); var img=p[2].Trim();
@@ -5112,10 +5146,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                     var removeContainer = await RunCommandAsync(docker, new[] { "rm", "-f", id }, TimeSpan.FromSeconds(30));
                     if (removeContainer.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"NFSU2 konteyneri kaldırılamadı: {id} (kod {removeContainer.ExitCode}).", "HATA"); }
                 }
-                if (targetContainers.Count == 0) AppendLog("NFSU2 konteyneri bulunamadı; başka konteynerlere dokunulmadı.", "UYARI");
+                if (targetContainers.Count == 0 && !containerQueryFailed)
+                    AppendLog("Docker Engine erişilebilir; NFSU2 konteyneri bulunamadı. Başka konteynerlere dokunulmadı.", "UYARI");
+                else if (targetContainers.Count == 0 && containerQueryFailed)
+                    AppendLog("NFSU2 konteynerinin varlığı doğrulanamadı; sorgu başarısız olduğu için başka konteynerlere dokunulmadı.", "UYARI");
             }
             if (docker is null && (containers || images || volume)) { cleanupHadWarnings = true; AppendLog("Docker CLI bulunamadı; seçilen Docker kaynakları temizlenemedi.", "UYARI"); }
-            if (images && docker is not null)
+            if (images && docker is not null && dockerEngineReady)
             {
                 var imagesResult = await RunCommandAsync(docker, new[] { "images", "--format", "{{.Repository}}:{{.Tag}}|{{.ID}}" }, TimeSpan.FromSeconds(10), logOutput: false);
                 if (imagesResult.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"Docker imaj listesi alınamadı (kod {imagesResult.ExitCode}).", "HATA"); }
@@ -5129,7 +5166,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                     }
                 }
             }
-            if (volume && docker is not null)
+            if (volume && docker is not null && dockerEngineReady)
             {
                 foreach (var vol in new[] { "nfsu2-web-local_state", "nfsu2-web_state", "nfsu2-web-local-state" })
                 {

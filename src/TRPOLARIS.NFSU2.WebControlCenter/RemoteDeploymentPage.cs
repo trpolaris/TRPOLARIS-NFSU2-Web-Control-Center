@@ -505,13 +505,14 @@ public partial class MainWindow
     {
         string url = useCaddy ? "https://" + domain + "/game.json" : "http://127.0.0.1:" + port + "/game.json";
         string tls = useCaddy ? "-k --resolve " + domain + ":443:127.0.0.1" : "";
+        string hostHeader = useCaddy ? "" : "-H " + ShellQuote("Host: " + domain);
         string status = BuildRemoteComposeCommand(root, "ps").TrimEnd();
         string publicUrl = useCaddy ? "https://" + domain + "/" : "http://127.0.0.1:" + port + "/ (reverse proxy hedefi)";
         return $"""
         set -eu
         {status}
         for attempt in $(seq 1 90); do
-            if curl --noproxy '*' {tls} -fsS --max-time 4 {ShellQuote(url)} -o /dev/null; then
+            if curl --noproxy '*' {tls} {hostHeader} -fsS --max-time 4 {ShellQuote(url)} -o /dev/null; then
                 echo '[OK] NFSU2 server responds to /game.json.'
                 echo 'URL: {publicUrl}'
                 exit 0

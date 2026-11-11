@@ -62,7 +62,8 @@ Uygulama aynı Windows EXE içinden yerel Windows/WSL kurulumunu veya uzak Ubunt
 - **Docker dağıtımı:** Ubuntu/Debian üzerinde Docker Engine ve Compose denetlenir; eksikse root veya parola istemeyen sudo ile kurulur.
 - **HTTPS seçenekleri:** boş 80/443 portlarında Caddy otomatik HTTPS veya mevcut Nginx/OpenLiteSpeed/CyberPanel reverse proxy'si arkasında çalışma.
 - **Servis yönetimi:** imaj çekme, başlatma, durdurma, yeniden başlatma, sağlık kontrolü ve canlı servis günlükleri.
-- **Güncelleme/kaldırma:** oyun/modül verileri korunarak WASM ve sunucu imajı güncellenir. Normal kaldırma konteynerleri siler ama oyun dosyalarını ve kalıcı kayıt volume'ünü korur.
+- **SFTP dosya yöneticisi:** kurulum dizini içinde klasör listeleme, dosya yükleme/indirme, klasör oluşturma ve dosya/boş klasör silme. Sembolik bağlantılar listelenmez; üst dizine çıkılamaz.
+- **Güncelleme/kaldırma:** oyun/modül verileri korunarak WASM ve sunucu imajı güncellenir. Normal kaldırma konteynerleri siler ama oyun dosyalarını ve kalıcı kayıt volume'ünü korur. Ayrı ve iki kez onaylanan tam silme seçeneği yalnızca ilgili Compose projesinin konteyner/volume'lerini ve seçilmiş kurulum dizinini kaldırır.
 
 SSH parolaları ve anahtar parolaları bağlantı profillerine kaydedilmez. İlk bağlantıda gösterilen host-key parmak izi sağlayıcının konsolu veya başka güvenilir bir kanal üzerinden doğrulanmalıdır. VPS kurulumu için kendi oyun klasörünüz ve yerel kurulumdan/derlemeden çıkan modül dosyaları gereklidir. Caddy modunda DNS kaydı VPS IP adresine yönlenmeli ve 80/443 portları boş olmalıdır; mevcut proxy modunda proxy, `127.0.0.1:8080` (veya seçtiğiniz iç port) hedefine yönlendirilmelidir.
 

@@ -61,7 +61,7 @@ public partial class MainWindow
             await RunRemoteDeploymentOperationAsync("Uzak sunucu kurulumu", async progress =>
             {
                 progress.Report((2, "Linux ve Docker ön koşulları denetleniyor"));
-                string prepared = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemotePrepareCommand(installRoot, useCaddy), TimeSpan.FromMinutes(8));
+                string prepared = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemotePrepareCommand(installRoot, useCaddy, port), TimeSpan.FromMinutes(8));
                 AppendRemoteOutput("Uzak Docker hazırlığı", prepared);
 
                 progress.Report((8, "Oyun dosyaları ve modül SFTP ile aktarılıyor"));
@@ -396,7 +396,7 @@ public partial class MainWindow
         " {\n        header_up CF-Connecting-IP {client_ip}\n    }\n    header -Server\n    header -Via\n" +
         "    handle_errors {\n        header -Server\n    }\n}\n";
 
-    private static string BuildRemotePrepareCommand(string root, bool useCaddy)
+    private static string BuildRemotePrepareCommand(string root, bool useCaddy, int port)
     {
         string checkPorts = useCaddy ? """
         if ss -ltnH '( sport = :80 or sport = :443 )' 2>/dev/null | grep -q .; then
@@ -405,6 +405,12 @@ public partial class MainWindow
         fi
         """ : "";
         string quotedRoot = ShellQuote(root);
+        string internalPortCheck = $"""
+        if ss -ltnH 'sport = :{port}' 2>/dev/null | grep -q .; then
+            echo '[ERROR] The selected internal HTTP port is already in use. Choose another port.' >&2
+            exit 32
+        fi
+        """;
         return $"""
         set -eu
         if [ "$(id -u)" -ne 0 ]; then
@@ -420,6 +426,7 @@ public partial class MainWindow
         . /etc/os-release
         case "$ID" in ubuntu|debian) ;; *) echo "[ERROR] Ubuntu/Debian required; found $PRETTY_NAME"; exit 22;; esac
         {checkPorts}
+        {internalPortCheck}
         if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
             $SUDO apt-get update
             DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y docker.io docker-compose-v2
@@ -429,7 +436,12 @@ public partial class MainWindow
         $SUDO mkdir -p {quotedRoot}/game {quotedRoot}/module
         $SUDO chown -R "$(id -u):$(id -g)" {quotedRoot}
         chmod 755 {quotedRoot} {quotedRoot}/game {quotedRoot}/module
-        echo '[OK] Docker Engine, Compose and target folders are ready.'
+        available_kb="$(df -Pk {quotedRoot} | awk 'NR==2 {{print $4}}')"
+        if [ "$available_kb" -lt 5000000 ]; then
+            echo '[ERROR] Less than 5 GB of free disk space is available on the target filesystem.' >&2
+            exit 33
+        fi
+        echo '[OK] Docker Engine, Compose, target folders, HTTP port and free disk space are ready.'
         """;
     }
 
@@ -443,7 +455,7 @@ public partial class MainWindow
     private static string BuildRemoteHealthCommand(string root, string domain, int port, bool useCaddy)
     {
         string url = useCaddy ? "https://" + domain + "/game.json" : "http://127.0.0.1:" + port + "/game.json";
-        string tls = useCaddy ? "-k" : "";
+        string tls = useCaddy ? "-k --resolve " + domain + ":443:127.0.0.1" : "";
         string status = BuildRemoteComposeCommand(root, "ps").TrimEnd();
         string publicUrl = useCaddy ? "https://" + domain + "/" : "http://127.0.0.1:" + port + "/ (reverse proxy hedefi)";
         return $"""

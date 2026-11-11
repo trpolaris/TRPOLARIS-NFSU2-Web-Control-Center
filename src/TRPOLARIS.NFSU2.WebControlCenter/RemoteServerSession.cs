@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using Renci.SshNet.Sftp;
 
 namespace TRPOLARIS.NFSU2.WebControlCenter;
 
@@ -36,6 +37,8 @@ internal sealed class RemoteServerSession : IDisposable
     private SshClient? _client;
     private PrivateKeyFile? _privateKeyFile;
     private string _receivedFingerprint = "";
+    private string _password = "";
+    private string _privateKeyPassphrase = "";
 
     public RemoteServerSession(RemoteServerProfile profile) =>
         _profile = profile ?? throw new ArgumentNullException(nameof(profile));
@@ -49,6 +52,8 @@ internal sealed class RemoteServerSession : IDisposable
     {
         Disconnect();
         _receivedFingerprint = "";
+        _password = password ?? "";
+        _privateKeyPassphrase = privateKeyPassphrase ?? "";
 
         AuthenticationMethod authentication;
         if (string.Equals(_profile.AuthenticationMode, "private-key", StringComparison.OrdinalIgnoreCase))
@@ -137,6 +142,104 @@ internal sealed class RemoteServerSession : IDisposable
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task UploadFilesAsync(
+        IReadOnlyList<RemoteUploadItem> items,
+        IProgress<RemoteUploadProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        if (items.Count == 0) throw new ArgumentException("Yüklenecek dosya bulunamadı.", nameof(items));
+        if (!IsConnected) throw new InvalidOperationException("Önce uzak sunucuya bağlan.");
+
+        await Task.Run(() =>
+        {
+            using var sftp = new SftpClient(BuildConnectionInfo());
+            sftp.HostKeyReceived += HandleHostKeyReceived;
+            sftp.Connect();
+            if (!sftp.IsConnected) throw new InvalidOperationException("SFTP bağlantısı kurulamadı.");
+
+            try
+            {
+                long totalBytes = items.Sum(x => new FileInfo(x.LocalPath).Length);
+                long completedBytes = 0;
+                int completedFiles = 0;
+
+                foreach (var item in items)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var file = new FileInfo(item.LocalPath);
+                    if (!file.Exists) throw new FileNotFoundException("Yüklenecek yerel dosya bulunamadı.", item.LocalPath);
+                    EnsureRemoteDirectory(sftp, GetRemoteDirectory(item.RemotePath));
+
+                    string temporaryRemotePath = item.RemotePath + ".uploading";
+                    if (sftp.Exists(temporaryRemotePath)) sftp.DeleteFile(temporaryRemotePath);
+                    using var input = new FileStream(item.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    ulong lastReported = 0;
+                    sftp.UploadFile(input, temporaryRemotePath, true, uploaded =>
+                    {
+                        if (uploaded < lastReported) return;
+                        lastReported = uploaded;
+                        long aggregate = completedBytes + (long)Math.Min(uploaded, (ulong)long.MaxValue);
+                        progress?.Report(new RemoteUploadProgress(item.RelativePath, aggregate, totalBytes, completedFiles, items.Count));
+                    });
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (sftp.Exists(item.RemotePath)) sftp.DeleteFile(item.RemotePath);
+                    sftp.RenameFile(temporaryRemotePath, item.RemotePath);
+                    completedBytes += file.Length;
+                    completedFiles++;
+                    progress?.Report(new RemoteUploadProgress(item.RelativePath, completedBytes, totalBytes, completedFiles, items.Count));
+                }
+            }
+            finally
+            {
+                try { if (sftp.IsConnected) sftp.Disconnect(); } catch { }
+            }
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<string> ExecuteDeploymentCommandAsync(
+        string commandText,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(commandText) || commandText.Length > 16000)
+            throw new ArgumentException("Uzak işlem komutu geçersiz.", nameof(commandText));
+        return ExecuteAsync(commandText, timeout, cancellationToken);
+    }
+
+    private ConnectionInfo BuildConnectionInfo()
+    {
+        AuthenticationMethod authentication;
+        if (string.Equals(_profile.AuthenticationMode, "private-key", StringComparison.OrdinalIgnoreCase))
+        {
+            _privateKeyFile ??= string.IsNullOrEmpty(_privateKeyPassphrase)
+                ? new PrivateKeyFile(_profile.PrivateKeyPath)
+                : new PrivateKeyFile(_profile.PrivateKeyPath, _privateKeyPassphrase);
+            authentication = new PrivateKeyAuthenticationMethod(_profile.Username, _privateKeyFile);
+        }
+        else
+        {
+            authentication = new PasswordAuthenticationMethod(_profile.Username, _password);
+        }
+        return new ConnectionInfo(_profile.Host, _profile.Port, _profile.Username, authentication);
+    }
+
+    private static void EnsureRemoteDirectory(SftpClient sftp, string path)
+    {
+        string current = path.StartsWith("/", StringComparison.Ordinal) ? "/" : "";
+        foreach (string part in path.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = current == "/" ? current + part : current.Length == 0 ? part : current + "/" + part;
+            if (!sftp.Exists(current)) sftp.CreateDirectory(current);
+        }
+    }
+
+    private static string GetRemoteDirectory(string path)
+    {
+        int separator = path.LastIndexOf('/');
+        return separator <= 0 ? "/" : path[..separator];
+    }
+
     public void Disconnect()
     {
         var client = _client;
@@ -148,6 +251,8 @@ internal sealed class RemoteServerSession : IDisposable
         }
         _privateKeyFile?.Dispose();
         _privateKeyFile = null;
+        _password = "";
+        _privateKeyPassphrase = "";
     }
 
     public void Dispose() => Disconnect();

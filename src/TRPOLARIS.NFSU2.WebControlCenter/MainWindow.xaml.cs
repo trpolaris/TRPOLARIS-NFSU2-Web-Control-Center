@@ -601,69 +601,179 @@ public partial class MainWindow : Window
 
     private UIElement BuildDashboardPage()
     {
-        var root = NewStack(17);
-        root.Children.Add(Heading("Altyapı durumu", "Windows bilgisayarındaki NFSU2 Web sunucu kurulumunu ve onu çalıştıran altyapıyı tek ekrandan hazırla."));
+        var root = NewStack(18);
+        root.Children.Add(Heading(
+            "Operasyon merkezi",
+            "NFSU2 sunucusunun durumunu tek ekranda izle; yerel kurulum, uzak Linux dağıtımı ve bakım araçlarına buradan ulaş."));
 
         var hero = new Border
         {
-            CornerRadius = new CornerRadius(17), Padding = new Thickness(23),
-            BorderThickness = new Thickness(1), BorderBrush = BrushHex("#2C6070"),
-            Background = new LinearGradientBrush(BrushHex("#143448").Color, BrushHex("#101E31").Color, 0)
+            CornerRadius = new CornerRadius(18),
+            Padding = new Thickness(25),
+            BorderThickness = new Thickness(1),
+            BorderBrush = BrushHex("#B45E41"),
+            Background = new LinearGradientBrush(
+                BrushHex("#3A2D28").Color,
+                BrushHex("#222A2D").Color,
+                new Point(0, 0),
+                new Point(1, 1))
         };
         hero.Effect = new System.Windows.Media.Effects.DropShadowEffect
         {
-            Color = (Color)ColorConverter.ConvertFromString("#43E4D0"), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.10
+            Color = (Color)ColorConverter.ConvertFromString("#FF7043"),
+            BlurRadius = 24,
+            ShadowDepth = 0,
+            Opacity = 0.10
         };
+
         var heroGrid = new Grid();
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var heroText = NewStack(8);
-        heroText.Children.Add(MutedLabel("TRPOLARIS  /  DEPLOYMENT CONSOLE"));
+        var heroText = NewStack(9);
         heroText.Children.Add(new TextBlock
         {
-            Text = "Sunucunu kur.\nAltyapını güncel tut.", FontSize = 26, FontWeight = FontWeights.SemiBold,
-            Foreground = BrushHex("#F1F7FF"), TextWrapping = TextWrapping.Wrap
+            Text = "TRPOLARIS  /  SERVER OPERATIONS",
+            FontSize = 8,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF9878")
         });
         heroText.Children.Add(new TextBlock
         {
-            Text = "NFSU2 Server control yalnızca Windows kurulumunu, kaldırmayı ve WSL–Docker güncelleme zincirini yönetir. Web sitesinin veya oyunun iç yönetim ekranlarına müdahale etmez.",
-            FontSize = 11, Foreground = BrushHex("#A9BED1"), TextWrapping = TextWrapping.Wrap, MaxWidth = 610
+            Text = "Sunucu hazır.\nKontrol sende.",
+            FontSize = 30,
+            FontWeight = FontWeights.Bold,
+            LineHeight = 36,
+            Foreground = BrushHex("#FFF8EF"),
+            TextWrapping = TextWrapping.Wrap
         });
+        heroText.Children.Add(new TextBlock
+        {
+            Text = "Windows üzerinde yerel NFSU2 sunucusu kurabilir veya SSH ile Ubuntu/Debian makineye bağlanıp LAN, Public IP ve domain üzerinden yayın yapabilirsin.",
+            FontSize = 11,
+            Foreground = BrushHex("#D0C8BE"),
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 640
+        });
+        var heroTags = new WrapPanel { Margin = new Thickness(0, 5, 0, 0) };
+        foreach (string tag in new[] { "WINDOWS + WSL", "REMOTE SSH", "LAN / PUBLIC / DOMAIN" })
+        {
+            heroTags.Children.Add(new Border
+            {
+                Background = BrushHex("#3A302B"),
+                BorderBrush = BrushHex("#73513F"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(5),
+                Padding = new Thickness(8, 4, 8, 4),
+                Margin = new Thickness(0, 0, 7, 0),
+                Child = new TextBlock
+                {
+                    Text = tag,
+                    FontSize = 8,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = BrushHex("#E9DCCF")
+                }
+            });
+        }
+        heroText.Children.Add(heroTags);
         heroGrid.Children.Add(heroText);
-        var heroActions = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(24, 0, 0, 0), Width = 210 };
-        heroActions.Children.Add(MakeButton("＋  Sunucuyu kur", "ModernButton", (_, _) => ShowPage("Install")));
-        heroActions.Children.Add(MakeButton("↻  Altyapıyı güncelle", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(0, 9, 0, 0)));
+
+        var heroActions = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(26, 0, 0, 0),
+            Width = 205
+        };
+        heroActions.Children.Add(MakeButton("＋  Uzak sunucu ekle", "ModernButton", (_, _) => ShowPage("Remote")));
+        heroActions.Children.Add(MakeButton("Yerel sunucu kur", "SecondaryButton", (_, _) => ShowPage("Install"), new Thickness(0, 9, 0, 0)));
         Grid.SetColumn(heroActions, 1);
         heroGrid.Children.Add(heroActions);
         hero.Child = heroGrid;
         root.Children.Add(hero);
 
         var statusHeader = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        statusHeader.Children.Add(new TextBlock { Text = "BİLEŞEN SAĞLIĞI", Style = (Style)FindResource("Eyebrow"), VerticalAlignment = VerticalAlignment.Center });
-        statusHeader.Children.Add(new TextBlock { Text = "  ·  WSL 2 / Ubuntu / Docker / Sunucu", FontSize = 9, Foreground = BrushHex("#6F879E"), VerticalAlignment = VerticalAlignment.Center });
+        statusHeader.Children.Add(new TextBlock
+        {
+            Text = "SİSTEM SAĞLIĞI",
+            FontSize = 8,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF8968"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        statusHeader.Children.Add(new TextBlock
+        {
+            Text = "  /  Windows host · WSL 2 · Ubuntu · Docker · NFSU2",
+            FontSize = 9,
+            Foreground = BrushHex("#A8B0AB"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
         root.Children.Add(statusHeader);
 
         var statusGrid = new UniformGrid { Columns = 4, Rows = 1 };
         statusGrid.Children.Add(BuildStatusCard("WSL 2", "WSL", "Windows Linux ortamı"));
-        statusGrid.Children.Add(BuildStatusCard("Ubuntu", "Ubuntu", "Derleme dağıtımı"));
-        statusGrid.Children.Add(BuildStatusCard("Docker Engine", "Docker", "Container motoru"));
-        statusGrid.Children.Add(BuildStatusCard("NFSU2 Server", "Server", "Kurulum / sağlık durumu"));
+        statusGrid.Children.Add(BuildStatusCard("UBUNTU", "Ubuntu", "Derleme dağıtımı"));
+        statusGrid.Children.Add(BuildStatusCard("DOCKER ENGINE", "Docker", "Container motoru"));
+        statusGrid.Children.Add(BuildStatusCard("NFSU2 SERVER", "Server", "Kurulum / sağlık durumu"));
         root.Children.Add(statusGrid);
 
-        var lifecycle = MakeCard("DOCKER SERVİS YAŞAM DÖNGÜSÜ", "Yalnızca NFSU2 Server control tarafından kurulan NFSU2 Compose servisini başlatır, durdurur veya yeniden başlatır. Diğer Docker projeleri hedeflenmez.");
-        var lifecycleActions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        lifecycleActions.Children.Add(MakeButton("▶  Başlat", "ModernButton", async (_, _) => await ManageServerAsync("up -d")));
-        lifecycleActions.Children.Add(MakeButton("■  Durdur", "DangerButton", async (_, _) => await ManageServerAsync("stop"), new Thickness(9, 0, 0, 0)));
-        lifecycleActions.Children.Add(MakeButton("↻  Yeniden başlat", "SecondaryButton", async (_, _) => await ManageServerAsync("restart"), new Thickness(9, 0, 0, 0)));
-        lifecycleActions.Children.Add(MakeButton("İşlem günlükleri", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(9, 0, 0, 0)));
-        AddCardChild(lifecycle, lifecycleActions);
-        root.Children.Add(lifecycle);
+        var columns = new Grid();
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.12, GridUnitType.Star) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.88, GridUnitType.Star) });
 
-        var actionsCard = MakeCard("HIZLI ERİŞİM", "Kurulum ve altyapı bakımının temel adımları.");
+        var lifecycle = MakeCard(
+            "SUNUCU KONTROLLERİ",
+            "Yalnızca bu kontrol merkezi tarafından kurulan NFSU2 Compose servisini yönetir. Diğer Docker projelerine dokunulmaz.");
+        var lifecycleActions = new WrapPanel { Margin = new Thickness(0, 9, 0, 0) };
+        lifecycleActions.Children.Add(MakeButton("▶  Başlat", "ModernButton", async (_, _) => await ManageServerAsync("up -d")));
+        lifecycleActions.Children.Add(MakeButton("■  Durdur", "DangerButton", async (_, _) => await ManageServerAsync("stop"), new Thickness(8, 0, 0, 0)));
+        lifecycleActions.Children.Add(MakeButton("↻  Yeniden başlat", "SecondaryButton", async (_, _) => await ManageServerAsync("restart"), new Thickness(8, 0, 0, 0)));
+        lifecycleActions.Children.Add(MakeButton("Günlükleri aç", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(8, 0, 0, 0)));
+        AddCardChild(lifecycle, lifecycleActions);
+        Grid.SetColumn(lifecycle, 0);
+        columns.Children.Add(lifecycle);
+
+        var accessCard = MakeCard(
+            "UZAK YAYIN SEÇENEKLERİ",
+            "SSH bağlantısı kurduktan sonra oyuncuların erişeceği adres tipini belirle.");
+        var accessGrid = new UniformGrid { Columns = 3, Margin = new Thickness(0, 9, 0, 0) };
+        foreach (var item in new[]
+        {
+            ("LAN", "192.168.x.x", "Özel ağ"),
+            ("PUBLIC IP", "IPv4", "İnternet"),
+            ("DOMAIN", "game.site", "Alan adı")
+        })
+        {
+            var mini = new Border
+            {
+                Background = BrushHex("#252E30"),
+                BorderBrush = BrushHex("#46504C"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(9),
+                Margin = new Thickness(0, 0, 7, 0),
+                Child = new StackPanel
+                {
+                    Children =
+                    {
+                        new TextBlock { Text = item.Item1, FontSize = 8, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9878") },
+                        new TextBlock { Text = item.Item2, FontSize = 12, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F3F0E8"), Margin = new Thickness(0, 5, 0, 0) },
+                        new TextBlock { Text = item.Item3, FontSize = 8, Foreground = BrushHex("#A8B0AB"), Margin = new Thickness(0, 2, 0, 0) }
+                    }
+                }
+            };
+            accessGrid.Children.Add(mini);
+        }
+        AddCardChild(accessCard, accessGrid);
+        AddCardChild(accessCard, MakeButton("Uzak bağlantıları yönet", "SecondaryButton", (_, _) => ShowPage("Remote"), new Thickness(0, 8, 0, 0)));
+        Grid.SetColumn(accessCard, 1);
+        columns.Children.Add(accessCard);
+        root.Children.Add(columns);
+
+        var actionsCard = MakeCard("HIZLI İŞLEMLER", "Kurulum, güncelleme ve güvenli temizlik araçları.");
         var actions = new UniformGrid { Columns = 3 };
-        actions.Children.Add(QuickAction("Tek tık kurulum", "WSL, Ubuntu, Docker ve proje bağımlılıklarını hazırla; Rust + React sunucusunu oluştur.", "Kurulum sihirbazı", () => ShowPage("Install")));
-        actions.Children.Add(QuickAction("GitHub güncellemesi", "main dalını çek; Python, Node.js, Rust, WASI, React, WASM ve Docker çıktısını güncelle.", "Güncellemeyi aç", () => ShowPage("Update")));
-        actions.Children.Add(QuickAction("Güvenli kaldırma", "NFSU2 container ve imajını kaldır. Kalıcı veriler ve paylaşılan altyapı varsayılan olarak korunur.", "Kaldırma merkezi", () => ShowPage("Uninstall")));
+        actions.Children.Add(QuickAction("Yerel kurulum", "WSL 2, Ubuntu ve Docker Desktop üzerinde sunucuyu hazırla.", "Kurulum sihirbazı", () => ShowPage("Install")));
+        actions.Children.Add(QuickAction("Kaynak güncellemesi", "GitHub main, React, Rust, WASM ve Docker imajını güncelle.", "Güncellemeyi aç", () => ShowPage("Update")));
+        actions.Children.Add(QuickAction("Güvenli kaldırma", "NFSU2 bileşenlerini seçerek kaldır; paylaşılan altyapıyı koru.", "Kaldırma merkezi", () => ShowPage("Uninstall")));
         AddCardChild(actionsCard, actions);
         root.Children.Add(actionsCard);
         return WrapScrollable(root);

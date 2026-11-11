@@ -15,6 +15,9 @@ internal sealed class RemoteServerProfile
     public string PrivateKeyPath { get; set; } = "";
     public string HostKeyFingerprint { get; set; } = "";
     public string RemoteProjectDirectory { get; set; } = "/srv/nfsu2";
+    public string Domain { get; set; } = "";
+    public int HttpPort { get; set; } = 8080;
+    public string ProxyMode { get; set; } = "caddy";
     public DateTimeOffset? LastConnectedUtc { get; set; }
 }
 

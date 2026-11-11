@@ -39,6 +39,7 @@ Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanl
 | 🛡️ | **İmzalı otomatik güncelleme** | GitHub Releases API, RSA imzalı manifest, SHA-256, SemVer ve devam ettirilebilir indirme kullanır. |
 | 🗂️ | **Dosya yöneticisi** | WSL içindeki proje dosyalarını görüntüler, düzenler ve aktarır. |
 | 🌐 | **Erişim ve paylaşım** | Local, LAN/HTTPS ve geçici Public Tunnel profillerini yapılandırır. |
+| 🖥️ | **Uzak Linux bağlantısı (ilk aşama)** | SSH parola/özel anahtar bağlantısı, host-key doğrulaması, kayıtlı bağlantı profilleri ve uzak sistem/Docker durum sorgusu. |
 | 📋 | **Canlı işlem günlükleri** | Aşamaları, ilerlemeyi, komut çıktılarını ve hata kayıtlarını tek ekranda gösterir. |
 | 🧹 | **Kontrollü kaldırma** | NFSU2 bileşenlerini seçerek kaldırır; kalıcı verileri ve diğer Docker projelerini varsayılan olarak korur. |
 
@@ -50,6 +51,12 @@ Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar 
   <img src="docs/screenshots/control-center-tour.gif" alt="NFSU2 Server control arayüz ekran turu" width="900">
 </p>
 
+
+## 🖥️ Uzak Linux sunucu modu
+
+Uzak sunucu modu, Windows uygulamasından SSH ile Ubuntu/Debian sunucusuna doğrudan bağlantı kurmak için eklenmiştir. İlk bağlantı aşamasında kayıtlı sunucu profilleri, parola veya SSH özel anahtarı ile kimlik doğrulama, kullanıcı onaylı SHA-256 host-key sabitleme ve uzak makinenin temel sistem/Docker bilgilerini sorgulama desteklenir.
+
+Parolalar ve özel anahtar parolaları bağlantı profillerine yazılmaz. İlk bağlantıda gösterilen host-key parmak izi, güvenilir başka bir kanaldan doğrulanmadan kabul edilmemelidir. Uzak kurulum, servis yönetimi ve SFTP dosya yöneticisi bu bağlantı katmanının sonraki geliştirme aşamalarıdır.
 
 ## ⚙️ Nasıl çalışır?
 

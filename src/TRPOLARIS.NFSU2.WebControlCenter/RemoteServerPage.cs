@@ -9,6 +9,7 @@ namespace TRPOLARIS.NFSU2.WebControlCenter;
 public partial class MainWindow
 {
     private RemoteServerSession? _remoteServerSession;
+    private RemoteServerProfile? _remoteConnectedProfile;
     private string? _activeRemoteProfileId;
     private ComboBox? _remoteProfileBox;
     private TextBox? _remoteNameBox;
@@ -560,10 +561,18 @@ public partial class MainWindow
         try
         {
             var profile = ReadRemoteProfile();
-            if (_remoteServerSession?.IsConnected == true)
-                DisconnectRemoteSession();
+            if (_remoteServerSession?.IsConnected == true &&
+                _remoteConnectedProfile is not null &&
+                IsSameRemoteEndpoint(_remoteConnectedProfile, profile) &&
+                keepConnected)
+            {
+                await RefreshRemoteDiagnosticsAsync();
+                return;
+            }
             string password = _remotePasswordBox?.Password ?? "";
             string keyPassphrase = _remoteKeyPassphraseBox?.Password ?? "";
+            if (_remoteServerSession?.IsConnected == true)
+                DisconnectRemoteSession();
             if (!string.Equals(profile.AuthenticationMode, "private-key", StringComparison.OrdinalIgnoreCase) &&
                 string.IsNullOrEmpty(password))
                 throw new InvalidOperationException("SSH parolasını gir. Güvenlik nedeniyle parola profilde saklanmaz.");
@@ -602,6 +611,7 @@ public partial class MainWindow
             {
                 _remoteServerSession?.Dispose();
                 _remoteServerSession = session;
+                _remoteConnectedProfile = profile;
                 session = null;
                 SetRemoteStatus($"Bağlandı: {profile.Username}@{profile.Host}:{profile.Port}", connected: true);
             }
@@ -659,6 +669,7 @@ public partial class MainWindow
     {
         _remoteServerSession?.Dispose();
         _remoteServerSession = null;
+        _remoteConnectedProfile = null;
         if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
         if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
         SetRemoteStatus("SSH bağlantısı kapatıldı.", connected: false);
@@ -738,5 +749,14 @@ public partial class MainWindow
     {
         _remoteServerSession?.Dispose();
         _remoteServerSession = null;
+        _remoteConnectedProfile = null;
     }
+
+    private static bool IsSameRemoteEndpoint(RemoteServerProfile left, RemoteServerProfile right) =>
+        string.Equals(left.Host, right.Host, StringComparison.OrdinalIgnoreCase) &&
+        left.Port == right.Port &&
+        string.Equals(left.Username, right.Username, StringComparison.Ordinal) &&
+        string.Equals(left.AuthenticationMode, right.AuthenticationMode, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(left.PrivateKeyPath, right.PrivateKeyPath, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(left.HostKeyFingerprint, right.HostKeyFingerprint, StringComparison.Ordinal);
 }

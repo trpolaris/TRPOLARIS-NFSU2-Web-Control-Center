@@ -545,6 +545,16 @@ public partial class MainWindow
             "; else sudo -n sh -c " + ShellQuote(compose) + "; fi\n";
     }
 
+    private static string BuildRemoteOwnershipCheck(string root)
+    {
+        string marker = ShellQuote(root + "/.nfsu2-control-center-managed");
+        string rootPath = ShellQuote(root);
+        string project = ShellQuote(GetRemoteComposeProjectName(root));
+        return "set -eu\n" +
+            $"if [ -L {rootPath} ] || [ ! -d {rootPath} ]; then echo '[ERROR] NFSU2 install directory is missing or unsafe.' >&2; exit 50; fi\n" +
+            $"if ! grep -Fxq {project} {marker}; then echo '[ERROR] This directory is not owned by this Control Center install.' >&2; exit 51; fi\n";
+    }
+
     private static string GetRemoteComposeProjectName(string root)
     {
         string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(root.ToLowerInvariant())))

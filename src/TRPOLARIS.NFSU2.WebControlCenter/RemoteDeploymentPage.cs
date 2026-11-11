@@ -468,9 +468,16 @@ public partial class MainWindow
         case "$ID" in ubuntu|debian) ;; *) echo "[ERROR] Ubuntu/Debian required; found $PRETTY_NAME"; exit 22;; esac
         {checkPorts}
         {internalPortCheck}
-        if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+        if ! command -v docker >/dev/null 2>&1; then
             $SUDO apt-get update
-            $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2 curl iproute2
+            $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2
+        elif ! docker compose version >/dev/null 2>&1; then
+            $SUDO apt-get update
+            $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y docker-compose-v2
+        fi
+        if ! command -v curl >/dev/null 2>&1 || ! command -v ss >/dev/null 2>&1; then
+            $SUDO apt-get update
+            $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2
         fi
         $SUDO systemctl enable --now docker
         $SUDO docker compose version

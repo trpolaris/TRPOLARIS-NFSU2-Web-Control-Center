@@ -39,7 +39,7 @@ Uygulama; Windows tarafındaki işlemleri tek bir arayüzde toplar, Linux tabanl
 | 🛡️ | **İmzalı otomatik güncelleme** | GitHub Releases API, RSA imzalı manifest, SHA-256, SemVer ve devam ettirilebilir indirme kullanır. |
 | 🗂️ | **Dosya yöneticisi** | WSL içindeki proje dosyalarını görüntüler, düzenler ve aktarır. |
 | 🌐 | **Erişim ve paylaşım** | Local, LAN/HTTPS ve geçici Public Tunnel profillerini yapılandırır. |
-| 🖥️ | **Uzak Linux bağlantısı (ilk aşama)** | SSH parola/özel anahtar bağlantısı, host-key doğrulaması, kayıtlı bağlantı profilleri ve uzak sistem/Docker durum sorgusu. |
+| 🖥️ | **Uzak Linux / VPS yönetimi** | SSH parola/özel anahtar bağlantısı, host-key doğrulaması, SFTP ile doğrulanmış oyun/modül aktarımı, Docker/Caddy kurulumu, servis kontrolü, güncelleme ve günlükler. |
 | 📋 | **Canlı işlem günlükleri** | Aşamaları, ilerlemeyi, komut çıktılarını ve hata kayıtlarını tek ekranda gösterir. |
 | 🧹 | **Kontrollü kaldırma** | NFSU2 bileşenlerini seçerek kaldırır; kalıcı verileri ve diğer Docker projelerini varsayılan olarak korur. |
 
@@ -54,9 +54,17 @@ Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar 
 
 ## 🖥️ Uzak Linux sunucu modu
 
-Uzak sunucu modu, Windows uygulamasından SSH ile Ubuntu/Debian sunucusuna doğrudan bağlantı kurmak için eklenmiştir. İlk bağlantı aşamasında kayıtlı sunucu profilleri, parola veya SSH özel anahtarı ile kimlik doğrulama, kullanıcı onaylı SHA-256 host-key sabitleme ve uzak makinenin temel sistem/Docker bilgilerini sorgulama desteklenir.
+Uygulama aynı Windows EXE içinden yerel Windows/WSL kurulumunu veya uzak Ubuntu/Debian VPS sunucusunu yönetebilir.
 
-Parolalar ve özel anahtar parolaları bağlantı profillerine yazılmaz. İlk bağlantıda gösterilen host-key parmak izi, güvenilir başka bir kanaldan doğrulanmadan kabul edilmemelidir. Uzak kurulum, servis yönetimi ve SFTP dosya yöneticisi bu bağlantı katmanının sonraki geliştirme aşamalarıdır.
+- **SSH bağlantısı:** parola veya SSH özel anahtarı; birden fazla kayıtlı sunucu profili.
+- **Host-key güvenliği:** ilk bağlantıda SHA-256 parmak izi kullanıcıya gösterilir; kullanıcı onaylamadan anahtar kabul edilmez. Daha sonraki bağlantılarda anahtar değişikliği algılanırsa bağlantı reddedilir.
+- **VPS kurulumu:** yerel oyun klasöründeki desteklenen `SPEED2.EXE` doğrulanır. Yalnızca sunucunun kullandığı oyun veri klasörleri ile yerel olarak üretilmiş `nfsu2.wasm` / `nfsu2.json` SFTP üzerinden aktarılır.
+- **Docker dağıtımı:** Ubuntu/Debian üzerinde Docker Engine ve Compose denetlenir; eksikse root veya parola istemeyen sudo ile kurulur.
+- **HTTPS seçenekleri:** boş 80/443 portlarında Caddy otomatik HTTPS veya mevcut Nginx/OpenLiteSpeed/CyberPanel reverse proxy'si arkasında çalışma.
+- **Servis yönetimi:** imaj çekme, başlatma, durdurma, yeniden başlatma, sağlık kontrolü ve canlı servis günlükleri.
+- **Güncelleme/kaldırma:** oyun/modül verileri korunarak WASM ve sunucu imajı güncellenir. Normal kaldırma konteynerleri siler ama oyun dosyalarını ve kalıcı kayıt volume'ünü korur.
+
+SSH parolaları ve anahtar parolaları bağlantı profillerine kaydedilmez. İlk bağlantıda gösterilen host-key parmak izi sağlayıcının konsolu veya başka güvenilir bir kanal üzerinden doğrulanmalıdır. VPS kurulumu için kendi oyun klasörünüz ve yerel kurulumdan/derlemeden çıkan modül dosyaları gereklidir. Caddy modunda DNS kaydı VPS IP adresine yönlenmeli ve 80/443 portları boş olmalıdır; mevcut proxy modunda proxy, `127.0.0.1:8080` (veya seçtiğiniz iç port) hedefine yönlendirilmelidir.
 
 ## ⚙️ Nasıl çalışır?
 

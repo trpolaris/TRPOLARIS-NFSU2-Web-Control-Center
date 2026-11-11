@@ -17,7 +17,7 @@ public partial class MainWindow
 
         try
         {
-            string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
             string path = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             _remoteFilePathBox!.Text = path;
             SetRemoteFileStatus("Uzak kurulum doğrulanıyor...", true);
@@ -42,7 +42,7 @@ public partial class MainWindow
         if (_remoteFileList?.SelectedItem is not RemoteFileEntry entry || !entry.IsDirectory) return;
         try
         {
-            string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
             string next = ValidateRemoteBrowserPath(entry.FullPath, root);
             _remoteFilePathBox!.Text = next;
             await RefreshRemoteFileListAsync();
@@ -54,7 +54,7 @@ public partial class MainWindow
     {
         try
         {
-            string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
             string current = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             if (string.Equals(current, root, StringComparison.Ordinal))
             {
@@ -81,7 +81,7 @@ public partial class MainWindow
             return;
         }
 
-        string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+        string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
         string remotePath = ValidateRemoteBrowserPath(entry.FullPath, root);
         var dialog = new SaveFileDialog
         {
@@ -104,7 +104,7 @@ public partial class MainWindow
     private async Task UploadRemoteFileAsync()
     {
         if (_remoteServerSession?.IsConnected != true) { SetRemoteFileStatus("Önce SSH bağlantısı kur.", false); return; }
-        string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+        string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
         string current = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
         var dialog = new OpenFileDialog
         {
@@ -148,7 +148,7 @@ public partial class MainWindow
 
         try
         {
-            string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
             string current = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             string newPath = current.TrimEnd('/') + "/" + name;
             ValidateRemoteBrowserPath(newPath, root);
@@ -172,7 +172,7 @@ public partial class MainWindow
 
         try
         {
-            string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
             string path = ValidateRemoteBrowserPath(entry.FullPath, root);
             if (string.Equals(path, root, StringComparison.Ordinal))
                 throw new InvalidOperationException("Kurulum kök dizini dosya yöneticisinden silinemez.");

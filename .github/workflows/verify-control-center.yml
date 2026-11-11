@@ -88,7 +88,7 @@ jobs:
           main = (root / "MainWindow.xaml.cs").read_text(encoding="utf-8")
 
           assert 'Replace("\\r\\n", "\\n", StringComparison.Ordinal)' in ssh, "SSH command transport must normalize CRLF to LF."
-          assert remote_page.count('Style = (Style)FindResource("DarkComboBox")') == 3, "All remote page ComboBoxes must use the dark template."
+          assert remote_page.count('Style = (Style)FindResource("DarkComboBox")') >= 4, "All remote page ComboBoxes must use the dark template."
           assert 'x:Key="DarkComboBox"' in app, "Dark ComboBox template is missing."
           assert 'if ($null -eq $dockerProbeLine)' in installer, "Docker readiness probe must handle empty output."
           assert '$DockerProbeDetail' in installer, "Docker readiness failure must retain diagnostic output."

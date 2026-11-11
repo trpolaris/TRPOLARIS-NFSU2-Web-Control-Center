@@ -30,6 +30,11 @@ public partial class MainWindow
     private ComboBox? _remoteProxyModeBox;
     private TextBlock? _remoteDeploymentState;
     private ProgressBar? _remoteDeploymentProgress;
+    private TextBox? _remoteFilePathBox;
+    private TextBox? _remoteNewFolderBox;
+    private ListBox? _remoteFileList;
+    private TextBlock? _remoteFileStatus;
+
 
 
     private UIElement BuildRemotePage()
@@ -320,6 +325,69 @@ public partial class MainWindow
         });
         deployPanel.Child = deployStack;
         root.Children.Add(deployPanel);
+
+        var filePanel = RemotePanel();
+        var fileStack = NewStack(9);
+        fileStack.Children.Add(RemoteSectionTitle("UZAK DOSYA YÖNETİCİSİ · SFTP"));
+        fileStack.Children.Add(new TextBlock
+        {
+            Text = "Dosyalar yalnızca yukarıdaki kurulum dizini içinde görüntülenebilir. Sembolik bağlantılar gösterilmez. Klasör silme işlemi yalnızca boş klasörlerde çalışır.",
+            Foreground = BrushHex("#9FB4C8"),
+            FontSize = 10,
+            TextWrapping = TextWrapping.Wrap
+        });
+        _remoteFilePathBox = RemoteTextBox();
+        _remoteFilePathBox.Text = (_remoteInstallRootBox?.Text ?? "/srv/nfsu2").TrimEnd('/');
+        var pathRow = new DockPanel { LastChildFill = true };
+        var listButton = MakeButton("Listele", "SecondaryButton", async (_, _) => await RefreshRemoteFileListAsync(), new Thickness(8, 0, 0, 0));
+        DockPanel.SetDock(listButton, Dock.Right);
+        var upButton = MakeButton("Üst klasör", "SecondaryButton", async (_, _) => await NavigateRemoteParentAsync(), new Thickness(8, 0, 0, 0));
+        DockPanel.SetDock(upButton, Dock.Right);
+        pathRow.Children.Add(listButton);
+        pathRow.Children.Add(upButton);
+        pathRow.Children.Add(_remoteFilePathBox);
+        fileStack.Children.Add(RemoteField("Uzak klasör yolu", pathRow));
+
+        _remoteFileList = new ListBox
+        {
+            MinHeight = 190,
+            MaxHeight = 280,
+            Background = BrushHex("#07111C"),
+            Foreground = BrushHex("#CFE1EF"),
+            BorderBrush = BrushHex("#263D52"),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(6),
+            FontFamily = new FontFamily("Consolas"),
+            FontSize = 10,
+            SelectionMode = SelectionMode.Single
+        };
+        _remoteFileList.MouseDoubleClick += RemoteFileList_MouseDoubleClick;
+        fileStack.Children.Add(_remoteFileList);
+
+        var fileActions = new WrapPanel { Orientation = Orientation.Horizontal };
+        fileActions.Children.Add(MakeButton("Dosya indir", "SecondaryButton", async (_, _) => await DownloadSelectedRemoteFileAsync(), new Thickness(0, 0, 7, 7)));
+        fileActions.Children.Add(MakeButton("Dosya yükle", "SecondaryButton", async (_, _) => await UploadRemoteFileAsync(), new Thickness(0, 0, 7, 7)));
+        fileActions.Children.Add(MakeButton("Seçileni sil", "DangerButton", async (_, _) => await DeleteSelectedRemoteEntryAsync(), new Thickness(0, 0, 7, 7)));
+        fileStack.Children.Add(fileActions);
+
+        _remoteNewFolderBox = RemoteTextBox();
+        _remoteNewFolderBox.Width = 240;
+        var folderRow = new DockPanel { LastChildFill = true };
+        var createFolderButton = MakeButton("Klasör oluştur", "SecondaryButton", async (_, _) => await CreateRemoteFolderAsync(), new Thickness(8, 0, 0, 0));
+        DockPanel.SetDock(createFolderButton, Dock.Right);
+        folderRow.Children.Add(createFolderButton);
+        folderRow.Children.Add(_remoteNewFolderBox);
+        fileStack.Children.Add(RemoteField("Yeni klasör adı", folderRow));
+        _remoteFileStatus = new TextBlock
+        {
+            Text = "SSH bağlantısı kurulduğunda Listele ile uzak dosyaları görüntüleyebilirsin.",
+            Foreground = BrushHex("#8FA8BD"),
+            FontSize = 10,
+            TextWrapping = TextWrapping.Wrap
+        };
+        fileStack.Children.Add(_remoteFileStatus);
+        filePanel.Child = fileStack;
+        root.Children.Add(filePanel);
 
         RefreshRemoteProfileList(_activeRemoteProfileId);
         return new ScrollViewer

@@ -676,7 +676,7 @@ public partial class MainWindow
                 for row in rows:
                     iface = row.split(":", 2)[1].strip() if ":" in row else ""
                     if iface.startswith(skip): continue
-                    match = re.search(r"\\binet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)/", row)
+                    match = re.search(r"\binet\s+(\d+\.\d+\.\d+\.\d+)/", row)
                     if not match: continue
                     addr = ipaddress.ip_address(match.group(1))
                     if (addr in ipaddress.ip_network("10.0.0.0/8") or
@@ -694,7 +694,7 @@ public partial class MainWindow
 
         string detected = (await _remoteServerSession!.ExecuteDeploymentCommandAsync(
             command, TimeSpan.FromSeconds(20))).Trim();
-        string candidate = detected.Split(new[] { '\\r', '\\n', ' ' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "";
+        string candidate = detected.Split(new[] { '\r', '\n', ' ' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "";
         if (string.IsNullOrWhiteSpace(candidate))
             throw new InvalidOperationException("Sunucunun dış/LAN IP adresi otomatik bulunamadı. IP adresini elle gir.");
         return candidate;

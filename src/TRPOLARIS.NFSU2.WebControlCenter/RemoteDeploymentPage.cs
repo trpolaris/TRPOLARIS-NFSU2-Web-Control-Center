@@ -470,7 +470,7 @@ public partial class MainWindow
         {internalPortCheck}
         if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
             $SUDO apt-get update
-            DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y docker.io docker-compose-v2
+            $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2 curl iproute2
         fi
         $SUDO systemctl enable --now docker
         $SUDO docker compose version

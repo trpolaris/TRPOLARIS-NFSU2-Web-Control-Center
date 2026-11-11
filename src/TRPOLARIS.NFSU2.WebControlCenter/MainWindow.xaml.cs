@@ -3472,7 +3472,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
             "#9FB4C8" or "#A9BED1" or "#9CB1C6" or "#8FA8BD" or "#AFC0CB" or "#829CB4" or
             "#91A3B1" or "#9EAFBC" or "#91A6BC" or "#B8CBDD" or "#B6C8E2" or "#7896B2" or
-            "#7F97A8" or "#607990" or "#55728A" or "#718CA6" or "#829CB4" or
+            "#7F97A8" or "#607990" or "#55728A" or "#718CA6" or
             "#AFC0D2" or "#6F879E" or "#7F96AD" => "#A8B0AB",
 
             "#70CFC8" or "#6BCFC7" or "#61D4C7" or "#76F0E0" or "#43E4D0" or "#42C9C0" or
@@ -3488,7 +3488,6 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             "#34506A" or "#263D52" or "#2B3A47" or "#29445D" or "#263E55" or "#35536F" or
             "#315F81" or "#31516B" or "#344550" or "#20364B" or "#2D414F" => "#3A4648",
 
-            "#172B40" => "#2A3133",
             "#3D8292" or "#28616A" or "#287B7A" or "#286D68" or "#286C68" => "#B45E41",
             "#123D45" or "#12332F" or "#103B3A" or "#19332F" => "#3D3829",
             "#2B2021" or "#652838" or "#744447" => "#503031",

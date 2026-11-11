@@ -614,6 +614,7 @@ public partial class MainWindow
 
                 profile.HostKeyFingerprint = trustRequest.Fingerprint;
                 RemoteServerProfileStore.SaveOrUpdate(profile);
+                RefreshRemoteProfileList(profile.Id);
                 await session.ConnectAsync(password, keyPassphrase);
             }
 

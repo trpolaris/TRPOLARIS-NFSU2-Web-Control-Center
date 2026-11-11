@@ -115,15 +115,18 @@ jobs:
               assert token in deploy, f"Secure endpoint implementation missing: {token}"
           assert 'DownloadRemoteLanCertificateAsync' in remote
           assert 'DownloadRemoteFileAsync(root + "/lan-ca-root.crt"' in deploy
-          assert 'LAN / PUBLIC / DOMAIN' in main
-          assert 'Carbon Forge' in app
+          assert 'BuildRemoteDeploymentPage' in remote and 'BuildRemoteFilesPage' in remote
+          assert 'Blue Nebula' in app
           for name in (
-              'WindowTitleBar', 'NavDashboard', 'NavInstall', 'NavRemote', 'NavUpdate',
-              'NavFiles', 'NavAccess', 'NavUninstall', 'NavLogs', 'PageHost',
-              'OperationProgressPanel', 'OperationProgressBar', 'FooterStatus'
+              'WindowTitleBar', 'NavDashboard', 'NavInstall', 'NavUpdate', 'NavAccess', 'NavFiles',
+              'NavRemote', 'NavRemoteDeploy', 'NavRemoteFiles', 'NavUninstall', 'NavLogs',
+              'PageHost', 'OperationProgressPanel', 'OperationProgressBar', 'FooterStatus'
           ):
               assert f'x:Name="{name}"' in window, f"Required WPF shell element was removed: {name}"
-          print("PASS: LAN/public-IP/domain TLS modes and redesigned WPF shell.")
+          for section in ('YEREL ORTAM', 'UZAK SUNUCULAR', 'YÖNETİM'):
+              assert section in window, f"Navigation section is missing: {section}"
+          assert 'SSH bağlantıları' in window and 'Uzak dağıtım' in window and 'Uzak dosyalar' in window
+          print("PASS: LAN/public-IP/domain TLS modes, dedicated remote pages, and redesigned navigation.")
           PY
 
   build-win-x64:

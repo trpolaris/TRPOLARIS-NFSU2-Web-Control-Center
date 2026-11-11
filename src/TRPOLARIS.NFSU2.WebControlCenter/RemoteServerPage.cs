@@ -646,11 +646,16 @@ public partial class MainWindow
             AuthenticationMode = privateKey ? "private-key" : "password",
             PrivateKeyPath = privateKey ? keyPath : "",
             HostKeyFingerprint = selected?.HostKeyFingerprint ?? "",
-            RemoteProjectDirectory = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "/srv/nfsu2"),
-            AccessMode = _remoteAccessModeBox?.SelectedIndex switch { 0 => "lan", 1 => "public-ip", _ => "domain" },
-            Domain = _remoteDomainBox?.Text.Trim() ?? "",
-            HttpPort = ParseRemoteHttpPort(),
-            ProxyMode = _remoteProxyModeBox?.SelectedIndex == 1 ? "existing-proxy" : "caddy",
+            RemoteProjectDirectory = _remoteInstallRootBox is not null
+                ? ValidateRemoteInstallRoot(_remoteInstallRootBox.Text)
+                : ValidateRemoteInstallRoot(selected?.RemoteProjectDirectory ?? "/srv/nfsu2"),
+            AccessMode = _remoteAccessModeBox?.SelectedIndex switch
+                { 0 => "lan", 1 => "public-ip", _ => _remoteAccessModeBox is null ? selected?.AccessMode ?? "domain" : "domain" },
+            Domain = _remoteDomainBox?.Text.Trim() ?? selected?.Domain ?? "",
+            HttpPort = _remoteHttpPortBox is not null ? ParseRemoteHttpPort() : selected?.HttpPort ?? 8080,
+            ProxyMode = _remoteProxyModeBox is not null
+                ? (_remoteProxyModeBox.SelectedIndex == 1 ? "existing-proxy" : "caddy")
+                : selected?.ProxyMode ?? "caddy",
             LastConnectedUtc = selected?.LastConnectedUtc
         };
     }

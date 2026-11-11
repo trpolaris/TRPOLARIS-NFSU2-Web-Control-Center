@@ -29,4 +29,7 @@
     <EmbeddedResource Include="Resources\nfsu2-project-lookup.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-project-lookup.sh" />
     <EmbeddedResource Include="Resources\nfsu2-git-update.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-git-update.sh" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+  </ItemGroup>
 </Project>

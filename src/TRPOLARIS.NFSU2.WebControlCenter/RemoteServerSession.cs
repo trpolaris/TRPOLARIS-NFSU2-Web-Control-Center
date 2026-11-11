@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using Renci.SshNet.Sftp;
 
 namespace TRPOLARIS.NFSU2.WebControlCenter;
 
@@ -194,6 +195,91 @@ internal sealed class RemoteServerSession : IDisposable
                 try { if (sftp.IsConnected) sftp.Disconnect(); } catch { }
             }
         }, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<IReadOnlyList<RemoteFileEntry>> ListRemoteDirectoryAsync(
+        string remotePath, CancellationToken cancellationToken = default)
+    {
+        return Task.Run<IReadOnlyList<RemoteFileEntry>>(() =>
+        {
+            using var sftp = new SftpClient(BuildConnectionInfo());
+            sftp.HostKeyReceived += HandleHostKeyReceived;
+            sftp.Connect();
+            try
+            {
+                return sftp.ListDirectory(remotePath)
+                    .Where(x => x.Name is not ("." or ".."))
+                    .Where(x => !x.Attributes.IsSymbolicLink && (x.IsDirectory || x.IsRegularFile))
+                    .OrderByDescending(x => x.IsDirectory)
+                    .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .Select(x => new RemoteFileEntry(
+                        x.Name, x.FullName, x.IsDirectory, x.Length, x.LastWriteTimeUtc))
+                    .ToArray();
+            }
+            finally { try { if (sftp.IsConnected) sftp.Disconnect(); } catch { } }
+        }, cancellationToken);
+    }
+
+    public Task DownloadRemoteFileAsync(
+        string remotePath, string localPath, CancellationToken cancellationToken = default)
+    {
+        return Task.Run(() =>
+        {
+            using var sftp = new SftpClient(BuildConnectionInfo());
+            sftp.HostKeyReceived += HandleHostKeyReceived;
+            sftp.Connect();
+            try
+            {
+                var attributes = sftp.GetAttributes(remotePath);
+                if (attributes.IsSymbolicLink || attributes.IsDirectory || !attributes.IsRegularFile)
+                    throw new InvalidOperationException("Yalnızca normal dosyalar indirilebilir.");
+                string? parent = Path.GetDirectoryName(localPath);
+                if (!string.IsNullOrWhiteSpace(parent)) Directory.CreateDirectory(parent);
+                using var output = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                sftp.DownloadFile(remotePath, output);
+                output.Flush();
+            }
+            finally { try { if (sftp.IsConnected) sftp.Disconnect(); } catch { } }
+        }, cancellationToken);
+    }
+
+    public Task DeleteRemoteFileOrEmptyDirectoryAsync(
+        string remotePath, CancellationToken cancellationToken = default)
+    {
+        return Task.Run(() =>
+        {
+            using var sftp = new SftpClient(BuildConnectionInfo());
+            sftp.HostKeyReceived += HandleHostKeyReceived;
+            sftp.Connect();
+            try
+            {
+                var attributes = sftp.GetAttributes(remotePath);
+                if (attributes.IsSymbolicLink)
+                    throw new InvalidOperationException("Sembolik bağlantılar dosya yöneticisinden silinmez.");
+                if (attributes.IsDirectory) sftp.DeleteDirectory(remotePath);
+                else if (attributes.IsRegularFile) sftp.DeleteFile(remotePath);
+                else throw new InvalidOperationException("Bu dosya türü silinemez.");
+            }
+            finally { try { if (sftp.IsConnected) sftp.Disconnect(); } catch { } }
+        }, cancellationToken);
+    }
+
+    public Task CreateRemoteDirectoryAsync(
+        string remotePath, CancellationToken cancellationToken = default)
+    {
+        return Task.Run(() =>
+        {
+            using var sftp = new SftpClient(BuildConnectionInfo());
+            sftp.HostKeyReceived += HandleHostKeyReceived;
+            sftp.Connect();
+            try
+            {
+                if (sftp.Exists(remotePath))
+                    throw new IOException("Bu adla bir dosya veya klasör zaten bulunuyor.");
+                sftp.CreateDirectory(remotePath);
+            }
+            finally { try { if (sftp.IsConnected) sftp.Disconnect(); } catch { } }
+        }, cancellationToken);
     }
 
     public Task<string> ExecuteDeploymentCommandAsync(

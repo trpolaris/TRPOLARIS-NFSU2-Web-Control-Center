@@ -76,7 +76,7 @@ public partial class MainWindow
                 await UploadRemoteComposeFilesAsync(profile.Id, installRoot, domain, port, useCaddy, imageReference);
                 progress.Report((87, "Docker imajı indiriliyor"));
                 string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(
-                    BuildRemoteComposeCommand(installRoot, "pull") + BuildRemoteComposeCommand(installRoot, "up -d"),
+                    BuildRemoteComposeCommand(installRoot, "pull") + BuildRemoteComposeCommand(installRoot, "up -d --remove-orphans"),
                     TimeSpan.FromMinutes(20));
                 AppendRemoteOutput("Uzak Compose kurulumu", output);
 
@@ -132,7 +132,7 @@ public partial class MainWindow
                 await UploadRemoteComposeFilesAsync(profileId, root, domain, port, useCaddy, imageReference);
                 progress.Report((40, "Docker imajı güncelleniyor"));
                 string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(
-                    BuildRemoteComposeCommand(root, "pull") + BuildRemoteComposeCommand(root, "up -d"), TimeSpan.FromMinutes(20));
+                    BuildRemoteComposeCommand(root, "pull") + BuildRemoteComposeCommand(root, "up -d --remove-orphans"), TimeSpan.FromMinutes(20));
                 AppendRemoteOutput("Uzak altyapı güncellemesi", output);
                 progress.Report((90, "Sunucu sağlık kontrolü"));
                 string health = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteHealthCommand(root, domain, port, useCaddy), TimeSpan.FromMinutes(4));
@@ -185,7 +185,7 @@ public partial class MainWindow
         if (MessageBox.Show(prompt, "Uzak NFSU2 kurulumunu kaldır", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         try
         {
-            string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteComposeCommand(root, "down"), TimeSpan.FromMinutes(3));
+            string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteComposeCommand(root, "down --remove-orphans"), TimeSpan.FromMinutes(3));
             AppendRemoteOutput("Uzak NFSU2 kaldırma", output);
             await _remoteServerSession.ExecuteDeploymentCommandAsync($"rm -f {ShellQuote(root + "/compose.yml")} {ShellQuote(root + "/Caddyfile")}", TimeSpan.FromSeconds(30));
             SetRemoteDeploymentState("Konteynerler kaldırıldı. Oyun/modül dosyaları ve kayıt volume'ü korundu.", true);

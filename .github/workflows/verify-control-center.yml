@@ -98,6 +98,33 @@ jobs:
           print("PASS: SSH LF normalization, dark remote selectors, and Docker Engine safety checks.")
           PY
 
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("src/TRPOLARIS.NFSU2.WebControlCenter")
+          remote = (root / "RemoteServerPage.cs").read_text(encoding="utf-8")
+          deploy = (root / "RemoteDeploymentPage.cs").read_text(encoding="utf-8")
+          profile = (root / "RemoteServerProfile.cs").read_text(encoding="utf-8")
+          window = (root / "MainWindow.xaml").read_text(encoding="utf-8")
+          app = (root / "App.xaml").read_text(encoding="utf-8")
+
+          assert 'public string AccessMode { get; set; } = "domain";' in profile
+          for value in ('"lan"', '"public-ip"', '"domain"'):
+              assert value in remote, f"Remote access mode {value} is missing."
+          for token in ('tls internal', 'profile shortlived', 'bind ', '--cacert', 'api.ipify.org'):
+              assert token in deploy, f"Secure endpoint implementation missing: {token}"
+          assert 'DownloadRemoteLanCertificateAsync' in remote
+          assert 'DownloadRemoteFileAsync(root + "/lan-ca-root.crt"' in deploy
+          assert 'LAN / PUBLIC / DOMAIN' in window
+          assert 'Carbon Forge' in app
+          for name in (
+              'WindowTitleBar', 'NavDashboard', 'NavInstall', 'NavRemote', 'NavUpdate',
+              'NavFiles', 'NavAccess', 'NavUninstall', 'NavLogs', 'PageHost',
+              'OperationProgressPanel', 'OperationProgressBar', 'FooterStatus'
+          ):
+              assert f'x:Name="{name}"' in window, f"Required WPF shell element was removed: {name}"
+          print("PASS: LAN/public-IP/domain TLS modes and redesigned WPF shell.")
+          PY
+
   build-win-x64:
     runs-on: windows-latest
     steps:
@@ -152,7 +179,7 @@ jobs:
       - name: Upload single-file executable
         uses: actions/upload-artifact@v4
         with:
-          name: NFSU2-Server-control-v1.8.4-win-x64
+          name: NFSU2-Server-control-v1.9.0-win-x64
           path: publish/NFSU2 Server control.exe
           if-no-files-found: error
           retention-days: 30

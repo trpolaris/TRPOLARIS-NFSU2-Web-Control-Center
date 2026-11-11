@@ -399,17 +399,18 @@ public partial class MainWindow
             throw new InvalidDataException("Sembolik bağlantı/junction içeren dosya gönderilmiyor: " + path);
     }
 
-    private async Task UploadRemoteComposeFilesAsync(string profileId, string root, string domain, int port, bool useCaddy, string imageReference)
+    private async Task UploadRemoteComposeFilesAsync(
+        string profileId, string root, string address, int port, bool useCaddy, string imageReference, string accessMode)
     {
         string temp = Path.Combine(RuntimeDir, "remote-deploy", profileId);
         Directory.CreateDirectory(temp);
         string composePath = Path.Combine(temp, "compose.yml");
         string caddyPath = Path.Combine(temp, "Caddyfile");
-        File.WriteAllText(composePath, BuildRemoteComposeYaml(domain, port, useCaddy, imageReference), new UTF8Encoding(false));
+        File.WriteAllText(composePath, BuildRemoteComposeYaml(address, port, useCaddy, imageReference), new UTF8Encoding(false));
         var files = new List<RemoteUploadItem> { new(composePath, root + "/compose.yml", "compose.yml") };
         if (useCaddy)
         {
-            File.WriteAllText(caddyPath, BuildRemoteCaddyfile(domain, port), new UTF8Encoding(false));
+            File.WriteAllText(caddyPath, BuildRemoteCaddyfile(address, port, accessMode), new UTF8Encoding(false));
             files.Add(new RemoteUploadItem(caddyPath, root + "/Caddyfile", "Caddyfile"));
         }
         try { await _remoteServerSession!.UploadFilesAsync(files); }
@@ -472,14 +473,37 @@ public partial class MainWindow
         return image + ":latest";
     }
 
-    private static string BuildRemoteCaddyfile(string domain, int port) =>
-        "{\n    admin off\n}\n" +
-        "http://" + domain + " {\n    header -Server\n    redir https://{host}{uri} 308\n}\n" +
-        ":80 {\n    abort\n}\n" +
-        ":443 {\n    abort\n}\n" +
-        domain + " {\n    reverse_proxy 127.0.0.1:" + port.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-        " {\n        header_up CF-Connecting-IP {client_ip}\n    }\n    header -Server\n    header -Via\n" +
-        "    handle_errors {\n        header -Server\n    }\n}\n";
+    private static string BuildRemoteCaddyfile(string address, int port, string accessMode)
+    {
+        string reverseProxy = "    reverse_proxy 127.0.0.1:" +
+            port.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n" +
+            "    header -Server\n    header -Via\n" +
+            "    handle_errors {\n        header -Server\n    }\n";
+
+        if (accessMode == "lan")
+        {
+            // Bind only the chosen private address and use Caddy's private CA.
+            // Every device that opens the game must trust this CA for secure WebAssembly.
+            return "{\n    admin off\n}\n" +
+                address + " {\n    bind " + address + "\n    tls internal\n" +
+                reverseProxy + "}\n";
+        }
+
+        if (accessMode == "public-ip")
+        {
+            // Let's Encrypt IP certificates use the shortlived ACME profile (160 hours).
+            // Caddy renews them automatically; TCP/80 and TCP/443 must reach this host.
+            return "{\n    admin off\n}\n" +
+                address + " {\n    tls {\n        issuer acme {\n            profile shortlived\n        }\n    }\n" +
+                reverseProxy + "}\n";
+        }
+
+        return "{\n    admin off\n}\n" +
+            "http://" + address + " {\n    header -Server\n    redir https://{host}{uri} 308\n}\n" +
+            ":80 {\n    abort\n}\n" +
+            ":443 {\n    abort\n}\n" +
+            address + " {\n" + reverseProxy + "}\n";
+    }
 
     private static string BuildRemotePrepareCommand(string root, bool useCaddy, int port, string project)
     {
@@ -590,20 +614,34 @@ public partial class MainWindow
         return "nfsu2-" + digest[..10];
     }
 
-    private static string BuildRemoteHealthCommand(string root, string domain, int port, bool useCaddy)
+    private static string BuildRemoteHealthCommand(string root, string address, int port, string accessMode, bool useCaddy)
     {
-        string url = useCaddy ? "https://" + domain + "/game.json" : "http://127.0.0.1:" + port + "/game.json";
-        string tls = useCaddy ? "-k --resolve " + domain + ":443:127.0.0.1" : "";
-        string hostHeader = useCaddy ? "" : "-H " + ShellQuote("Host: " + domain);
+        string url = useCaddy
+            ? "https://" + address + "/game.json"
+            : "http://127.0.0.1:" + port.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/game.json";
+        string tls = "";
+        string hostHeader = "";
+        if (useCaddy)
+        {
+            string target = accessMode == "lan" ? address : "127.0.0.1";
+            tls = "--resolve " + address + ":443:" + target;
+            if (accessMode == "lan")
+                tls += " --cacert " + ShellQuote(root + "/lan-ca-root.crt");
+        }
+        else
+        {
+            hostHeader = "-H " + ShellQuote("Host: " + address);
+        }
+
         string status = BuildRemoteComposeCommand(root, "ps").TrimEnd();
-        string publicUrl = useCaddy ? "https://" + domain + "/" : "http://127.0.0.1:" + port + "/ (reverse proxy hedefi)";
+        string playerUrl = BuildRemotePlayerUrl(accessMode, address);
         return $"""
         set -eu
         {status}
         for attempt in $(seq 1 90); do
             if curl --noproxy '*' {tls} {hostHeader} -fsS --max-time 4 {ShellQuote(url)} -o /dev/null; then
-                echo '[OK] NFSU2 server responds to /game.json.'
-                echo 'URL: {publicUrl}'
+                echo '[OK] NFSU2 server responds to /game.json with certificate validation enabled.'
+                echo 'URL: {playerUrl}'
                 exit 0
             fi
             sleep 2
@@ -612,6 +650,165 @@ public partial class MainWindow
         {status}
         exit 40
         """;
+    }
+
+    private async Task<string> ResolveRemoteAccessAddressAsync(string accessMode, string requestedAddress)
+    {
+        if (accessMode == "domain")
+        {
+            ValidateRemoteDomain(requestedAddress);
+            return requestedAddress;
+        }
+        if (!string.IsNullOrWhiteSpace(requestedAddress))
+            return requestedAddress;
+
+        string command;
+        if (accessMode == "lan")
+        {
+            command = """
+                python3 - <<'PY'
+                import ipaddress, re, subprocess, sys
+                try:
+                    rows = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "scope", "global"], text=True).splitlines()
+                except Exception as exc:
+                    print("LAN adresleri okunamadı: " + str(exc), file=sys.stderr); sys.exit(2)
+                skip = ("docker", "br-", "veth", "virbr", "lo", "tailscale", "tun")
+                for row in rows:
+                    iface = row.split(":", 2)[1].strip() if ":" in row else ""
+                    if iface.startswith(skip): continue
+                    match = re.search(r"\\binet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)/", row)
+                    if not match: continue
+                    addr = ipaddress.ip_address(match.group(1))
+                    if (addr in ipaddress.ip_network("10.0.0.0/8") or
+                        addr in ipaddress.ip_network("172.16.0.0/12") or
+                        addr in ipaddress.ip_network("192.168.0.0/16")):
+                        print(addr); sys.exit(0)
+                print("Özel LAN IPv4 adresi bulunamadı. Adresi elle gir.", file=sys.stderr); sys.exit(3)
+                PY
+                """;
+        }
+        else
+        {
+            command = "curl -4 -fsS --max-time 12 https://api.ipify.org";
+        }
+
+        string detected = (await _remoteServerSession!.ExecuteDeploymentCommandAsync(
+            command, TimeSpan.FromSeconds(20))).Trim();
+        string candidate = detected.Split(new[] { '\\r', '\\n', ' ' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "";
+        if (string.IsNullOrWhiteSpace(candidate))
+            throw new InvalidOperationException("Sunucunun dış/LAN IP adresi otomatik bulunamadı. IP adresini elle gir.");
+        return candidate;
+    }
+
+    private static void ValidateRemoteAccessAddress(string accessMode, string address)
+    {
+        if (accessMode == "domain")
+        {
+            ValidateRemoteDomain(address);
+            return;
+        }
+
+        if (!IPAddress.TryParse(address, out var ip) || ip.AddressFamily != AddressFamily.InterNetwork)
+            throw new InvalidOperationException("LAN ve Public IP modlarında geçerli bir IPv4 adresi gir.");
+        if (accessMode == "lan")
+        {
+            if (!IsPrivateIpv4(ip))
+                throw new InvalidOperationException("LAN modu yalnızca 10.x.x.x, 172.16-31.x.x veya 192.168.x.x özel IPv4 adreslerini kabul eder.");
+            return;
+        }
+
+        if (accessMode == "public-ip")
+        {
+            if (IsPrivateIpv4(ip) || ip.IsLoopback || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.None) ||
+                ip.GetAddressBytes()[0] == 169 || ip.GetAddressBytes()[0] >= 224 ||
+                ip.Equals(IPAddress.Broadcast) || IsReservedOrSharedIpv4(ip))
+                throw new InvalidOperationException("Public IP modunda internete yönlendirilebilir, sabit bir IPv4 adresi kullan.");
+            return;
+        }
+
+        throw new InvalidOperationException("Erişim modu tanınmıyor.");
+    }
+
+    private static bool IsPrivateIpv4(IPAddress ip)
+    {
+        byte[] b = ip.GetAddressBytes();
+        return b.Length == 4 &&
+            (b[0] == 10 ||
+             (b[0] == 172 && b[1] >= 16 && b[1] <= 31) ||
+             (b[0] == 192 && b[1] == 168));
+    }
+
+    private static bool IsReservedOrSharedIpv4(IPAddress ip)
+    {
+        byte[] b = ip.GetAddressBytes();
+        return b.Length == 4 &&
+            ((b[0] == 0) ||
+             (b[0] == 100 && b[1] >= 64 && b[1] <= 127) ||
+             (b[0] == 192 && b[1] == 0) ||
+             (b[0] == 192 && b[1] == 0 && b[2] == 2) ||
+             (b[0] == 198 && (b[1] == 18 || b[1] == 19 || b[1] == 51)) ||
+             (b[0] == 203 && b[1] == 0 && b[2] == 113));
+    }
+
+    private static string BuildRemotePlayerUrl(string accessMode, string address) =>
+        "https://" + address + "/";
+
+    private static string BuildRemoteAccessDescription(string accessMode, string address, bool useCaddy) =>
+        accessMode switch
+        {
+            "lan" => "Yerel ağ HTTPS · Caddy internal CA · " + address,
+            "public-ip" => "Public IPv4 HTTPS · Let's Encrypt shortlived IP certificate · " + address +
+                           " · TCP 80/443 açık olmalı",
+            _ => useCaddy ? "Domain HTTPS · Caddy otomatik TLS · " + address
+                          : "Domain · mevcut Nginx/OpenLiteSpeed/CyberPanel proxy · " + address
+        };
+
+    private async Task DownloadRemoteLanCertificateAsync(bool openAfterDownload)
+    {
+        if (_remoteServerSession?.IsConnected != true)
+        {
+            ShowRemoteError("Önce LAN sunucusuna SSH bağlantısı kur.");
+            return;
+        }
+        if (GetRemoteAccessMode() != "lan")
+        {
+            ShowRemoteError("LAN sertifikası yalnızca Yerel ağ (LAN) modunda üretilir.");
+            return;
+        }
+
+        try
+        {
+            string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
+            string profileId = (_remoteProfileBox?.SelectedItem as RemoteServerProfile)?.Id ?? "lan";
+            string folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TRPOLARIS", "ControlCenter", "certificates");
+            Directory.CreateDirectory(folder);
+            string localPath = Path.Combine(folder, "nfsu2-lan-" + profileId + "-root.crt");
+            await _remoteServerSession.DownloadRemoteFileAsync(root + "/lan-ca-root.crt", localPath);
+            AppendLog("LAN HTTPS root CA sertifikası indirildi: " + localPath, "OK", "REMOTE");
+
+            if (openAfterDownload)
+            {
+                MessageBox.Show(
+                    "LAN HTTPS sertifikası indirildi. Açılan Windows sertifika sihirbazında 'Geçerli Kullanıcı' seç, ardından sertifikayı 'Güvenilen Kök Sertifika Yetkilileri' deposuna yerleştir. Oyuna girecek diğer LAN cihazlarında da aynı root.crt sertifikasına güven verilmelidir.",
+                    "LAN HTTPS sertifikası", MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = localPath,
+                    UseShellExecute = true
+                });
+            }
+            else
+            {
+                SetRemoteDeploymentState("LAN root CA güncellendi: " + localPath, true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetRemoteDeploymentState("LAN sertifikası indirilemedi: " + ex.Message, false);
+            ShowRemoteError(ex.Message);
+        }
     }
 
     private static string ShellQuote(string value) => "'" + value.Replace("'", "'\\''", StringComparison.Ordinal) + "'";

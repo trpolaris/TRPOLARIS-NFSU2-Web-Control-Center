@@ -87,7 +87,7 @@ public partial class MainWindow
                 if (accessMode == "lan")
                 {
                     string caOutput = await _remoteServerSession.ExecuteDeploymentCommandAsync(
-                        BuildRemoteComposeCommand(installRoot, "cp caddy:/data/caddy/pki/authorities/local/root.crt ./lan-ca-root.crt && chmod 644 ./lan-ca-root.crt"),
+                        BuildRemoteLanCertificateExportCommand(installRoot),
                         TimeSpan.FromSeconds(45));
                     AppendRemoteOutput("LAN HTTPS sertifika yetkilisi", caOutput);
                 }
@@ -156,7 +156,7 @@ public partial class MainWindow
                 if (accessMode == "lan")
                 {
                     string caOutput = await _remoteServerSession.ExecuteDeploymentCommandAsync(
-                        BuildRemoteComposeCommand(root, "cp caddy:/data/caddy/pki/authorities/local/root.crt ./lan-ca-root.crt && chmod 644 ./lan-ca-root.crt"),
+                        BuildRemoteLanCertificateExportCommand(root),
                         TimeSpan.FromSeconds(45));
                     AppendRemoteOutput("LAN HTTPS sertifika yetkilisi", caOutput);
                 }
@@ -612,6 +612,19 @@ public partial class MainWindow
         string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(root)))
             .ToLowerInvariant();
         return "nfsu2-" + digest[..10];
+    }
+
+    private static string BuildRemoteLanCertificateExportCommand(string root)
+    {
+        string project = GetRemoteComposeProjectName(root);
+        string marker = ShellQuote(root + "/.nfsu2-control-center-managed");
+        string compose = $"cd {ShellQuote(root)} && grep -Fxq {ShellQuote(project)} {marker} && " +
+            $"docker compose --project-name {project} -f compose.yml exec -T caddy sh -c " +
+            ShellQuote("for attempt in $(seq 1 45); do test -s /data/caddy/pki/authorities/local/root.crt && exit 0; sleep 1; done; exit 1") +
+            $" && docker compose --project-name {project} -f compose.yml cp caddy:/data/caddy/pki/authorities/local/root.crt ./lan-ca-root.crt" +
+            $" && chmod 644 {ShellQuote(root + "/lan-ca-root.crt")}";
+        return "set -eu\\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(compose) +
+            "; else sudo -n sh -c " + ShellQuote(compose) + "; fi\\n";
     }
 
     private static string BuildRemoteHealthCommand(string root, string address, int port, string accessMode, bool useCaddy)

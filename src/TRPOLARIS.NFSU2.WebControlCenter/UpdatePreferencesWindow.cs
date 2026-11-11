@@ -33,8 +33,8 @@ internal sealed class UpdatePreferencesWindow : Window
         Owner = Application.Current.MainWindow;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
-        Background = Brush("#081523");
-        Foreground = Brush("#EDF4FC");
+        Background = Brush("#0A1020");
+        Foreground = Brush("#EDF3FF");
         FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI");
         ShowInTaskbar = false;
         UseLayoutRounding = true;
@@ -52,8 +52,8 @@ internal sealed class UpdatePreferencesWindow : Window
 
         var caption = new Border
         {
-            Background = Brush("#0A1828"),
-            BorderBrush = Brush("#20384E"),
+            Background = Brush("#0D1527"),
+            BorderBrush = Brush("#263858"),
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(17, 0, 8, 0)
         };
@@ -65,7 +65,7 @@ internal sealed class UpdatePreferencesWindow : Window
             Text = "NFSU2 SERVER CONTROL",
             FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = Brush("#68DCCC"),
+            Foreground = Brush("#70A5FF"),
             VerticalAlignment = VerticalAlignment.Center
         };
         captionGrid.Children.Add(captionText);
@@ -78,7 +78,7 @@ internal sealed class UpdatePreferencesWindow : Window
             FontSize = 19,
             Focusable = false,
             Cursor = System.Windows.Input.Cursors.Hand,
-            Foreground = Brush("#D9E8F5"),
+            Foreground = Brush("#D7E3F8"),
             Background = Brush("Transparent"),
             BorderThickness = new Thickness(0)
         };
@@ -99,8 +99,8 @@ internal sealed class UpdatePreferencesWindow : Window
         windowGrid.Children.Add(root);
         Content = new Border
         {
-            Background = Brush("#081523"),
-            BorderBrush = Brush("#31506A"),
+            Background = Brush("#0A1020"),
+            BorderBrush = Brush("#354B70"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(12),
             ClipToBounds = true,
@@ -113,13 +113,13 @@ internal sealed class UpdatePreferencesWindow : Window
             Text = "Güncelleme tercihleri",
             FontSize = 23,
             FontWeight = FontWeights.SemiBold,
-            Foreground = Brush("#F1F7FF")
+            Foreground = Brush("#EDF3FF")
         });
         heading.Children.Add(new TextBlock
         {
             Text = "Sürüm kanalı, kontrol sıklığı ve son güncelleme geçmişi.",
             FontSize = 11,
-            Foreground = Brush("#93A9BE"),
+            Foreground = Brush("#91A3BE"),
             Margin = new Thickness(0, 6, 0, 0)
         });
         Grid.SetRow(heading, 0);
@@ -127,8 +127,8 @@ internal sealed class UpdatePreferencesWindow : Window
 
         var settingsCard = new Border
         {
-            Background = Brush("#102033"),
-            BorderBrush = Brush("#2A435A"),
+            Background = Brush("#131D31"),
+            BorderBrush = Brush("#263858"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
             Padding = new Thickness(16),
@@ -165,7 +165,7 @@ internal sealed class UpdatePreferencesWindow : Window
             Text = "GÜNCELLEME GEÇMİŞİ",
             FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = Brush("#70D7CE"),
+            Foreground = Brush("#70A5FF"),
             Margin = new Thickness(2, 0, 0, 9)
         });
         var historyList = new ListBox
@@ -180,7 +180,7 @@ internal sealed class UpdatePreferencesWindow : Window
             historyList.Items.Add(new ListBoxItem
             {
                 Content = "Henüz tamamlanmış bir uygulama güncellemesi kaydı yok.",
-                Foreground = Brush("#90A6BB"),
+                Foreground = Brush("#91A3BE"),
                 Padding = new Thickness(8)
             });
         }
@@ -211,8 +211,8 @@ internal sealed class UpdatePreferencesWindow : Window
         };
         var cancel = new Button { Content = "Vazgeç", MinWidth = 95, Padding = new Thickness(14, 8, 14, 8), Margin = new Thickness(0, 0, 8, 0) };
         var save = new Button { Content = "Kaydet", MinWidth = 110, Padding = new Thickness(14, 8, 14, 8), IsDefault = true };
-        StyleButton(cancel, "#1A2C40", "#B7C9DA");
-        StyleButton(save, "#176B70", "#F2FFFF");
+        StyleButton(cancel, "#182540", "#D7E3F8");
+        StyleButton(save, "#3E6EB2", "#EDF3FF");
         cancel.IsCancel = true;
         cancel.Click += (_, _) => DialogResult = false;
         save.Click += (_, _) =>
@@ -243,7 +243,7 @@ internal sealed class UpdatePreferencesWindow : Window
             Text = label,
             FontSize = 8,
             FontWeight = FontWeights.Bold,
-            Foreground = Brush("#83A0B8"),
+            Foreground = Brush("#91A3BE"),
             Margin = new Thickness(0, 0, 0, 7)
         });
         foreach (var item in items) combo.Items.Add(item);
@@ -252,9 +252,9 @@ internal sealed class UpdatePreferencesWindow : Window
         combo.Height = 42;
         combo.MaxDropDownHeight = 270;
         combo.Margin = new Thickness(0, 0, 0, 18);
-        combo.Background = Brush("#0D1D2D");
-        combo.Foreground = Brush("#EDF5FF");
-        combo.BorderBrush = Brush("#3B5872");
+        combo.Background = Brush("#101A2C");
+        combo.Foreground = Brush("#EDF3FF");
+        combo.BorderBrush = Brush("#354B70");
         combo.Padding = new Thickness(10, 7, 10, 7);
         parent.Children.Add(combo);
     }
@@ -268,7 +268,7 @@ internal sealed class UpdatePreferencesWindow : Window
 
     private static void StyleButton(Button button, string background, string foreground)
     {
-        try { button.Style = (Style)Application.Current.FindResource(background == "#176B70" ? "ModernButton" : "SecondaryButton"); } catch { }
+        try { button.Style = (Style)Application.Current.FindResource(background == "#3E6EB2" ? "ModernButton" : "SecondaryButton"); } catch { }
         button.MinHeight = 40;
         button.Background = Brush(background);
         button.Foreground = Brush(foreground);

@@ -208,7 +208,7 @@ internal sealed class RemoteServerSession : IDisposable
             try
             {
                 return sftp.ListDirectory(remotePath)
-                    .Where(x => x.Name is not ("." or ".."))
+                    .Where(x => x.Name is not ("." or ".." or ".nfsu2-control-center-managed"))
                     .Where(x => !x.Attributes.IsSymbolicLink && (x.IsDirectory || x.IsRegularFile))
                     .OrderByDescending(x => x.IsDirectory)
                     .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)

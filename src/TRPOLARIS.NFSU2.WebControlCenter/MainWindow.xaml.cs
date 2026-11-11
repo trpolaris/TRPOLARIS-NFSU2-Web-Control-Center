@@ -218,6 +218,7 @@ public partial class MainWindow : Window
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
         StopProjectChangeMonitor();
+        DisposeRemoteServerSession();
         _logsVisible = false;
         _statusTimer.Stop();
         _projectSnapshotTimer.Stop();
@@ -563,6 +564,8 @@ public partial class MainWindow : Window
         _statusLabels.Clear();
         switch (page)
         {
+            case "Remote":
+                TopEyebrow.Text = "REMOTE / SSH CONNECTION"; TopTitle.Text = "Uzak sunucu yönetimi"; PageHost.Content = BuildRemotePage(); break;
             case "Dashboard":
                 TopEyebrow.Text = "DEPLOYMENT / OVERVIEW"; TopTitle.Text = "Altyapı kontrol merkezi"; PageHost.Content = BuildDashboardPage(); break;
             case "Install":
@@ -586,7 +589,7 @@ public partial class MainWindow : Window
 
     private void SetNavState(string selected)
     {
-        var nav = new[] { NavDashboard, NavInstall, NavUpdate, NavFiles, NavAccess, NavUninstall, NavLogs };
+        var nav = new[] { NavDashboard, NavInstall, NavRemote, NavUpdate, NavFiles, NavAccess, NavUninstall, NavLogs };
         foreach (var b in nav)
         {
             bool active = Equals(b.Tag, selected);

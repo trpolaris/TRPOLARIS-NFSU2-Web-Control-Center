@@ -503,6 +503,24 @@ public partial class MainWindow
         return panel;
     }
 
+    private RemoteServerProfile? GetSelectedRemoteProfile()
+    {
+        if (_remoteProfileBox?.SelectedItem is RemoteServerProfile selected)
+            return selected;
+        var profiles = RemoteServerProfileStore.LoadAll().ToList();
+        return profiles.FirstOrDefault(x => string.Equals(x.Id, _activeRemoteProfileId, StringComparison.Ordinal))
+            ?? profiles.FirstOrDefault();
+    }
+
+    private string GetRemoteInstallRootValue()
+    {
+        string configured = _remoteInstallRootBox?.Text.Trim() ?? "";
+        if (!string.IsNullOrWhiteSpace(configured))
+            return ValidateRemoteInstallRoot(configured);
+        var profile = GetSelectedRemoteProfile();
+        return ValidateRemoteInstallRoot(profile?.RemoteProjectDirectory ?? "/srv/nfsu2");
+    }
+
     private string GetRemoteAccessMode() => _remoteAccessModeBox?.SelectedIndex switch
     {
         0 => "lan",

@@ -338,6 +338,7 @@ public partial class MainWindow
         });
         _remoteFilePathBox = RemoteTextBox();
         _remoteFilePathBox.Text = (_remoteInstallRootBox?.Text ?? "/srv/nfsu2").TrimEnd('/');
+        _remoteFilePathBox.IsReadOnly = true;
         var pathRow = new DockPanel { LastChildFill = true };
         var listButton = MakeButton("Listele", "SecondaryButton", async (_, _) => await RefreshRemoteFileListAsync(), new Thickness(8, 0, 0, 0));
         DockPanel.SetDock(listButton, Dock.Right);
@@ -346,7 +347,10 @@ public partial class MainWindow
         pathRow.Children.Add(listButton);
         pathRow.Children.Add(upButton);
         pathRow.Children.Add(_remoteFilePathBox);
-        fileStack.Children.Add(RemoteField("Uzak klasör yolu", pathRow));
+        var pathField = new StackPanel { Orientation = Orientation.Vertical };
+        pathField.Children.Add(new TextBlock { Text = "Uzak klasör yolu", FontSize = 10, Foreground = BrushHex("#9FB4C8"), Margin = new Thickness(0, 0, 0, 5) });
+        pathField.Children.Add(pathRow);
+        fileStack.Children.Add(pathField);
 
         _remoteFileList = new ListBox
         {
@@ -377,7 +381,10 @@ public partial class MainWindow
         DockPanel.SetDock(createFolderButton, Dock.Right);
         folderRow.Children.Add(createFolderButton);
         folderRow.Children.Add(_remoteNewFolderBox);
-        fileStack.Children.Add(RemoteField("Yeni klasör adı", folderRow));
+        var folderField = new StackPanel { Orientation = Orientation.Vertical };
+        folderField.Children.Add(new TextBlock { Text = "Yeni klasör adı", FontSize = 10, Foreground = BrushHex("#9FB4C8"), Margin = new Thickness(0, 0, 0, 5) });
+        folderField.Children.Add(folderRow);
+        fileStack.Children.Add(folderField);
         _remoteFileStatus = new TextBlock
         {
             Text = "SSH bağlantısı kurulduğunda Listele ile uzak dosyaları görüntüleyebilirsin.",

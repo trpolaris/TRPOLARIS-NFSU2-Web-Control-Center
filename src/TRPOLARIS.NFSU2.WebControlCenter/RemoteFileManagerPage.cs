@@ -113,9 +113,10 @@ public partial class MainWindow
         if (dialog.ShowDialog(this) != true) return;
 
         string name = Path.GetFileName(dialog.FileName);
-        if (string.IsNullOrWhiteSpace(name) || name is "." or "..")
+        if (string.IsNullOrWhiteSpace(name) || name is "." or ".." ||
+            name.Equals(".nfsu2-control-center-managed", StringComparison.OrdinalIgnoreCase))
         {
-            SetRemoteFileStatus("Dosya adı geçersiz.", false);
+            SetRemoteFileStatus("Dosya adı geçersiz veya uygulamanın korumalı kurulum işaretçisi.", false);
             return;
         }
 

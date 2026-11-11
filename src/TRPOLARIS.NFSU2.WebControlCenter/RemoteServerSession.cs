@@ -327,7 +327,7 @@ internal sealed class RemoteServerSession : IDisposable
 
     private static void EnsureRemotePathIsSafe(SftpClient sftp, string path, bool requireLeafDirectory)
     {
-        string normalized = (path ?? "").Replace('\\\\', '/');
+        string normalized = (path ?? "").Replace('\\', '/');
         if (!normalized.StartsWith("/", StringComparison.Ordinal) ||
             normalized.Split('/').Any(part => part is "." or ".."))
             throw new InvalidOperationException("SFTP yolu mutlak olmalı ve üst dizin parçaları içeremez.");

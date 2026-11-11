@@ -436,7 +436,7 @@ public partial class MainWindow
         $SUDO mkdir -p {quotedRoot}/game {quotedRoot}/module
         $SUDO chown -R "$(id -u):$(id -g)" {quotedRoot}
         chmod 755 {quotedRoot} {quotedRoot}/game {quotedRoot}/module
-        available_kb="$(df -Pk {quotedRoot} | awk 'NR==2 {{print $4}}')"
+        available_kb="$(df -Pk {quotedRoot} | tail -n 1 | sed -E 's/ +/ /g' | cut -d ' ' -f4)"
         if [ "$available_kb" -lt 5000000 ]; then
             echo '[ERROR] Less than 5 GB of free disk space is available on the target filesystem.' >&2
             exit 33

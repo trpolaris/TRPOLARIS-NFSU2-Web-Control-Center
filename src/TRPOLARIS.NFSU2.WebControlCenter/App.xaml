@@ -82,9 +82,9 @@
         </Style>
 
         <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFF9EE" />
-            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-            <Setter Property="BorderBrush" Value="#AFC8FF" />
+            <Setter Property="Foreground" Value="#EDF3FF" />
+            <Setter Property="Background" Value="#3E6EB2" />
+            <Setter Property="BorderBrush" Value="#5B87C9" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="17,10" />
             <Setter Property="MinHeight" Value="42" />
@@ -99,7 +99,7 @@
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="9" Padding="{TemplateBinding Padding}">
                             <Border.Effect>
-                                <DropShadowEffect Color="#70A5FF" BlurRadius="13" ShadowDepth="0" Opacity="0.14" />
+                                <DropShadowEffect Color="#70A5FF" BlurRadius="15" ShadowDepth="0" Opacity="0.20" />
                             </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                               RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}">
@@ -111,8 +111,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#AFC8FF" />
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#D8D0FF" />
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#4B7DC5" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#90B7FF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.82" />
@@ -130,9 +130,9 @@
         </Style>
 
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Foreground" Value="#D4E1EC" />
-            <Setter Property="Background" Value="#131D31" />
-            <Setter Property="BorderBrush" Value="#4A5554" />
+            <Setter Property="Foreground" Value="#D7E3F8" />
+            <Setter Property="Background" Value="#182540" />
+            <Setter Property="BorderBrush" Value="#354B70" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -145,8 +145,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#1A2A46" />
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#617CB5" />
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#203658" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#5F8DD1" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.8" />
@@ -161,9 +161,9 @@
         </Style>
 
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Foreground" Value="#FFF5F7" />
-            <Setter Property="Background" Value="#3C2949" />
-            <Setter Property="BorderBrush" Value="#6B5AA8" />
+            <Setter Property="Foreground" Value="#FFEAF0" />
+            <Setter Property="Background" Value="#43273B" />
+            <Setter Property="BorderBrush" Value="#9B5A7D" />
         </Style>
 
         <Style x:Key="NavButton" TargetType="Button">
@@ -191,10 +191,10 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="NavSurface" Property="Background" Value="#142B40" />
-                                <Setter TargetName="NavSurface" Property="BorderBrush" Value="#3B5682" />
+                                <Setter TargetName="NavSurface" Property="BorderBrush" Value="#354B70" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="NavSurface" Property="Background" Value="#1A2A46" />
+                                <Setter TargetName="NavSurface" Property="Background" Value="#203658" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="NavSurface" Property="Opacity" Value="0.4" />
@@ -222,7 +222,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="CapBorder" Property="Background" Value="#1A2A46" />
+                                <Setter TargetName="CapBorder" Property="Background" Value="#203658" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
@@ -247,7 +247,7 @@
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="CapBorder" Property="Background" Value="#7A3940" />
+                                <Setter TargetName="CapBorder" Property="Background" Value="#6A3048" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -263,7 +263,7 @@
             <Setter Property="Padding" Value="11,9" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
-            <Setter Property="SelectionBrush" Value="#4A5F90" />
+            <Setter Property="SelectionBrush" Value="#354B70" />
         </Style>
 
         <!-- ComboBox popup and items are fully templated: the default WPF popup uses
@@ -285,11 +285,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="ItemSurface" Property="Background" Value="#1A2A46" />
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#203658" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemSurface" Property="Background" Value="#263A60" />
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#203658" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -314,10 +314,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ToggleSurface" Property="Background" Value="#1A2A46" />
+                                <Setter TargetName="ToggleSurface" Property="Background" Value="#203658" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="ToggleSurface" Property="Background" Value="#263A60" />
+                                <Setter TargetName="ToggleSurface" Property="Background" Value="#203658" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="ToggleSurface" Property="Opacity" Value="0.45" />
@@ -412,7 +412,7 @@
         </Style>
 
         <Style x:Key="DarkListBoxItem" TargetType="{x:Type ListBoxItem}">
-            <Setter Property="Foreground" Value="#DDEAF6" />
+            <Setter Property="Foreground" Value="#D7E3F8" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Padding" Value="10,9" />
             <Setter Property="Margin" Value="0,0,0,5" />
@@ -432,7 +432,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ItemSurface" Property="Background" Value="#1A2A46" />
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#203658" />
                                 <Setter TargetName="ItemSurface" Property="BorderBrush" Value="#6D7770" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
@@ -451,7 +451,7 @@
 
         <Style x:Key="DarkListBox" TargetType="{x:Type ListBox}">
             <Setter Property="Background" Value="#0A1020" />
-            <Setter Property="Foreground" Value="#DDEAF6" />
+            <Setter Property="Foreground" Value="#D7E3F8" />
             <Setter Property="BorderBrush" Value="#263858" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8" />
@@ -492,7 +492,7 @@
 
         <!-- Night Circuit tooltip surface: avoid Windows' bright default tooltip with light inherited text. -->
         <Style TargetType="{x:Type ToolTip}">
-            <Setter Property="Background" Value="#142039" />
+            <Setter Property="Background" Value="#101A2C" />
             <Setter Property="Foreground" Value="#EAF4FF" />
             <Setter Property="BorderBrush" Value="#655D49" />
             <Setter Property="BorderThickness" Value="1" />

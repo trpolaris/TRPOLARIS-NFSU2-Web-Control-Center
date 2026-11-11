@@ -20,6 +20,8 @@ public partial class MainWindow
             string root = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "");
             string path = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             _remoteFilePathBox!.Text = path;
+            SetRemoteFileStatus("Uzak kurulum doğrulanıyor...", true);
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
             SetRemoteFileStatus("Uzak klasör listeleniyor...", true);
             var entries = await _remoteServerSession.ListRemoteDirectoryAsync(path);
             if (_remoteFileList is not null)
@@ -91,6 +93,7 @@ public partial class MainWindow
 
         try
         {
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
             SetRemoteFileStatus("Dosya indiriliyor: " + entry.Name, true);
             await _remoteServerSession.DownloadRemoteFileAsync(remotePath, dialog.FileName);
             SetRemoteFileStatus("Dosya indirildi: " + dialog.FileName, true);
@@ -122,6 +125,7 @@ public partial class MainWindow
 
         try
         {
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
             SetRemoteFileStatus("Dosya yükleniyor: " + name, true);
             var item = new RemoteUploadItem(dialog.FileName, current.TrimEnd('/') + "/" + name, name);
             await _remoteServerSession.UploadFilesAsync(new[] { item });
@@ -148,6 +152,7 @@ public partial class MainWindow
             string current = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             string newPath = current.TrimEnd('/') + "/" + name;
             ValidateRemoteBrowserPath(newPath, root);
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
             await _remoteServerSession.CreateRemoteDirectoryAsync(newPath);
             if (_remoteNewFolderBox is not null) _remoteNewFolderBox.Text = "";
             await RefreshRemoteFileListAsync();
@@ -171,6 +176,7 @@ public partial class MainWindow
             string path = ValidateRemoteBrowserPath(entry.FullPath, root);
             if (string.Equals(path, root, StringComparison.Ordinal))
                 throw new InvalidOperationException("Kurulum kök dizini dosya yöneticisinden silinemez.");
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
 
             string description = entry.IsDirectory
                 ? "Seçilen boş klasör silinecek. Dolu klasörleri silmek için önce içeriğini ayrı ayrı kaldır."

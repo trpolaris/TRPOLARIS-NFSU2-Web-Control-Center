@@ -439,7 +439,7 @@ public partial class MainWindow
             DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y docker.io docker-compose-v2
         fi
         $SUDO systemctl enable --now docker
-        docker compose version
+        $SUDO docker compose version
         $SUDO mkdir -p {quotedRoot}/game {quotedRoot}/module
         $SUDO chown -R "$(id -u):$(id -g)" {quotedRoot}
         chmod 755 {quotedRoot} {quotedRoot}/game {quotedRoot}/module

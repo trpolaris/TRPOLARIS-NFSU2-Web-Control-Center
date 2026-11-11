@@ -44,7 +44,12 @@ public partial class MainWindow
             ItemsSource = RemoteServerProfileStore.LoadAll().ToList()
         };
         _remoteProfileBox.SelectionChanged += RemoteProfileSelectionChanged;
-        profileStack.Children.Add(_remoteProfileBox);
+        var profileRow = new DockPanel { LastChildFill = true };
+        var newProfileButton = MakeButton("Yeni profil", "SecondaryButton", (_, _) => NewRemoteProfile(), new Thickness(8, 0, 0, 0));
+        DockPanel.SetDock(newProfileButton, Dock.Right);
+        profileRow.Children.Add(newProfileButton);
+        profileRow.Children.Add(_remoteProfileBox);
+        profileStack.Children.Add(profileRow);
         profilePanel.Child = profileStack;
         root.Children.Add(profilePanel);
 
@@ -249,6 +254,21 @@ public partial class MainWindow
             string.Equals(x.Id, selectedId, StringComparison.Ordinal));
         if (_remoteProfileBox.SelectedItem is null && profiles.Count > 0)
             _remoteProfileBox.SelectedIndex = 0;
+    }
+
+    private void NewRemoteProfile()
+    {
+        if (_remoteProfileBox is not null) _remoteProfileBox.SelectedItem = null;
+        _activeRemoteProfileId = null;
+        if (_remoteNameBox is not null) _remoteNameBox.Text = "";
+        if (_remoteHostBox is not null) _remoteHostBox.Text = "";
+        if (_remotePortBox is not null) _remotePortBox.Text = "22";
+        if (_remoteUsernameBox is not null) _remoteUsernameBox.Text = "";
+        if (_remoteAuthenticationBox is not null) _remoteAuthenticationBox.SelectedIndex = 0;
+        if (_remotePrivateKeyBox is not null) _remotePrivateKeyBox.Text = "";
+        if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
+        if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
+        SetRemoteStatus("Yeni bağlantı profili oluşturuluyor.", connected: false);
     }
 
     private void RemoteProfileSelectionChanged(object sender, SelectionChangedEventArgs e)

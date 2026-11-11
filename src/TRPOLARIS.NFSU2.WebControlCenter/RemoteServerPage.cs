@@ -586,12 +586,6 @@ public partial class MainWindow
         _remoteNewFolderBox.Text = "";
         actions.Children.Add(RemoteField("Klasör adı", _remoteNewFolderBox));
         actions.Children.Add(MakeButton("Klasör oluştur", "SecondaryButton", async (_, _) => await CreateRemoteFolderAsync()));
-        new Border
-        {
-            Height = 1,
-            Background = BrushHex("#263858"),
-            Margin = new Thickness(0, 3, 0, 1)
-        };
         actions.Children.Add(new Border { Height = 1, Background = BrushHex("#263858"), Margin = new Thickness(0, 3, 0, 1) });
         actions.Children.Add(RemoteSectionTitle("KALICI SİLME"));
         actions.Children.Add(new TextBlock

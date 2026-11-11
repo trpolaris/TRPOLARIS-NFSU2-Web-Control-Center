@@ -28,6 +28,9 @@ public partial class MainWindow
     private TextBox? _remoteDomainBox;
     private TextBox? _remoteInstallRootBox;
     private TextBox? _remoteHttpPortBox;
+    private ComboBox? _remoteAccessModeBox;
+    private TextBlock? _remoteAccessAddressLabel;
+    private TextBlock? _remoteAccessHint;
     private ComboBox? _remoteProxyModeBox;
     private TextBlock? _remoteDeploymentState;
     private ProgressBar? _remoteDeploymentProgress;
@@ -231,6 +234,14 @@ public partial class MainWindow
         _remoteJsonPathBox = RemoteTextBox();
         _remoteJsonPathBox.Text = Path.Combine(RootDir, "module", "nfsu2.json");
         _remoteDomainBox = RemoteTextBox();
+        _remoteAccessModeBox = new ComboBox
+        {
+            Height = 38,
+            Style = (Style)FindResource("DarkComboBox"),
+            ItemsSource = new[] { "Yerel ağ (LAN)", "Public IP (İnternet)", "Domain (HTTPS)" },
+            SelectedIndex = 2
+        };
+        _remoteAccessModeBox.SelectionChanged += (_, _) => ApplyRemoteAccessModeUi();
         _remoteInstallRootBox = RemoteTextBox();
         _remoteInstallRootBox.Text = "/srv/nfsu2";
         _remoteInstallRootBox.TextChanged += (_, _) =>
@@ -280,7 +291,18 @@ public partial class MainWindow
         jsonRow.Children.Add(jsonBrowse);
         deployStack.Children.Add(jsonRow);
 
-        deployStack.Children.Add(RemoteField("Oyuncuların kullanacağı domain (DNS bu VPS IP adresine yönelmeli)", _remoteDomainBox));
+        deployStack.Children.Add(RemoteField("Erişim türü", _remoteAccessModeBox));
+        var endpointField = RemoteField("Oyuncuların kullanacağı domain veya IP", _remoteDomainBox);
+        _remoteAccessAddressLabel = (TextBlock)endpointField.Children[0];
+        deployStack.Children.Add(endpointField);
+        _remoteAccessHint = new TextBlock
+        {
+            Text = "Domain için DNS kaydını VPS IP adresine yönlendir. Caddy HTTPS sertifikasını otomatik alır.",
+            Foreground = BrushHex("#A9BED1"),
+            FontSize = 10,
+            TextWrapping = TextWrapping.Wrap
+        };
+        deployStack.Children.Add(_remoteAccessHint);
 
         var configGrid = new Grid();
         configGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -323,6 +345,7 @@ public partial class MainWindow
         deployButtons.Children.Add(MakeButton("Sunucuyu durdur", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("stop"), new Thickness(0, 0, 7, 7)));
         deployButtons.Children.Add(MakeButton("Yeniden başlat", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("restart"), new Thickness(0, 0, 7, 7)));
         deployButtons.Children.Add(MakeButton("Canlı günlükler", "SecondaryButton", async (_, _) => await ReadRemoteLogsAsync(), new Thickness(0, 0, 7, 7)));
+        deployButtons.Children.Add(MakeButton("LAN sertifikasını indir", "SecondaryButton", async (_, _) => await DownloadRemoteLanCertificateAsync(true), new Thickness(0, 0, 7, 7)));
         deployButtons.Children.Add(MakeButton("Uzak kurulumu kaldır", "DangerButton", async (_, _) => await UninstallRemoteServerAsync(), new Thickness(0, 0, 7, 7)));
         deployButtons.Children.Add(MakeButton("Tüm verileri kalıcı sil", "DangerButton", async (_, _) => await PurgeRemoteServerAsync(), new Thickness(0, 0, 7, 7)));
         deployStack.Children.Add(deployButtons);
@@ -407,6 +430,7 @@ public partial class MainWindow
         root.Children.Add(filePanel);
 
         RefreshRemoteProfileList(_activeRemoteProfileId);
+        ApplyRemoteAccessModeUi();
         return new ScrollViewer
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -457,6 +481,41 @@ public partial class MainWindow
         return panel;
     }
 
+    private string GetRemoteAccessMode() => _remoteAccessModeBox?.SelectedIndex switch
+    {
+        0 => "lan",
+        1 => "public-ip",
+        _ => "domain"
+    };
+
+    private void ApplyRemoteAccessModeUi()
+    {
+        string mode = GetRemoteAccessMode();
+        if (_remoteAccessAddressLabel is not null)
+            _remoteAccessAddressLabel.Text = mode switch
+            {
+                "lan" => "LAN IPv4 adresi (boş bırakılırsa otomatik algılanır)",
+                "public-ip" => "Public IPv4 adresi (boş bırakılırsa otomatik algılanır)",
+                _ => "Domain adı (DNS bu VPS IP adresine yönelmeli)"
+            };
+        if (_remoteAccessHint is not null)
+        {
+            _remoteAccessHint.Text = mode switch
+            {
+                "lan" => "Caddy yerel CA ile HTTPS kurar. Diğer cihazlarda LAN sertifikasını indirip Güvenilen Kök Sertifika Yetkilileri deposuna eklemelisin. Caddy yalnızca seçilen LAN IP'sine bağlanır.",
+                "public-ip" => "Public IP için Let's Encrypt kısa ömürlü IP sertifikası kullanılır. Sunucunun IP'si sabit olmalı; TCP 80 ve 443 sağlayıcı güvenlik duvarında açık olmalı.",
+                _ => "Domain için DNS kaydını VPS IP adresine yönlendir. Caddy otomatik HTTPS sertifikası alır veya mevcut Nginx/OpenLiteSpeed proxy kullanılır."
+            };
+        }
+        if (_remoteProxyModeBox is not null)
+        {
+            bool domain = mode == "domain";
+            _remoteProxyModeBox.IsEnabled = domain;
+            _remoteProxyModeBox.Opacity = domain ? 1 : 0.55;
+            if (!domain) _remoteProxyModeBox.SelectedIndex = 0;
+        }
+    }
+
     private void RefreshRemoteProfileList(string? selectedId)
     {
         if (_remoteProfileBox is null) return;
@@ -483,6 +542,7 @@ public partial class MainWindow
         if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
         if (_remoteInstallRootBox is not null) _remoteInstallRootBox.Text = "/srv/nfsu2";
         if (_remoteDomainBox is not null) _remoteDomainBox.Text = "";
+        if (_remoteAccessModeBox is not null) _remoteAccessModeBox.SelectedIndex = 2;
         if (_remoteHttpPortBox is not null) _remoteHttpPortBox.Text = "8080";
         if (_remoteProxyModeBox is not null) _remoteProxyModeBox.SelectedIndex = 0;
         if (_remoteFilePathBox is not null) _remoteFilePathBox.Text = "/srv/nfsu2";
@@ -505,6 +565,7 @@ public partial class MainWindow
         if (_remoteInstallRootBox is not null)
             _remoteInstallRootBox.Text = string.IsNullOrWhiteSpace(profile.RemoteProjectDirectory) ? "/srv/nfsu2" : profile.RemoteProjectDirectory;
         if (_remoteDomainBox is not null) _remoteDomainBox.Text = profile.Domain ?? "";
+        if (_remoteAccessModeBox is not null) _remoteAccessModeBox.SelectedIndex = profile.AccessMode switch { "lan" => 0, "public-ip" => 1, _ => 2 };
         if (_remoteHttpPortBox is not null) _remoteHttpPortBox.Text = profile.HttpPort.ToString();
         if (_remoteProxyModeBox is not null)
             _remoteProxyModeBox.SelectedIndex = string.Equals(profile.ProxyMode, "existing-proxy", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
@@ -546,6 +607,7 @@ public partial class MainWindow
             PrivateKeyPath = privateKey ? keyPath : "",
             HostKeyFingerprint = selected?.HostKeyFingerprint ?? "",
             RemoteProjectDirectory = ValidateRemoteInstallRoot(_remoteInstallRootBox?.Text ?? "/srv/nfsu2"),
+            AccessMode = _remoteAccessModeBox?.SelectedIndex switch { 0 => "lan", 1 => "public-ip", _ => "domain" },
             Domain = _remoteDomainBox?.Text.Trim() ?? "",
             HttpPort = ParseRemoteHttpPort(),
             ProxyMode = _remoteProxyModeBox?.SelectedIndex == 1 ? "existing-proxy" : "caddy",

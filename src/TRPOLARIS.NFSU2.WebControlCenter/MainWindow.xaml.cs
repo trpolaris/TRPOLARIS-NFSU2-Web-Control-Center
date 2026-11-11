@@ -3464,56 +3464,69 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private static SolidColorBrush BrushHex(string value)
     {
-        // Map page-level legacy colors onto the shared Blue Nebula token system.
-        string color = value.ToUpperInvariant() switch
+        // Legacy page colors are routed through the shared Blue Nebula palette.
+        var aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        void Map(string token, params string[] legacyValues)
         {
-            "#07111C" or "#07111E" or "#091421" or "#091625" or "#0A1118" or "#0A1724" or
-            "#0B1929" or "#0F1923" or "#101C2A" or "#101E31" or "#101C30" or "#0C1A29" or
-            "#111C26" or "#111B25" or "#0D1A22" or "#131F2A" or "#141F2A" or "#15222D" or
-            "#10231D" or "#102C35" or "#0D1D2D" or "#0B1A29" or "#0A1724" => "#0A1020",
+            foreach (string legacy in legacyValues)
+                aliases[legacy] = token;
+        }
 
-            "#143448" or "#142B45" or "#122438" or "#18334A" or "#19334A" or "#1B2B36" or
-            "#20384F" or "#172B40" or "#102338" or "#102237" or "#0D2030" or "#15283B" or
-            "#102B3C" or "#1B3037" or "#18364A" or "#19334A" or "#1D344A" => "#0D1527",
+        Map("#0A1020",
+            "#07111C", "#07111E", "#091421", "#091625", "#0A1118", "#0A1724", "#0B1929",
+            "#0F1923", "#101C2A", "#101E31", "#101C30", "#0C1A29", "#111C26", "#111B25",
+            "#0D1A22", "#131F2A", "#141F2A", "#15222D", "#10231D", "#102C35", "#0D1D2D",
+            "#0B1A29", "#1B2224");
 
-            "#0D1E2E" or "#101F30" or "#141F2A" or "#15222D" or "#172B40" or "#172B40" or
-            "#172B40" or "#222A2D" or "#242D30" or "#252E30" => "#131D31",
+        Map("#0D1527",
+            "#143448", "#142B45", "#122438", "#18334A", "#19334A", "#1B2B36", "#20384F",
+            "#172B40", "#102338", "#102237", "#0D2030", "#15283B", "#102B3C", "#1B3037",
+            "#18364A", "#1D344A", "#101A2C");
 
-            "#172B40" or "#1A354D" or "#1B2B36" or "#1B2224" or "#1C2426" or "#20364B" or
-            "#20384F" or "#222A2D" or "#252E30" or "#2A3133" or "#2A3437" => "#182540",
+        Map("#131D31",
+            "#0D1E2E", "#101F30", "#141F2A", "#15222D", "#222A2D", "#242D30", "#252E30",
+            "#2A3133", "#2A3437", "#172B40");
 
-            "#EAF3FD" or "#EAF5FF" or "#F1F7FF" or "#EDF4FC" or "#DDE5EC" or "#DDEAF6" or
-            "#CFE1EF" or "#B8C5D2" or "#D4E1EC" or "#F7FFFF" or "#E5F0FC" or "#E0EAF4" or
-            "#F7FFFF" or "#FFF9EE" or "#EAF4FF" => "#EDF3FF",
+        Map("#182540",
+            "#1A354D", "#1B2B36", "#1C2426", "#20364B", "#20384F", "#222A2D", "#252E30",
+            "#2A3133", "#2A3437", "#172B40", "#183047");
 
-            "#9FB4C8" or "#A9BED1" or "#9CB1C6" or "#8FA8BD" or "#AFC0CB" or "#829CB4" or
-            "#91A3B1" or "#9EAFBC" or "#91A6BC" or "#B8CBDD" or "#B6C8E2" or "#7896B2" or
-            "#7F97A8" or "#607990" or "#55728A" or "#718CA6" or "#AFC0D2" or "#6F879E" or
-            "#7F96AD" or "#A8B0AB" or "#9FB4C8" or "#9CB1C6" => "#91A3BE",
+        Map("#EDF3FF",
+            "#EAF3FD", "#EAF5FF", "#F1F7FF", "#EDF4FC", "#DDE5EC", "#DDEAF6", "#CFE1EF",
+            "#B8C5D2", "#D4E1EC", "#F7FFFF", "#E5F0FC", "#E0EAF4", "#FFF9EE", "#EAF4FF",
+            "#F4FFFF", "#D4E1EC", "#EAF3FC");
 
-            "#70CFC8" or "#6BCFC7" or "#61D4C7" or "#76F0E0" or "#43E4D0" or "#42C9C0" or
-            "#4DD1C7" or "#63CEC5" or "#62DCCB" or "#77DCD1" or "#65E8D6" or "#8CEDE2" or
-            "#63E7D2" or "#6FE3C1" or "#9CC8FF" or "#6D9BFF" or "#FF7043" or "#FF8968" or
-            "#FF9878" or "#FF9B78" or "#F4C15D" => "#70A5FF",
+        Map("#91A3BE",
+            "#9FB4C8", "#A9BED1", "#9CB1C6", "#8FA8BD", "#AFC0CB", "#829CB4", "#91A3B1",
+            "#9EAFBC", "#91A6BC", "#B8CBDD", "#B6C8E2", "#7896B2", "#7F97A8", "#607990",
+            "#55728A", "#718CA6", "#AFC0D2", "#6F879E", "#7F96AD", "#A8B0AB");
 
-            "#E5B65B" or "#F4C15D" or "#F8C45C" or "#FFCA78" or "#F0BE69" or "#E0B86C" or
-            "#FFC875" or "#E7BD67" or "#EAB96A" => "#F6C66B",
+        Map("#70A5FF",
+            "#70CFC8", "#6BCFC7", "#61D4C7", "#76F0E0", "#43E4D0", "#42C9C0", "#4DD1C7",
+            "#63CEC5", "#62DCCB", "#77DCD1", "#65E8D6", "#8CEDE2", "#63E7D2", "#6FE3C1",
+            "#9CC8FF", "#6D9BFF", "#FF7043", "#FF8968", "#FF9878", "#FF9B78");
 
-            "#38D996" or "#65D6B0" or "#65D8B5" or "#4BD6AC" or "#43D6A1" or "#78C69A" => "#3DD6AE",
-            "#FF687D" or "#FF8798" or "#783340" or "#FF6E83" or "#F27C82" => "#F47C93",
+        Map("#9C8CFF", "#B18CFF", "#B7A5FF", "#C3A9DB", "#80603A", "#715331");
 
-            "#34506A" or "#263D52" or "#2B3A47" or "#29445D" or "#263E55" or "#35536F" or
-            "#315F81" or "#31516B" or "#344550" or "#20364B" or "#2D414F" or "#3A4648" or
-            "#343F41" or "#46504C" or "#4A5554" or "#4A5F90" or "#344C75" => "#263858",
+        Map("#F6C66B",
+            "#E5B65B", "#F4C15D", "#F8C45C", "#FFCA78", "#F0BE69", "#E0B86C", "#FFC875",
+            "#E7BD67", "#EAB96A");
 
-            "#70CFC8" or "#6BCFC7" or "#61D4C7" => "#70A5FF",
-            "#3D8292" or "#28616A" or "#287B7A" or "#286D68" or "#286C68" or "#B45E41" => "#5B79B2",
-            "#123D45" or "#12332F" or "#103B3A" or "#19332F" or "#3D3829" => "#1C3154",
-            "#2B2021" or "#652838" or "#744447" or "#503031" => "#43273B",
-            "#755B2B" or "#80603A" or "#715331" or "#783340" => "#6B5A8F",
-            _ => value
-        };
+        Map("#3DD6AE", "#38D996", "#65D6B0", "#65D8B5", "#4BD6AC", "#43D6A1", "#78C69A");
+        Map("#F47C93", "#FF687D", "#FF8798", "#783340", "#FF6E83", "#F27C82");
 
+        Map("#263858",
+            "#34506A", "#263D52", "#2B3A47", "#29445D", "#263E55", "#35536F", "#315F81",
+            "#31516B", "#344550", "#20364B", "#2D414F", "#3A4648", "#343F41", "#46504C",
+            "#4A5554", "#4A5F90", "#344C75", "#2D4A64");
+
+        Map("#354B70", "#263D52", "#2D4A64", "#34506A", "#263E55", "#35536F", "#315F81");
+        Map("#5B79B2", "#3D8292", "#28616A", "#287B7A", "#286D68", "#286C68", "#B45E41");
+        Map("#1C3154", "#123D45", "#12332F", "#103B3A", "#19332F", "#3D3829");
+        Map("#43273B", "#2B2021", "#652838", "#744447", "#503031", "#2B151B");
+        Map("#6B5A8F", "#755B2B", "#783340");
+
+        string color = aliases.TryGetValue(value, out string? mapped) ? mapped : value;
         return new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
     }
 

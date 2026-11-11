@@ -617,9 +617,9 @@ public partial class MainWindow
                 await session.ConnectAsync(password, keyPassphrase);
             }
 
-            string diagnostics = await session.GetServerDiagnosticsAsync();
             if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
             if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
+            string diagnostics = await session.GetServerDiagnosticsAsync();
             profile.LastConnectedUtc = DateTimeOffset.UtcNow;
             RemoteServerProfileStore.SaveOrUpdate(profile);
             _activeRemoteProfileId = profile.Id;

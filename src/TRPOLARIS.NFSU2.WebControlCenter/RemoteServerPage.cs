@@ -706,6 +706,77 @@ public partial class MainWindow
         }
     }
 
+    private string GetRemoteFileManagerRootValue()
+    {
+        string configured = _remoteFileRootBox?.Text.Trim() ?? "";
+        if (!string.IsNullOrWhiteSpace(configured))
+            return ValidateRemoteInstallRoot(configured);
+        var profile = GetSelectedRemoteProfile();
+        string saved = profile?.RemoteFileManagerRoot ?? "";
+        if (string.IsNullOrWhiteSpace(saved))
+            saved = profile?.RemoteProjectDirectory ?? "/srv/nfsu2";
+        return ValidateRemoteInstallRoot(saved);
+    }
+
+    private async Task ApplyRemoteFileManagerRootAsync()
+    {
+        try
+        {
+            if (_remoteServerSession?.IsConnected != true)
+                throw new InvalidOperationException("Önce SSH bağlantısı kur.");
+            string root = ValidateRemoteInstallRoot(_remoteFileRootBox?.Text ?? "");
+            var profile = GetSelectedRemoteProfile();
+            if (profile is not null)
+            {
+                profile.RemoteFileManagerRoot = root;
+                RemoteServerProfileStore.SaveOrUpdate(profile);
+            }
+            _remoteFilePathBox!.Text = root;
+            await RefreshRemoteFileListAsync();
+        }
+        catch (Exception ex)
+        {
+            SetRemoteFileStatus("Kök dizin açılamadı: " + ex.Message, false);
+        }
+    }
+
+    private async Task ClaimRemoteFileManagerRootAsync()
+    {
+        if (_remoteServerSession?.IsConnected != true)
+        {
+            SetRemoteFileStatus("Önce SSH bağlantısı kur.", false);
+            return;
+        }
+
+        try
+        {
+            string root = ValidateRemoteInstallRoot(_remoteFileRootBox?.Text ?? GetRemoteFileManagerRootValue());
+            var answer = ThemedDialogWindow.Show(
+                this,
+                $"'{root}' klasörü bu profilin SFTP çalışma alanı olarak işaretlenecek.\n\nBu işlem Docker Compose projesini sahiplenmez, konteynerleri değiştirmez ve mevcut dosyalara dokunmaz. Yalnızca bu dizin içinde dosya yükleme, klasör oluşturma ve silme işlemlerini açan bir güvenlik işaretçisi ekler.\n\nDevam edilsin mi?",
+                "Mevcut dizini SFTP için etkinleştir",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (answer != MessageBoxResult.Yes) return;
+
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(
+                BuildRemoteFileManagerClaimCommand(root), TimeSpan.FromSeconds(20));
+            var profile = GetSelectedRemoteProfile();
+            if (profile is not null)
+            {
+                profile.RemoteFileManagerRoot = root;
+                RemoteServerProfileStore.SaveOrUpdate(profile);
+            }
+            SetRemoteFileStatus("Dizin SFTP için etkinleştirildi. Dosya işlemleri açıldı; Docker kurulumu sahiplenilmedi.", true);
+            if (_remoteFileClaimButton is not null) _remoteFileClaimButton.IsEnabled = false;
+            await RefreshRemoteFileListAsync();
+        }
+        catch (Exception ex)
+        {
+            SetRemoteFileStatus("Dizin etkinleştirilemedi: " + ex.Message, false);
+        }
+    }
+
     private string GetRemoteInstallRootValue()
     {
         string configured = _remoteInstallRootBox?.Text.Trim() ?? "";

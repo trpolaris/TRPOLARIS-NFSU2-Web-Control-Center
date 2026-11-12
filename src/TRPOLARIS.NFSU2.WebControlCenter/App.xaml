@@ -67,6 +67,15 @@
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
+        <LinearGradientBrush x:Key="AccentSurface" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#1B9BB5" Offset="0" />
+            <GradientStop Color="#315FC7" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="PanelSurface" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#14263E" Offset="0" />
+            <GradientStop Color="#101D30" Offset="1" />
+        </LinearGradientBrush>
+
         <Style x:Key="CardBorder" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource PanelSurface}" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
@@ -80,15 +89,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <LinearGradientBrush x:Key="AccentSurface" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#1B9BB5" Offset="0" />
-            <GradientStop Color="#315FC7" Offset="1" />
-        </LinearGradientBrush>
-        <LinearGradientBrush x:Key="PanelSurface" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#14263E" Offset="0" />
-            <GradientStop Color="#101D30" Offset="1" />
-        </LinearGradientBrush>
 
         <Style x:Key="ModernButton" TargetType="Button">
             <Setter Property="Foreground" Value="#EFF6FF" />

@@ -3133,7 +3133,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     {
         // The page heading already lives in the application shell. Keep this view focused
         // on operation state, log controls, and the live terminal rather than repeating it.
-        var root = new Grid { Margin = new Thickness(16, 10, 16, 10) };
+        var root = new Grid { Margin = new Thickness(10, 7, 10, 8) };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -3145,8 +3145,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             BorderBrush = BrushHex("#2D414F"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(13),
-            Margin = new Thickness(0, 0, 0, 10)
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 7)
         };
         var operationGrid = new Grid();
         operationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.25, GridUnitType.Star) });
@@ -3265,7 +3265,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             ClipToBounds = true
         };
         var terminalGrid = new Grid();
-        terminalGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(36) });
+        terminalGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
         terminalGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         var terminalHeader = new Border
         {
@@ -3301,15 +3301,27 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         _liveLogBox = new TextBox
         {
-            IsReadOnly = true, IsUndoEnabled = false, AcceptsReturn = true, AcceptsTab = true,
-            TextWrapping = TextWrapping.Wrap,
+            IsReadOnly = true,
+            IsUndoEnabled = false,
+            AcceptsReturn = true,
+            AcceptsTab = false,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Background = BrushHex("#081321"), Foreground = BrushHex("#D2DDE5"),
-            BorderThickness = new Thickness(0), FontFamily = new FontFamily("Cascadia Mono"),
-            FontSize = 10.5, Padding = new Thickness(13, 11, 13, 12), Margin = new Thickness(0),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Background = BrushHex("#081321"),
+            Foreground = BrushHex("#DCE5EC"),
+            BorderThickness = new Thickness(0),
+            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+            FontSize = 11.5,
+            Padding = new Thickness(12, 9, 12, 10),
+            Margin = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
             Text = ReadSelectedLogText(),
-            SelectionBrush = BrushHex("#31586A"), CaretBrush = BrushHex("#62DCCB")
+            SelectionBrush = BrushHex("#31586A"),
+            CaretBrush = BrushHex("#62DCCB")
         };
         _liveLogCharCount = _liveLogBox.Text.Length;
         Grid.SetRow(_liveLogBox, 1);
@@ -3584,11 +3596,11 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             Style = (Style)FindResource("CardBorder"),
             Margin = new Thickness(0),
-            Padding = new Thickness(22)
+            Padding = new Thickness(16)
         };
-        var stack = NewStack(11);
-        stack.Children.Add(new TextBlock { Text = title, FontSize = 12, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
-        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 12.5, Foreground = BrushHex("#AEB9C5"), TextWrapping = TextWrapping.Wrap, LineHeight = 19 });
+        var stack = NewStack(9);
+        stack.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 11.5, Foreground = BrushHex("#AEB9C5"), TextWrapping = TextWrapping.Wrap, LineHeight = 17 });
         card.Child = stack;
         card.Tag = stack;
         AddCardHover(card, "#171F29", "#202A35");
@@ -3628,12 +3640,12 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         s.Margin = new Thickness(0, 0, 0, 8);
         s.Children.Add(new Border
         {
-            Width = 54, Height = 4, CornerRadius = new CornerRadius(2),
+            Width = 42, Height = 3, CornerRadius = new CornerRadius(2),
             HorizontalAlignment = HorizontalAlignment.Left,
             Background = new LinearGradientBrush(BrushHex("#FF8243").Color, BrushHex("#F4C36F").Color, new Point(0, 0), new Point(1, 0))
         });
-        s.Children.Add(new TextBlock { Text = title, FontSize = 28, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F4F6F8") });
-        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 13, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MaxWidth = 1120 });
+        s.Children.Add(new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F4F6F8") });
+        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 11.5, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MaxWidth = 980 });
         return s;
     }
 
@@ -3645,9 +3657,9 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             Content = text,
             Margin = margin ?? new Thickness(0),
-            MinHeight = 46,
-            Padding = new Thickness(18, 10, 18, 10),
-            FontSize = 12,
+            MinHeight = 38,
+            Padding = new Thickness(14, 8, 14, 8),
+            FontSize = 11,
             FontWeight = FontWeights.SemiBold,
             VerticalContentAlignment = VerticalAlignment.Center
         };
@@ -3667,12 +3679,12 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         var border = new Border
         {
             Style = (Style)FindResource("CardBorder"),
-            Margin = new Thickness(0, 0, 12, 12),
-            Padding = new Thickness(21)
+            Margin = new Thickness(0, 0, 9, 9),
+            Padding = new Thickness(16)
         };
-        var s = NewStack(12);
-        s.Children.Add(new TextBlock { Text = title, FontSize = 12, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F1F4F7") });
-        s.Children.Add(new TextBlock { Text = description, FontSize = 12, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MinHeight = 48, LineHeight = 18 });
+        var s = NewStack(9);
+        s.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F1F4F7") });
+        s.Children.Add(new TextBlock { Text = description, FontSize = 11, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MinHeight = 40, LineHeight = 16 });
         s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action()));
         border.Child = s;
         AddCardHover(border, "#171F29", "#202B36");

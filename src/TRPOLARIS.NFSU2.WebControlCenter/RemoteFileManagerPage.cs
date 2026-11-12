@@ -124,7 +124,8 @@ public partial class MainWindow
 
         string name = Path.GetFileName(dialog.FileName);
         if (string.IsNullOrWhiteSpace(name) || name is "." or ".." ||
-            name.Equals(".nfsu2-control-center-managed", StringComparison.OrdinalIgnoreCase) ||\n            name.Equals(".nfsu2-control-center-sftp-root", StringComparison.OrdinalIgnoreCase))
+            name.Equals(".nfsu2-control-center-managed", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals(".nfsu2-control-center-sftp-root", StringComparison.OrdinalIgnoreCase))
         {
             SetRemoteFileStatus("Dosya adı geçersiz veya uygulamanın korumalı kurulum işaretçisi.", false);
             return;

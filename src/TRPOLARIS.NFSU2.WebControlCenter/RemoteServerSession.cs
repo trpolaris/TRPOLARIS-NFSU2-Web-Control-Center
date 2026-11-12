@@ -225,7 +225,7 @@ internal sealed class RemoteServerSession : IDisposable
             {
                 EnsureRemotePathIsSafe(sftp, remotePath, requireLeafDirectory: true);
                 return sftp.ListDirectory(remotePath)
-                    .Where(x => x.Name is not ("." or ".." or ".nfsu2-control-center-managed"))
+                    .Where(x => x.Name is not ("." or ".." or ".nfsu2-control-center-managed" or ".nfsu2-control-center-sftp-root"))
                     .Where(x => !x.Attributes.IsSymbolicLink && (x.IsDirectory || x.IsRegularFile))
                     .OrderByDescending(x => x.IsDirectory)
                     .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)

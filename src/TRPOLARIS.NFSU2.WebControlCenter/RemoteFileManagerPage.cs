@@ -32,10 +32,13 @@ public partial class MainWindow
             }
 
             bool managed = string.Equals(access, "MANAGED", StringComparison.Ordinal);
+            bool writeDenied = string.Equals(access, "WRITE_DENIED", StringComparison.Ordinal);
             if (_remoteFileClaimButton is not null)
-                _remoteFileClaimButton.IsEnabled = !managed;
+                _remoteFileClaimButton.IsEnabled = !managed && !writeDenied;
             if (managed)
-                SetRemoteFileStatus($"{path} · {entries.Count} öğe · Dosya işlemleri açık", true);
+                SetRemoteFileStatus($"{path} · {entries.Count} öğe · Okuma / yazma erişimi hazır", true);
+            else if (writeDenied)
+                SetRemoteFileStatus($"{path} · {entries.Count} öğe · Salt okunur: SSH kullanıcısının yazma izni yok. Linux dizin sahipliğini veya ACL izinlerini düzenle.", false);
             else
                 SetRemoteFileStatus($"{path} · {entries.Count} öğe · Salt okunur. Yazma işlemleri için sağdan SFTP erişimini etkinleştir.", false);
         }

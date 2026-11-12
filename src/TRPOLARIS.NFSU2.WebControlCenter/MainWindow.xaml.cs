@@ -798,42 +798,148 @@ public partial class MainWindow : Window
 
     private UIElement BuildInstallPage()
     {
-        var root = NewStack(10);
-        root.Children.Add(Heading("NFSU2 Web sunucu kurulumu", "Windows üzerinde WSL 2, Ubuntu, Docker ve güncel React + Rust sunucu bileşenlerini tek kurulum akışıyla hazırla."));
-        var card = MakeCard("KURULUM ÖN HAZIRLIĞI", "Oyun verisi doğrulanır; doğrulama tamamlanmadan WSL veya Docker kurulumu başlatılmaz. Ayrıntılar için soru işaretlerinin üzerine gel.");
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        AddGridRow(grid, 0, "HTTP portu", out var portCell,
-            "Yerel NFSU2 Web HTTP portu. Varsayılan değer 9093'tür. Başka bir uygulama bu portu kullanıyorsa boş bir port seç.");
-        _portBox = new TextBox { Text = "9093", Width = 130, HorizontalAlignment = HorizontalAlignment.Left }; _portBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
-        portCell.Children.Add(_portBox);
-        AddGridRow(grid, 1, "Oyun klasörü", out var gameCell,
-            "SPEED2.EXE ile CARS, FRONTEND, GLOBAL ve TRACKS klasörlerini içeren NFS Underground 2 kök klasörü gerekir. Desteklenen oyun sürümü ve SHA-256 doğrulaması tamamlanmadan altyapı kurulumu başlamaz.");
-        var gamePanel = NewStack(8);
-        _gameDirBox = new TextBox { Text = Path.Combine(RootDir, "game"), MinWidth = 320, ToolTip = "SPEED2.EXE ve temel oyun klasörlerini içeren NFS Underground 2 kök klasörü" };
+        var root = NewStack(20);
+        root.Children.Add(Heading(
+            "Yerel sunucu kurulumu",
+            "NFSU2 Web altyapısını bu bilgisayarda hazırla. Önce oyun verisini doğrula; ardından WSL 2, Ubuntu, Docker ve uygulama bileşenlerini kur."));
+
+        var hero = new Border
+        {
+            CornerRadius = new CornerRadius(19),
+            Padding = new Thickness(27, 24, 27, 24),
+            BorderThickness = new Thickness(1),
+            BorderBrush = BrushHex("#76442D"),
+            Background = new LinearGradientBrush(
+                BrushHex("#302017").Color,
+                BrushHex("#1A222C").Color,
+                new Point(0, 0),
+                new Point(1, 1))
+        };
+        var heroGrid = new Grid();
+        heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var intro = NewStack(8);
+        intro.Children.Add(new TextBlock
+        {
+            Text = "NIGHTSHIFT GARAGE  /  LOCAL DEPLOYMENT",
+            FontSize = 10,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF9B62")
+        });
+        intro.Children.Add(new TextBlock
+        {
+            Text = "Kendi oyun sunucunu\nbirkaç adımda hazırla.",
+            FontSize = 25,
+            FontWeight = FontWeights.Bold,
+            LineHeight = 31,
+            Foreground = BrushHex("#F4F6F8"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        intro.Children.Add(new TextBlock
+        {
+            Text = "Kurulum başlamadan önce oyun klasörü kontrol edilir. Mevcut WSL ve Docker ortamı incelenir; eksik bileşenler tamamlanır.",
+            FontSize = 12,
+            Foreground = BrushHex("#BCC5CF"),
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 700
+        });
+        heroGrid.Children.Add(intro);
+
+        var heroBadge = new Border
+        {
+            Width = 158,
+            CornerRadius = new CornerRadius(15),
+            BorderBrush = BrushHex("#795039"),
+            BorderThickness = new Thickness(1),
+            Background = BrushHex("#352319"),
+            Padding = new Thickness(16),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(20, 0, 0, 0)
+        };
+        var badgeStack = NewStack(5);
+        badgeStack.Children.Add(new TextBlock { Text = "UYGULAMA", FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#D9A07C") });
+        badgeStack.Children.Add(new TextBlock { Text = AppVersion.Display, FontSize = 25, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FFE1CE") });
+        badgeStack.Children.Add(new TextBlock { Text = "LOCAL WORKSPACE", FontSize = 9, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#B89A88") });
+        heroBadge.Child = badgeStack;
+        Grid.SetColumn(heroBadge, 1);
+        heroGrid.Children.Add(heroBadge);
+        hero.Child = heroGrid;
+        root.Children.Add(hero);
+
+        var workspace = new Grid();
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.35, GridUnitType.Star) });
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.85, GridUnitType.Star) });
+
+        // Game source panel
+        var gameCard = MakeCard(
+            "01  /  OYUN VERİSİ",
+            "Desteklenen NFS Underground 2 oyun klasörünü seç. Kurulumdan önce SPEED2.EXE ve gerekli oyun dizinleri doğrulanır.");
+        var gameForm = NewStack(11);
+        gameForm.Children.Add(MutedLabel("OYUN KLASÖRÜ"));
+        _gameDirBox = new TextBox
+        {
+            Text = Path.Combine(RootDir, "game"),
+            MinWidth = 320,
+            ToolTip = "SPEED2.EXE ile CARS, FRONTEND, GLOBAL ve TRACKS klasörlerini içeren NFS Underground 2 kök klasörü"
+        };
         _gameDirBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
         _gameDirBox.LostFocus += (_, _) => RefreshGameFolderValidation();
-        gamePanel.Children.Add(_gameDirBox);
+        gameForm.Children.Add(_gameDirBox);
+
         var gameActions = new WrapPanel();
-        _gameDownloadStartButton = MakeButton("İndir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
-        _gameDownloadStartButton.ToolTip = "ZIP arşivini NFSU2 Server control üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
+        _gameDownloadStartButton = MakeButton("Oyunu indir ve yerleştir", "ModernButton", DownloadGameArchive_Click);
+        _gameDownloadStartButton.ToolTip = "ZIP arşivini uygulama üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
         gameActions.Children.Add(_gameDownloadStartButton);
-        gameActions.Children.Add(MakeButton("Bilgisayardaki ZIP arşivini içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
+        gameActions.Children.Add(MakeButton("ZIP içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
         gameActions.Children.Add(MakeButton("Klasörü doğrula", "SecondaryButton", VerifyGameFolder_Click, new Thickness(8, 0, 0, 0)));
-        var browserDownloadButton = MakeButton("Oyunu indir", "ModernButton", OpenGameArchiveInBrowser_Click, new Thickness(8, 0, 0, 0));
-        browserDownloadButton.ToolTip = "NFS Underground 2 ZIP arşivini MediaFire üzerinden varsayılan tarayıcıda indir.";
+        var browserDownloadButton = MakeButton("Tarayıcıda indir", "SecondaryButton", OpenGameArchiveInBrowser_Click, new Thickness(8, 0, 0, 0));
+        browserDownloadButton.ToolTip = "Oyun ZIP arşivini varsayılan tarayıcıda aç.";
         gameActions.Children.Add(browserDownloadButton);
-        gamePanel.Children.Add(gameActions);
-        _gameValidationStatus = new TextBlock { Text = "Oyun klasörü henüz doğrulanmadı.", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap };
-        gamePanel.Children.Add(_gameValidationStatus);
-        _gameDownloadProgressBar = new ProgressBar { Minimum = 0, Maximum = 100, Height = 7, Margin = new Thickness(0, 5, 0, 0), Background = BrushHex("#263541"), Foreground = BrushHex("#61D4C7"), BorderThickness = new Thickness(0), Visibility = Visibility.Collapsed };
-        gamePanel.Children.Add(_gameDownloadProgressBar);
-        _gameDownloadProgressText = new TextBlock { Text = string.Empty, FontSize = 9, Foreground = BrushHex("#AFC0CB"), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
-        gamePanel.Children.Add(_gameDownloadProgressText);
-        var downloadControlRow = new WrapPanel { Margin = new Thickness(0, 3, 0, 0) };
-        _gameDownloadPauseButton = MakeButton("Ⅱ  Duraklat", "SecondaryButton", PauseGameArchiveDownload_Click);
-        _gameDownloadResumeButton = MakeButton("▶  Devam et", "ModernButton", ResumeGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
+        gameForm.Children.Add(gameActions);
+
+        var validationPanel = new Border
+        {
+            Background = BrushHex("#111821"),
+            BorderBrush = BrushHex("#303D4D"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(11),
+            Padding = new Thickness(14)
+        };
+        var validationStack = NewStack(7);
+        validationStack.Children.Add(new TextBlock { Text = "DOSYA DOĞRULAMA", FontSize = 9, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        _gameValidationStatus = new TextBlock
+        {
+            Text = "Oyun klasörü henüz doğrulanmadı.",
+            Foreground = BrushHex("#A5B0BE"),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap
+        };
+        validationStack.Children.Add(_gameValidationStatus);
+        _gameDownloadProgressBar = new ProgressBar
+        {
+            Minimum = 0,
+            Maximum = 100,
+            Height = 7,
+            Margin = new Thickness(0, 4, 0, 0),
+            Background = BrushHex("#303D4D"),
+            Foreground = BrushHex("#FF8243"),
+            BorderThickness = new Thickness(0),
+            Visibility = Visibility.Collapsed
+        };
+        validationStack.Children.Add(_gameDownloadProgressBar);
+        _gameDownloadProgressText = new TextBlock
+        {
+            Text = string.Empty,
+            FontSize = 10,
+            Foreground = BrushHex("#B7C0CA"),
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = Visibility.Collapsed
+        };
+        validationStack.Children.Add(_gameDownloadProgressText);
+
+        var downloadControlRow = new WrapPanel();
+        _gameDownloadPauseButton = MakeButton("Duraklat", "SecondaryButton", PauseGameArchiveDownload_Click);
+        _gameDownloadResumeButton = MakeButton("Devam et", "ModernButton", ResumeGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
         _gameDownloadCancelButton = MakeButton("İndirmeyi iptal et", "DangerButton", CancelGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
         _gameDownloadPauseButton.Visibility = Visibility.Collapsed;
         _gameDownloadResumeButton.Visibility = Visibility.Collapsed;
@@ -841,25 +947,91 @@ public partial class MainWindow : Window
         downloadControlRow.Children.Add(_gameDownloadPauseButton);
         downloadControlRow.Children.Add(_gameDownloadResumeButton);
         downloadControlRow.Children.Add(_gameDownloadCancelButton);
-        gamePanel.Children.Add(downloadControlRow);
+        validationStack.Children.Add(downloadControlRow);
+        validationPanel.Child = validationStack;
+        gameForm.Children.Add(validationPanel);
         SetGameDownloadControls(active: _gameArchiveBusy, paused: _gameDownloadPaused);
+        AddCardChild(gameCard, gameForm);
+        Grid.SetColumn(gameCard, 0);
+        workspace.Children.Add(gameCard);
 
-        gameCell.Children.Add(gamePanel);
-        AddGridRow(grid, 2, "Kurulum kapsamı", out var scopeCell,
-            "Windows WSL 2 ve Ubuntu, Docker Desktop WSL entegrasyonu, GitHub main kaynakları, Python, Node.js 24, Rust stable, WASI SDK, React bağımlılıkları, Rust Cargo bağımlılıkları, WASM üretimi ve Docker image derlemesi.");
-        scopeCell.Children.Add(new TextBlock { Text = "WSL 2 · Ubuntu · Docker · GitHub · Python · Node.js · Rust · WASI · React · WASM", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("TextBrush"), FontSize = 10, MaxWidth = 680 });
-        AddGridRow(grid, 3, "İlk çalıştırma", out var infoCell,
-            "İlk Ubuntu açılışında Linux kullanıcı adı ve parola oluşturman istenebilir. Docker Desktop WSL Integration ayarı uygulanırken Docker Desktop yeniden başlatılabilir. Varsayılan erişim profili yalnızca bu bilgisayardır.");
-        infoCell.Children.Add(new TextBlock { Text = "Yerel profil · WSL 2 · Ubuntu · Docker Desktop · React + Rust", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, MaxWidth = 680 });
-        AddCardChild(card, grid);
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 18, 0, 0) };
-        _installButton = MakeButton("Kurulumu başlat", "ModernButton", Install_Click); actions.Children.Add(_installButton);
-        actions.Children.Add(MakeButton("Altyapı güncelleme", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(10, 0, 0, 0)));
-        actions.Children.Add(MakeButton("Canlı günlüğü aç", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(10, 0, 0, 0)));
-        AddCardChild(card, actions);
-        _installState = new TextBlock { Text = "Hazır. Kurulum başlatılmadı.", Foreground = (Brush)FindResource("MutedBrush"), Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap };
-        AddCardChild(card, _installState);
-        root.Children.Add(card);
+        // Local network and build profile panel
+        var setupCard = MakeCard(
+            "02  /  SUNUCU AYARLARI",
+            "Yerel web arayüzünün portunu belirle ve kurulacak bileşenleri gözden geçir.");
+        var setupFields = NewStack(12);
+        setupFields.Children.Add(MutedLabel("HTTP PORTU"));
+        _portBox = new TextBox { Text = "9093", Width = 170, HorizontalAlignment = HorizontalAlignment.Left };
+        _portBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
+        setupFields.Children.Add(_portBox);
+        setupFields.Children.Add(new TextBlock
+        {
+            Text = "Varsayılan: 9093. Port doluysa kullanılmayan başka bir port seçebilirsin.",
+            FontSize = 11,
+            Foreground = BrushHex("#9BA7B4"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        setupFields.Children.Add(new Border { Height = 1, Background = BrushHex("#303D4D"), Margin = new Thickness(0, 7, 0, 3) });
+        setupFields.Children.Add(MutedLabel("KURULUM ZİNCİRİ"));
+        foreach (var item in new[]
+        {
+            ("WSL 2", "Windows Linux alt sistemi"),
+            ("Ubuntu", "Linux çalışma ortamı"),
+            ("Docker Desktop", "Konteyner motoru ve Compose"),
+            ("Node.js 24 + React", "Web arayüzü bağımlılıkları"),
+            ("Rust + WASI SDK", "Sunucu ve oyun WASM modülü"),
+            ("GitHub main", "Güncel kaynak kodu")
+        })
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 1, 0, 1) };
+            var dot = new Border { Width = 7, Height = 7, CornerRadius = new CornerRadius(4), Background = BrushHex("#45C7D0"), Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
+            row.Children.Add(dot);
+            var labels = NewStack(2);
+            labels.Children.Add(new TextBlock { Text = item.Item1, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#E8EDF2") });
+            labels.Children.Add(new TextBlock { Text = item.Item2, FontSize = 10, Foreground = BrushHex("#8F9CA9") });
+            row.Children.Add(labels);
+            setupFields.Children.Add(row);
+        }
+        AddCardChild(setupCard, setupFields);
+        Grid.SetColumn(setupCard, 1);
+        workspace.Children.Add(setupCard);
+        root.Children.Add(workspace);
+
+        // Primary installation action
+        var launchCard = new Border
+        {
+            Background = new LinearGradientBrush(BrushHex("#252019").Color, BrushHex("#171F29").Color, new Point(0, 0), new Point(1, 0)),
+            BorderBrush = BrushHex("#6B422D"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(22)
+        };
+        var launchGrid = new Grid();
+        launchGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        launchGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var launchInfo = NewStack(6);
+        launchInfo.Children.Add(new TextBlock { Text = "03  /  KURULUMU BAŞLAT", FontSize = 11, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        launchInfo.Children.Add(new TextBlock { Text = "Hazır olduğunda yerel sunucuyu oluştur.", FontSize = 17, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F4F6F8") });
+        _installState = new TextBlock
+        {
+            Text = "Hazır. Kurulum başlatılmadı.",
+            Foreground = BrushHex("#A5B0BE"),
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap
+        };
+        launchInfo.Children.Add(_installState);
+        launchGrid.Children.Add(launchInfo);
+
+        var launchActions = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20, 0, 0, 0) };
+        _installButton = MakeButton("Kurulumu başlat", "ModernButton", Install_Click);
+        _installButton.MinWidth = 190;
+        launchActions.Children.Add(_installButton);
+        launchActions.Children.Add(MakeButton("İşlem günlüğünü aç", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(0, 8, 0, 0)));
+        Grid.SetColumn(launchActions, 1);
+        launchGrid.Children.Add(launchActions);
+        launchCard.Child = launchGrid;
+        root.Children.Add(launchCard);
+
         return WrapScrollable(root);
     }
 

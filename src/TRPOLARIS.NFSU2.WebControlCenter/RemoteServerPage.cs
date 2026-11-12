@@ -660,8 +660,8 @@ public partial class MainWindow
 
     private static Border RemotePanel() => new()
     {
-        Background = BrushHex("#101C2A"),
-        BorderBrush = BrushHex("#29445D"),
+        Background = BrushHex("#162338"),
+        BorderBrush = BrushHex("#2B3C54"),
         BorderThickness = new Thickness(1),
         CornerRadius = new CornerRadius(9),
         Padding = new Thickness(11)

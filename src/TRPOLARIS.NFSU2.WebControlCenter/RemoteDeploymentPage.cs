@@ -607,6 +607,124 @@ public partial class MainWindow
             $"if ! grep -Fxq {project} {marker}; then echo '[ERROR] This directory is not owned by this Control Center install.' >&2; exit 51; fi\n";
     }
 
+    private static string GetRemoteFileManagerToken(string root)
+    {
+        string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(root)))
+            .ToLowerInvariant();
+        return "sftp-" + digest[..16];
+    }
+
+    private static string BuildRemoteFileManagerAccessCheck(string root)
+    {
+        string rootPath = ShellQuote(root);
+        string deploymentMarker = ShellQuote(root + "/.nfsu2-control-center-managed");
+        string sftpMarker = ShellQuote(root + "/.nfsu2-control-center-sftp-root");
+        string project = ShellQuote(GetRemoteComposeProjectName(root));
+        string token = ShellQuote(GetRemoteFileManagerToken(root));
+        return $"""
+        set -eu
+        if [ -L {rootPath} ] || [ ! -d {rootPath} ]; then
+            echo '[ERROR] Seçilen uzak klasör bulunamadı veya güvenli bir dizin değil.' >&2
+            exit 50
+        fi
+        if [ -L {deploymentMarker} ] || [ -L {sftpMarker} ]; then
+            echo '[ERROR] SFTP güvenlik işaretçisi sembolik bağlantı olamaz.' >&2
+            exit 53
+        fi
+        if [ -f {deploymentMarker} ]; then
+            if grep -Fxq {project} {deploymentMarker}; then
+                echo 'MANAGED'
+                exit 0
+            fi
+            echo '[ERROR] Bu klasör başka bir Control Center kurulumuna ait.' >&2
+            exit 53
+        fi
+        if [ -f {sftpMarker} ]; then
+            if grep -Fxq {token} {sftpMarker}; then
+                echo 'MANAGED'
+                exit 0
+            fi
+            echo '[ERROR] SFTP işaretçisi bu uzak klasör için geçerli değil.' >&2
+            exit 53
+        fi
+        echo 'READ_ONLY'
+        """;
+    }
+
+    private static string BuildRemoteFileManagerWriteCheck(string root)
+    {
+        string rootPath = ShellQuote(root);
+        string deploymentMarker = ShellQuote(root + "/.nfsu2-control-center-managed");
+        string sftpMarker = ShellQuote(root + "/.nfsu2-control-center-sftp-root");
+        string project = ShellQuote(GetRemoteComposeProjectName(root));
+        string token = ShellQuote(GetRemoteFileManagerToken(root));
+        return $"""
+        set -eu
+        if [ -L {rootPath} ] || [ ! -d {rootPath} ]; then
+            echo '[ERROR] Seçilen uzak klasör bulunamadı veya güvenli bir dizin değil.' >&2
+            exit 50
+        fi
+        if [ -L {deploymentMarker} ] || [ -L {sftpMarker} ]; then
+            echo '[ERROR] SFTP güvenlik işaretçisi sembolik bağlantı olamaz.' >&2
+            exit 53
+        fi
+        if [ -f {deploymentMarker} ] && grep -Fxq {project} {deploymentMarker}; then exit 0; fi
+        if [ -f {sftpMarker} ] && grep -Fxq {token} {sftpMarker}; then exit 0; fi
+        echo '[ERROR] Bu klasör dosya işlemlerine açılmadı. Önce SFTP için etkinleştir.' >&2
+        exit 54
+        """;
+    }
+
+    private static string BuildRemoteFileManagerClaimCommand(string root)
+    {
+        string rootPath = ShellQuote(root);
+        string deploymentMarker = ShellQuote(root + "/.nfsu2-control-center-managed");
+        string sftpMarker = ShellQuote(root + "/.nfsu2-control-center-sftp-root");
+        string project = ShellQuote(GetRemoteComposeProjectName(root));
+        string token = ShellQuote(GetRemoteFileManagerToken(root));
+        string inner = $"""
+            set -eu
+            if [ -L {rootPath} ] || [ ! -d {rootPath} ]; then
+                echo '[ERROR] Seçilen uzak klasör bulunamadı veya güvenli bir dizin değil.' >&2
+                exit 50
+            fi
+            if [ -L {deploymentMarker} ] || [ -L {sftpMarker} ]; then
+                echo '[ERROR] Güvenlik işaretçileri sembolik bağlantı olamaz.' >&2
+                exit 53
+            fi
+            if [ -f {deploymentMarker} ]; then
+                if grep -Fxq {project} {deploymentMarker}; then
+                    echo '[OK] Klasör zaten bu Control Center dağıtımı tarafından yönetiliyor.'
+                    exit 0
+                fi
+                echo '[ERROR] Bu klasör başka bir Control Center kurulumuna ait. İşaretçi değiştirilmedi.' >&2
+                exit 53
+            fi
+            if [ -e {deploymentMarker} ] && [ ! -f {deploymentMarker} ]; then
+                echo '[ERROR] Dağıtım işaretçisi normal bir dosya değil.' >&2
+                exit 53
+            fi
+            if [ -f {sftpMarker} ]; then
+                if grep -Fxq {token} {sftpMarker}; then
+                    echo '[OK] SFTP erişimi zaten etkin.'
+                    exit 0
+                fi
+                echo '[ERROR] SFTP işaretçisi başka bir kök dizine ait. Değiştirilmedi.' >&2
+                exit 53
+            fi
+            if [ -e {sftpMarker} ]; then
+                echo '[ERROR] SFTP işaretçisi normal bir dosya değil.' >&2
+                exit 53
+            fi
+            umask 022
+            printf '%s\\n' {token} > {sftpMarker}
+            chmod 644 {sftpMarker}
+            echo '[OK] SFTP çalışma alanı etkinleştirildi. Docker/Compose projesine dokunulmadı.'
+            """;
+        return "set -eu\\nif [ \\"$(id -u)\\" -eq 0 ]; then sh -c " + ShellQuote(inner) +
+            "; else sudo -n sh -c " + ShellQuote(inner) + "; fi\\n";
+    }
+
     private static string GetRemoteComposeProjectName(string root)
     {
         string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(root)))

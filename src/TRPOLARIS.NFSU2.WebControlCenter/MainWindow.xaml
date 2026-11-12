@@ -4,7 +4,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="NFSU2 Server control"
         Icon="{StaticResource AppIconDrawing}"
-        Width="1380" Height="850" MinWidth="1080" MinHeight="690"
+        Width="1520" Height="940" MinWidth="1160" MinHeight="740"
         WindowStyle="None" ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource AppBackground}"
@@ -12,65 +12,63 @@
         Foreground="{StaticResource TextBrush}"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="36"
+        <shell:WindowChrome CaptionHeight="40"
                             ResizeBorderThickness="6"
                             GlassFrameThickness="0"
-                            CornerRadius="17"
+                            CornerRadius="18"
                             UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
 
     <Border Background="{StaticResource AppBackground}"
-            BorderBrush="#2A4360"
+            BorderBrush="#303B48"
             BorderThickness="1"
-            CornerRadius="16"
+            CornerRadius="18"
             ClipToBounds="True">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="36" />
+                <RowDefinition Height="40" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Application chrome -->
+            <!-- Custom window chrome -->
             <Border x:Name="WindowTitleBar"
                     Grid.Row="0"
-                    Background="#0D1A2B"
-                    BorderBrush="#243A56"
+                    Background="#0C1016"
+                    BorderBrush="#222B36"
                     BorderThickness="0,0,0,1"
                     MouseLeftButtonDown="WindowTitleBar_MouseLeftButtonDown">
-                <Grid Margin="13,0,7,0">
+                <Grid Margin="18,0,8,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal"
-                                VerticalAlignment="Center"
-                                IsHitTestVisible="False">
-                        <Border Width="20" Height="20" CornerRadius="5"
-                                Background="#1A2A47" BorderBrush="#35527D" BorderThickness="1">
-                            <Image Source="{StaticResource AppIconDrawing}" Width="13" Height="13" Stretch="Uniform" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <Border Width="24" Height="24" CornerRadius="7"
+                                Background="#24201E" BorderBrush="#75422C" BorderThickness="1">
+                            <Image Source="{StaticResource AppIconDrawing}" Width="17" Height="17" Stretch="Uniform" />
                         </Border>
                         <TextBlock Text="TRPOLARIS"
-                                   Margin="10,0,0,0"
+                                   Margin="11,0,0,0"
                                    FontSize="10"
                                    FontWeight="ExtraBold"
-                                   Foreground="#EAF1FF"
+                                   Foreground="#F4F6F8"
                                    VerticalAlignment="Center" />
                         <TextBlock Text="  /  NFSU2 SERVER CONTROL"
                                    FontSize="9"
                                    FontWeight="SemiBold"
-                                   Foreground="#7F91B0"
+                                   Foreground="#8793A2"
                                    VerticalAlignment="Center" />
-                        <Border Background="#1B2C48"
-                                BorderBrush="#38527A"
+                        <Border Background="#312018"
+                                BorderBrush="#76452D"
                                 BorderThickness="1"
-                                CornerRadius="5"
-                                Padding="7,2"
+                                CornerRadius="6"
+                                Padding="8,3"
                                 Margin="12,0,0,0">
                             <TextBlock x:Name="AppVersionText"
                                        Text=""
                                        FontSize="9"
                                        FontWeight="Bold"
-                                       Foreground="#C7F5FF" />
+                                       Foreground="#FFC09A" />
                         </Border>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -82,7 +80,7 @@
                                 AutomationProperties.Name="Simge durumuna küçült">
                             <Path Data="M2,7 L10,7" Width="12" Height="12" Stretch="None"
                                   Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
-                                  StrokeThickness="1.4" />
+                                  StrokeThickness="1.5" />
                         </Button>
                         <Button x:Name="MaximizeWindowButton"
                                 shell:WindowChrome.IsHitTestVisibleInChrome="True"
@@ -94,7 +92,7 @@
                                   Data="M2,2 H10 V10 H2 Z"
                                   Width="12" Height="12" Stretch="None"
                                   Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
-                                  StrokeThickness="1.2" Fill="Transparent" />
+                                  StrokeThickness="1.3" Fill="Transparent" />
                         </Button>
                         <Button x:Name="CloseWindowButton"
                                 shell:WindowChrome.IsHitTestVisibleInChrome="True"
@@ -104,7 +102,7 @@
                                 AutomationProperties.Name="Kapat">
                             <Path Data="M2,2 L10,10 M10,2 L2,10" Width="12" Height="12" Stretch="None"
                                   Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
-                                  StrokeThickness="1.4" />
+                                  StrokeThickness="1.5" />
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -112,68 +110,68 @@
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="244" />
+                    <ColumnDefinition Width="270" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Left navigation -->
+                <!-- Navigation rail -->
                 <Border Grid.Column="0"
-                        Background="#0B1627"
-                        BorderBrush="#243A56"
+                        Background="#10151D"
+                        BorderBrush="#293440"
                         BorderThickness="0,0,1,0">
-                    <Grid Margin="12,12,12,12">
+                    <Grid Margin="17,18,17,16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                            <Grid Height="44">
+                        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                            <Grid Height="58">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="42" />
+                                    <ColumnDefinition Width="52" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <Border Width="36" Height="36"
-                                        CornerRadius="12"
-                                        Background="#192B49"
-                                        BorderBrush="#3A5C8A"
+                                <Border Width="44" Height="44"
+                                        CornerRadius="14"
+                                        Background="#292019"
+                                        BorderBrush="#7B492E"
                                         BorderThickness="1"
                                         VerticalAlignment="Center">
-                                    <Image Source="{StaticResource AppIconDrawing}" Width="27" Height="27" Stretch="Uniform" />
+                                    <Image Source="{StaticResource AppIconDrawing}" Width="32" Height="32" Stretch="Uniform" />
                                 </Border>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="9,0,0,0">
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                                     <TextBlock Text="NFSU2"
-                                               FontSize="16"
+                                               FontSize="19"
                                                FontWeight="ExtraBold"
-                                               Foreground="#F0F4FF" />
-                                    <TextBlock Text="CONTROL CENTER"
-                                               FontSize="8"
-                                               FontWeight="ExtraBold"
-                                               Foreground="#83AEF8"
+                                               Foreground="#F6F7F8" />
+                                    <TextBlock Text="SERVER CONTROL"
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="#F49A64"
                                                Margin="0,2,0,0" />
                                 </StackPanel>
                             </Grid>
-                            <Border Background="#111F33"
-                                    BorderBrush="#314B68"
+                            <Border Background="#171E27"
+                                    BorderBrush="#303B48"
                                     BorderThickness="1"
-                                    CornerRadius="8"
-                                    Padding="8,6"
-                                    Margin="0,10,0,0">
+                                    CornerRadius="12"
+                                    Padding="13,11"
+                                    Margin="0,16,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="WORKSPACE"
-                                               FontSize="8"
+                                    <TextBlock Text="ÇALIŞMA ALANI"
+                                               FontSize="9"
                                                FontWeight="ExtraBold"
-                                               Foreground="#8294B3" />
+                                               Foreground="#8996A5" />
                                     <TextBlock Text="Sunucu operasyonları"
-                                               FontSize="11"
+                                               FontSize="13"
                                                FontWeight="SemiBold"
-                                               Foreground="#DCE6FA"
-                                               Margin="0,2,0,0" />
+                                               Foreground="#F0F2F4"
+                                               Margin="0,4,0,0" />
                                     <TextBlock Text="Windows  ·  WSL  ·  Linux VPS"
-                                               FontSize="8"
-                                               Foreground="#788AA9"
-                                               Margin="0,2,0,0" />
+                                               FontSize="10"
+                                               Foreground="#97A3B1"
+                                               Margin="0,3,0,0" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -182,255 +180,226 @@
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
-                                <TextBlock Text="GENEL"
-                                           FontSize="8"
+                                <TextBlock Text="GENEL BAKIŞ"
+                                           FontSize="9"
                                            FontWeight="ExtraBold"
-                                           Foreground="#849AB6"
-                                           Margin="4,0,0,5" />
+                                           Foreground="#7F8B99"
+                                           Margin="8,0,0,8" />
                                 <Button x:Name="NavDashboard" Tag="Dashboard"
                                         Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="14" Width="24" VerticalAlignment="Center" />
-                                        <TextBlock Text="Control room" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#292019" VerticalAlignment="Center">
+                                            <Path Data="M3,3 H10 V10 H3 Z M14,3 H21 V10 H14 Z M3,14 H10 V21 H3 Z M14,14 H21 V21 H14 Z"
+                                                  Stroke="#FF9B62" StrokeThickness="1.7" Fill="Transparent" StrokeLineJoin="Round"
+                                                  Width="19" Height="19" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Operasyon merkezi" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
 
-                                <TextBlock Text="YEREL ORTAM"
-                                           FontSize="8"
+                                <TextBlock Text="YEREL SUNUCU"
+                                           FontSize="9"
                                            FontWeight="ExtraBold"
-                                           Foreground="#849AB6"
-                                           Margin="4,14,0,5" />
-                                <Button x:Name="NavInstall" Tag="Install"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="24" VerticalAlignment="Center" />
-                                        <TextBlock Text="Yerel sunucu" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                           Foreground="#7F8B99"
+                                           Margin="8,21,0,8" />
+                                <Button x:Name="NavInstall" Tag="Install" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#1B2930" VerticalAlignment="Center">
+                                            <Path Data="M12,2 V22 M2,12 H22 M5,5 L19,19 M19,5 L5,19" Stroke="#5BD0C2" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Kurulum ve yapılandırma" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
-                                <Button x:Name="NavUpdate" Tag="Update"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="14" Width="24" VerticalAlignment="Center" />
-                                        <TextBlock Text="Altyapı güncelleme" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                <Button x:Name="NavUpdate" Tag="Update" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#242033" VerticalAlignment="Center">
+                                            <Path Data="M20,7 V3 L24,7 L20,11 M4,17 V21 L0,17 L4,13 M5,7 A8,8 0 0 1 19,5 M19,17 A8,8 0 0 1 5,19"
+                                                  Stroke="#B8A4FF" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent"
+                                                  Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Altyapı güncelleme" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
-                                <Button x:Name="NavAccess" Tag="Access"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="Yerel ağ erişimi" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                <Button x:Name="NavAccess" Tag="Access" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#202B35" VerticalAlignment="Center">
+                                            <Path Data="M12,3 A3,3 0 1 0 12,9 A3,3 0 1 0 12,3 M4,17 A3,3 0 1 0 4,23 A3,3 0 1 0 4,17 M20,17 A3,3 0 1 0 20,23 A3,3 0 1 0 20,17 M12,9 V14 M4,17 L12,14 L20,17"
+                                                  Stroke="#70BEEA" StrokeThickness="1.5" Fill="Transparent" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Ağ erişimi ve paylaşım" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
-                                <Button x:Name="NavFiles" Tag="Files"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="Yerel dosyalar" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                <Button x:Name="NavFiles" Tag="Files" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#29251D" VerticalAlignment="Center">
+                                            <Path Data="M3,6 H10 L12,9 H21 V20 H3 Z" Stroke="#F4C36F" StrokeThickness="1.6" Fill="Transparent" StrokeLineJoin="Round" Width="19" Height="17" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Yerel dosyalar" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
 
-                                <TextBlock Text="UZAK SUNUCULAR"
-                                           FontSize="8"
+                                <TextBlock Text="UZAK SUNUCU"
+                                           FontSize="9"
                                            FontWeight="ExtraBold"
-                                           Foreground="#849AB6"
-                                           Margin="4,14,0,5" />
-                                <Button x:Name="NavRemote" Tag="Remote"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE839;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="SSH bağlantıları" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                           Foreground="#7F8B99"
+                                           Margin="8,21,0,8" />
+                                <Button x:Name="NavRemote" Tag="Remote" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#1D2934" VerticalAlignment="Center">
+                                            <Path Data="M5,5 H19 V19 H5 Z M8,9 L11,12 L8,15 M13,15 H16" Stroke="#75C7D6" StrokeThickness="1.6" Fill="Transparent" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="SSH bağlantıları" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
-                                <Button x:Name="NavRemoteDeploy" Tag="RemoteDeploy"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="Uzak dağıtım" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                <Button x:Name="NavRemoteDeploy" Tag="RemoteDeploy" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#292019" VerticalAlignment="Center">
+                                            <Path Data="M12,3 V15 M7,10 L12,15 L17,10 M4,19 H20" Stroke="#FF9B62" StrokeThickness="1.7" Fill="Transparent" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Uzak dağıtım" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
-                                <Button x:Name="NavRemoteFiles" Tag="RemoteFiles"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="Uzak dosyalar" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                <Button x:Name="NavRemoteFiles" Tag="RemoteFiles" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#29251D" VerticalAlignment="Center">
+                                            <Path Data="M3,6 H10 L12,9 H21 V20 H3 Z M7,13 H17" Stroke="#F4C36F" StrokeThickness="1.6" Fill="Transparent" StrokeLineJoin="Round" Width="19" Height="17" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Uzak dosya yöneticisi" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
 
-                                <TextBlock Text="YÖNETİM"
-                                           FontSize="8"
+                                <TextBlock Text="YÖNETİM VE KAYITLAR"
+                                           FontSize="9"
                                            FontWeight="ExtraBold"
-                                           Foreground="#849AB6"
-                                           Margin="4,14,0,5" />
-                                <Button x:Name="NavUninstall" Tag="Uninstall"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="Kaldırma merkezi" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                           Foreground="#7F8B99"
+                                           Margin="8,21,0,8" />
+                                <Button x:Name="NavUninstall" Tag="Uninstall" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#302028" VerticalAlignment="Center">
+                                            <Path Data="M4,7 H20 M9,7 V4 H15 V7 M7,7 L8,20 H16 L17,7 M10,10 V17 M14,10 V17" Stroke="#FF8295" StrokeThickness="1.5" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Kaldırma merkezi" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
-                                <Button x:Name="NavLogs" Tag="Logs"
-                                        Click="Navigation_Click" Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE9D5;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="İşlem günlükleri" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                <Button x:Name="NavLogs" Tag="Logs" Click="Navigation_Click" Style="{StaticResource NavButton}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#202B35" VerticalAlignment="Center">
+                                            <Path Data="M5,3 H16 L20,7 V21 H5 Z M15,3 V8 H20 M8,12 H16 M8,16 H16" Stroke="#91A9C3" StrokeThickness="1.5" Fill="Transparent" StrokeLineJoin="Round" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="İşlem günlükleri" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
-                                <TextBlock Text="AYARLAR"
-                                           FontSize="8"
-                                           FontWeight="ExtraBold"
-                                           Foreground="#849AB6"
-                                           Margin="4,14,0,5" />
                                 <Button Click="UpdateSettings_Click"
                                         ToolTip="Güncelleme kanalı ve otomatik kontrol tercihleri"
                                         Style="{StaticResource NavButton}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="15" Width="26" VerticalAlignment="Center" />
-                                        <TextBlock Text="Güncelleme ayarları" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="10" Background="#242033" VerticalAlignment="Center">
+                                            <Path Data="M4,6 H20 M4,12 H20 M4,18 H20 M9,4 V8 M15,10 V14 M11,16 V20" Stroke="#B8A4FF" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Güncelleme ayarları" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Button>
                             </StackPanel>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="2" Margin="0,10,0,0">
-                            <Border Height="1" Background="#2A4564" Margin="0,0,0,9" />
-                            <Border Background="#111F33"
-                                    BorderBrush="#314B68"
-                                    BorderThickness="1"
-                                    CornerRadius="8"
-                                    Padding="8">
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Ellipse x:Name="WslIndicator"
-                                                 Width="8" Height="8"
-                                                 Fill="{StaticResource WarningBrush}"
-                                                 Margin="0,0,9,0" />
-                                        <TextBlock x:Name="WslSidebarText"
-                                                   Text="ORTAM DENETLENİYOR"
-                                                   FontSize="8"
-                                                   FontWeight="ExtraBold"
-                                                   Foreground="#AAB9D3" />
-                                    </StackPanel>
-                                    <TextBlock Text="Yerel Windows host"
-                                               FontSize="9"
-                                               Foreground="#7D8FAE"
-                                               Margin="15,5,0,0" />
+                        <Border Grid.Row="2"
+                                Background="#171E27"
+                                BorderBrush="#303B48"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="13"
+                                Margin="0,15,0,0">
+                            <StackPanel>
+                                <TextBlock Text="YEREL HOST"
+                                           FontSize="9"
+                                           FontWeight="ExtraBold"
+                                           Foreground="#8593A2" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
+                                    <Ellipse x:Name="WslIndicator" Width="9" Height="9" Fill="{StaticResource WarningBrush}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="WslSidebarText" Text="ORTAM DENETLENİYOR" FontSize="10" FontWeight="Bold" Foreground="#E8EDF2" VerticalAlignment="Center" />
                                 </StackPanel>
-                            </Border>
-                            <TextBlock Text=".NET 10  ·  WPF  ·  x64"
-                                       FontSize="8"
-                                       Foreground="#657795"
-                                       Margin="2,7,0,0" />
-                        </StackPanel>
+                                <TextBlock Text="Windows · WSL 2 · Docker Desktop"
+                                           FontSize="10"
+                                           Foreground="#8996A5"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
                     </Grid>
                 </Border>
 
                 <!-- Main workspace -->
-                <Grid Grid.Column="1" Background="#081321">
+                <Grid Grid.Column="1" Background="#0D1219">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="70" />
+                        <RowDefinition Height="104" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="28" />
+                        <RowDefinition Height="34" />
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0"
-                            Background="#0D1B2D"
-                            BorderBrush="#2A4360"
-                            BorderThickness="0,0,0,1">
-                        <Grid Margin="20,0,18,0">
+                            Background="#121922"
+                            BorderBrush="#293440"
+                            BorderThickness="0,0,0,1"
+                            Padding="27,16">
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock x:Name="TopEyebrow"
-                                           Text="CONTROL ROOM / OVERVIEW"
-                                           FontSize="8"
+                                           Text="CONTROL ROOM  /  OVERVIEW"
+                                           FontSize="9"
                                            FontWeight="ExtraBold"
-                                           Foreground="#4DDCF2" />
+                                           Foreground="#FF9B62" />
                                 <TextBlock x:Name="TopTitle"
                                            Text="Operasyon merkezi"
-                                           FontSize="19"
-                                           FontWeight="SemiBold"
-                                           Foreground="#EDF3FF"
-                                           Margin="0,2,0,0" />
+                                           FontSize="25"
+                                           FontWeight="Bold"
+                                           Foreground="#F3F5F7"
+                                           Margin="0,4,0,0" />
                             </StackPanel>
 
-                            <StackPanel Grid.Column="1"
-                                        Orientation="Horizontal"
-                                        VerticalAlignment="Center">
-                                <Border Background="#15223A"
-                                        BorderBrush="#2C4267"
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Background="#1B252F"
+                                        BorderBrush="#364451"
                                         BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="8,6"
-                                        Margin="0,0,7,0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse x:Name="WslTopDot"
-                                                 Width="7" Height="7"
-                                                 Fill="{StaticResource WarningBrush}"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,8,0" />
-                                        <TextBlock x:Name="WslTopText"
-                                                   Text="WSL DENETLENİYOR"
-                                                   FontSize="8"
-                                                   FontWeight="Bold"
-                                                   Foreground="#B9C7E0" />
+                                        CornerRadius="10"
+                                        Padding="12,9"
+                                        Margin="0,0,9,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Ellipse x:Name="WslTopDot" Width="8" Height="8" Fill="{StaticResource WarningBrush}" Margin="0,0,8,0" />
+                                        <TextBlock x:Name="WslTopText" Text="WSL DENETLENİYOR" FontSize="9" FontWeight="Bold" Foreground="#D0D8E1" />
                                     </StackPanel>
                                 </Border>
                                 <Button Click="CheckAppUpdates_Click"
                                         ToolTip="Uygulama güncellemelerini denetle"
                                         Style="{StaticResource SecondaryButton}"
-                                        Padding="11,8"
-                                        MinHeight="32"
-                                        Margin="0,0,6,0">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Path Data="M4,14 L4,19 L20,19 L20,14 M12,3 L12,14 M7,9 L12,14 L17,9"
-                                              Width="13" Height="13" Stretch="Uniform"
-                                              Stroke="#C7F5FF" StrokeThickness="1.7"
-                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              StrokeLineJoin="Round" Margin="0,0,8,0" />
-                                        <TextBlock Text="Güncellemeler" VerticalAlignment="Center" />
+                                        Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,3 V15 M7,10 L12,15 L17,10 M4,20 H20" Stroke="#E1E8EF" StrokeThickness="1.6" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="16" Height="16" Margin="0,0,9,0" />
+                                        <TextBlock Text="Güncellemeleri denetle" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                                 <Button Click="UpdateSettings_Click"
-                                        ToolTip="Güncelleme kanalı, kontrol sıklığı ve geçmiş"
+                                        ToolTip="Güncelleme tercihlerini düzenle"
                                         Style="{StaticResource SecondaryButton}"
-                                        Padding="9,6"
-                                        MinHeight="32"
                                         Margin="0,0,8,0">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Path Data="M12,8.2 A3.8,3.8 0 1 0 12,15.8 A3.8,3.8 0 1 0 12,8.2 M19.4,13.5 L21,14.7 L19.5,17.3 L17.9,16.5 A8,8 0 0 1 16.2,17.5 L16,19.4 L13,20 L12.3,18.2 A8,8 0 0 1 10.3,18.1 L9.2,19.6 L6.5,18.2 L7,16.4 A8,8 0 0 1 5.6,14.9 L3.7,15.2 L2.8,12.2 L4.5,11.2 A8,8 0 0 1 4.7,9.2 L3.2,8 L4.7,5.4 L6.5,6.1 A8,8 0 0 1 8.2,5.1 L8.4,3.2 L11.4,2.6 L12.1,4.4 A8,8 0 0 1 14.1,4.5 L15.2,3 L17.9,4.4 L17.4,6.2 A8,8 0 0 1 18.8,7.7 L20.7,7.4 L21.6,10.4 L19.9,11.4 A8,8 0 0 1 19.4,13.5 Z"
-                                              Width="13" Height="13" Stretch="Uniform"
-                                              Stroke="#C7F5FF" StrokeThickness="1.1" Fill="Transparent" Margin="0,0,7,0" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M4,6 H20 M4,12 H20 M4,18 H20 M9,4 V8 M15,10 V14 M11,16 V20" Stroke="#D8CFFF" StrokeThickness="1.6" Fill="Transparent" Width="16" Height="16" Margin="0,0,9,0" />
                                         <TextBlock Text="Ayarlar" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                                 <Button x:Name="HeaderRefreshButton"
                                         Click="RefreshStatus_Click"
                                         ToolTip="Yerel Windows, WSL, Ubuntu ve Docker durumunu yenile"
-                                        Style="{StaticResource SecondaryButton}"
-                                        Height="32"
-                                        MinHeight="32"
-                                        Padding="8,6">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Path Data="M3,8 C4,4 7,2 11,2 C15,2 18,4 19,7 M19,7 L19,3 M19,7 L15,7 M21,14 C20,18 17,20 13,20 C9,20 6,18 5,15 M5,15 L5,19 M5,15 L9,15"
-                                              Width="15" Height="15" Stretch="Uniform"
-                                              Stroke="#C7F5FF" StrokeThickness="1.6"
-                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              StrokeLineJoin="Round" Margin="0,0,7,0" />
-                                        <TextBlock Text="Yenile" VerticalAlignment="Center" />
+                                        Style="{StaticResource ModernButton}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M20,11 A8,8 0 0 0 5,6 L3,8 M3,3 V8 H8 M4,13 A8,8 0 0 0 19,18 L21,16 M21,21 V16 H16"
+                                              Stroke="#15191F" StrokeThickness="1.7" Fill="Transparent"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="16" Height="16" Margin="0,0,9,0"/>
+                                        <TextBlock Text="Durumu yenile" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -439,50 +408,47 @@
 
                     <ContentControl x:Name="PageHost"
                                     Grid.Row="1"
-                                    Margin="16,12,16,12" />
+                                    Margin="24,20,24,20" />
 
                     <Border x:Name="OperationProgressPanel"
                             Grid.Row="2"
                             Visibility="Collapsed"
-                            Background="#111D32"
-                            BorderBrush="#2B4063"
+                            Background="#1A222C"
+                            BorderBrush="#3B4653"
                             BorderThickness="0,1,0,1"
-                            Padding="16,6">
+                            Padding="23,11">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="7" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,5">
-                                <StackPanel DockPanel.Dock="Right"
-                                            Orientation="Horizontal"
-                                            VerticalAlignment="Center">
+                            <DockPanel LastChildFill="True">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock x:Name="OperationProgressErrorCode"
                                                Text=""
                                                FontSize="9"
-                                               Foreground="#F6C66B"
-                                               VerticalAlignment="Center" />
+                                               FontWeight="Bold"
+                                               Foreground="#F5C36A"
+                                               Margin="0,0,13,0"
+                                               Visibility="Collapsed" />
                                     <TextBlock x:Name="OperationProgressPercent"
                                                Text="0%"
-                                               FontSize="10"
+                                               FontSize="12"
                                                FontWeight="Bold"
-                                               Foreground="#8FB6FF"
-                                               VerticalAlignment="Center"
-                                               Margin="10,0,0,0" />
+                                               Foreground="#FF9B62" />
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Ellipse Width="7" Height="7" Fill="#4DDCF2" Margin="0,0,9,0" />
+                                <StackPanel>
                                     <TextBlock x:Name="OperationProgressStatus"
                                                Text="İŞLEM ÇALIŞIYOR"
-                                               FontSize="8"
-                                               FontWeight="ExtraBold"
-                                               Foreground="#86B0FF"
-                                               Margin="0,0,10,0" />
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="#FF9B62" />
                                     <TextBlock x:Name="OperationProgressLabel"
                                                Text="İşlem bekleniyor"
-                                               FontSize="10"
-                                               Foreground="#EDF3FF" />
+                                               FontSize="11"
+                                               Foreground="#E5EAF0"
+                                               Margin="0,3,0,0" />
                                 </StackPanel>
                             </DockPanel>
                             <ProgressBar x:Name="OperationProgressBar"
@@ -495,16 +461,16 @@
                                        Grid.Row="2"
                                        Text="İşlem durumu ve ilerleme ayrıntıları."
                                        FontSize="9"
-                                       Foreground="#A5B5CA"
+                                       Foreground="#A5B0BE"
                                        Margin="0,7,0,0" />
                         </Grid>
                     </Border>
 
                     <Border Grid.Row="3"
-                            Background="#0B1627"
-                            BorderBrush="#243A56"
+                            Background="#0C1016"
+                            BorderBrush="#293440"
                             BorderThickness="0,1,0,0"
-                            Padding="18,0">
+                            Padding="24,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -513,14 +479,16 @@
                             <TextBlock x:Name="FooterStatus"
                                        Text="Yerel ortam denetleniyor..."
                                        FontSize="9"
-                                       Foreground="#A5B5CA"
+                                       Foreground="#9CA8B6"
                                        VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1"
-                                       Text="TRPOLARIS  /  NFSU2 CONTROL ROOM"
-                                       FontSize="8"
-                                       FontWeight="Bold"
-                                       Foreground="#7086A4"
-                                       VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="5" Height="5" Fill="#FF914F" Margin="0,0,8,0"/>
+                                <TextBlock Text="TRPOLARIS  /  NFSU2 CONTROL ROOM"
+                                           FontSize="8"
+                                           FontWeight="Bold"
+                                           Foreground="#74808D"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>

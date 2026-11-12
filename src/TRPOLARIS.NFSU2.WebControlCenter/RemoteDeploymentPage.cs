@@ -664,6 +664,10 @@ public partial class MainWindow
             echo '[ERROR] Seçilen uzak klasör bulunamadı veya güvenli bir dizin değil.' >&2
             exit 50
         fi
+        if [ ! -w {rootPath} ]; then
+            echo '[ERROR] SSH kullanıcısının bu klasörde yazma izni yok. Linux sahiplik/ACL izinlerini kontrol et.' >&2
+            exit 55
+        fi
         if [ -L {deploymentMarker} ] || [ -L {sftpMarker} ]; then
             echo '[ERROR] SFTP güvenlik işaretçisi sembolik bağlantı olamaz.' >&2
             exit 53
@@ -721,7 +725,8 @@ public partial class MainWindow
             chmod 644 {sftpMarker}
             echo '[OK] SFTP çalışma alanı etkinleştirildi. Docker/Compose projesine dokunulmadı.'
             """;
-        return "set -eu\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(inner) +
+        string rootWritable = ShellQuote(root);
+        return "set -eu\nif [ \"$(id -u)\" -eq 0 ] || [ -w " + rootWritable + " ]; then sh -c " + ShellQuote(inner) +
             "; else sudo -n sh -c " + ShellQuote(inner) + "; fi\n";
     }
 

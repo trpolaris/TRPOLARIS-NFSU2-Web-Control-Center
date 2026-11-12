@@ -89,7 +89,7 @@
             <Setter Property="Padding" Value="12,7" />
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -97,16 +97,13 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="9" Padding="{TemplateBinding Padding}">
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
                             <Border.Effect>
-                                <DropShadowEffect Color="#79A5E8" BlurRadius="5" ShadowDepth="0" Opacity="0.08" />
+                                <DropShadowEffect Color="#79A5E8" BlurRadius="0" ShadowDepth="0" Opacity="0" />
                             </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                               RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}">
-                                <ContentPresenter.Effect>
-                                    <DropShadowEffect Color="#273C5B" BlurRadius="2" ShadowDepth="0"
-                                                      Direction="270" Opacity="0.88" />
-                                </ContentPresenter.Effect>
+                                
                             </ContentPresenter>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -175,7 +172,7 @@
             <Setter Property="Margin" Value="0,1,0,1" />
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -207,7 +204,7 @@
 
         <Style x:Key="WindowCaptionButton" TargetType="Button">
             <Setter Property="Width" Value="43" />
-            <Setter Property="Height" Value="36" />
+            <Setter Property="Height" Value="34" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Foreground" Value="#9AA9BE" />
             <Setter Property="Background" Value="Transparent" />
@@ -260,8 +257,8 @@
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="BorderBrush" Value="#2B3C54" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="9,6" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="SelectionBrush" Value="#354A66" />
         </Style>

@@ -268,8 +268,8 @@
                                           Margin="{TemplateBinding Padding}"
                                           Background="Transparent"
                                           Focusable="False"
-                                          HorizontalScrollBarVisibility="Hidden"
-                                          VerticalScrollBarVisibility="Hidden" />
+                                          HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                          VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">

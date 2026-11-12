@@ -34,7 +34,10 @@ public partial class MainWindow
     private ComboBox? _remoteProxyModeBox;
     private TextBlock? _remoteDeploymentState;
     private ProgressBar? _remoteDeploymentProgress;
+    private TextBox? _remoteFileRootBox;
     private TextBox? _remoteFilePathBox;
+    private TextBlock? _remoteFileRootStatus;
+    private Button? _remoteFileClaimButton;
     private TextBox? _remoteNewFolderBox;
     private ListBox? _remoteFileList;
     private TextBlock? _remoteFileStatus;

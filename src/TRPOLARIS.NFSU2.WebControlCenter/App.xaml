@@ -247,19 +247,48 @@
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="BorderBrush" Value="#3A4755" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="13,9" />
-            <Setter Property="Height" Value="44" />
-            <Setter Property="MinHeight" Value="44" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="SelectionBrush" Value="#7B4A33" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="#697786" /></Trigger>
-                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="#FF8243" /><Setter Property="BorderThickness" Value="1.4" /></Trigger>
-                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.55" /></Trigger>
-            </Style.Triggers>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="TextSurface"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          Background="Transparent"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TextSurface" Property="BorderBrush" Value="#697786" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="TextSurface" Property="BorderBrush" Value="#FF8243" />
+                                <Setter TargetName="TextSurface" Property="BorderThickness" Value="1.4" />
+                                <Setter TargetName="TextSurface" Property="Effect">
+                                    <Setter.Value><DropShadowEffect Color="#FF8243" BlurRadius="9" ShadowDepth="0" Opacity="0.12" /></Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="TextSurface" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ComboBox popup and items are fully templated: the default WPF popup uses

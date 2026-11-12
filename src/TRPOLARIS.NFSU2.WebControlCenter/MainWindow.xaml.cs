@@ -538,7 +538,7 @@ public partial class MainWindow : Window
             _logsCurrentFileLabel = null;
         }
         _currentPage = page;
-        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(24, 20, 24, 20);
+        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(14, 10, 14, 10);
         _statusLabels.Clear();
         _portBox = null;
         _gameDirBox = null;
@@ -3131,9 +3131,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private UIElement BuildLogsPage()
     {
+        // Persist startup/operation entries that were queued while the log view was closed
+        // before loading the initial tail, otherwise an empty file can leave the first view blank.
+        FlushPendingDiskLogs();
+
         // The page heading already lives in the application shell. Keep this view focused
         // on operation state, log controls, and the live terminal rather than repeating it.
-        var root = new Grid { Margin = new Thickness(10, 7, 10, 8) };
+        var root = new Grid { Margin = new Thickness(10, 7, 10, 8), ClipToBounds = true };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -3412,7 +3416,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private string ReadSelectedLogText()
     {
         var path = GetSelectedLogPath();
-        return File.Exists(path) ? TailText(path, LiveLogMaxChars) : $"Henüz kayıt yok.\n\nGünlük dosyası: {path}";
+        if (!File.Exists(path))
+            return $"Henüz kayıt yok.\n\nGünlük dosyası: {path}";
+
+        string content = TailText(path, LiveLogMaxChars);
+        return string.IsNullOrWhiteSpace(content)
+            ? $"Henüz kayıt yok. Yeni işlemler burada canlı olarak görünecek.\n\nGünlük dosyası: {path}"
+            : content;
     }
 
     private void OpenSelectedLogFile()

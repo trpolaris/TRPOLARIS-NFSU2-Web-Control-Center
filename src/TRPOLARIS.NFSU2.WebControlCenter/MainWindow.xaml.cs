@@ -605,7 +605,7 @@ public partial class MainWindow : Window
 
     private UIElement BuildDashboardPage()
     {
-        var root = NewStack(20);
+        var root = NewStack(12);
         root.Children.Add(Heading(
             "Control room",
             "Yerel makineni ve uzak Linux sunucularını tek yerden yönet. Her operasyon kendi çalışma alanında."));
@@ -613,7 +613,7 @@ public partial class MainWindow : Window
         var hero = new Border
         {
             CornerRadius = new CornerRadius(18),
-            Padding = new Thickness(28),
+            Padding = new Thickness(18),
             BorderThickness = new Thickness(1),
             BorderBrush = BrushHex("#34527D"),
             Background = new LinearGradientBrush(
@@ -646,7 +646,7 @@ public partial class MainWindow : Window
             Text = "Bütün sunucuların.\nTek kontrol merkezi.",
             FontSize = 31,
             FontWeight = FontWeights.Bold,
-            LineHeight = 38,
+            LineHeight = 29,
             Foreground = BrushHex("#F1F5FF"),
             TextWrapping = TextWrapping.Wrap
         });
@@ -3336,7 +3336,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private void AddGridRow(Grid grid, int rowIndex, string label, out StackPanel cell, string? help = null)
     {
         while (grid.RowDefinitions.Count <= rowIndex) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var labelRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 7, 12, 7) };
+        var labelRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 4, 10, 4) };
         var labelBlock = MutedLabel(label); labelBlock.VerticalAlignment = VerticalAlignment.Center;
         labelRow.Children.Add(labelBlock);
         if (!string.IsNullOrWhiteSpace(help))
@@ -3362,7 +3362,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             labelRow.Children.Add(helpBadge);
         }
         Grid.SetRow(labelRow, rowIndex); Grid.SetColumn(labelRow, 0); grid.Children.Add(labelRow);
-        cell = NewStack(4); cell.Margin = new Thickness(0, 3, 0, 8); Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, 1); grid.Children.Add(cell);
+        cell = NewStack(4); cell.Margin = new Thickness(0, 2, 0, 4); Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, 1); grid.Children.Add(cell);
     }
 
     private void AddCardHover(Border card, string normalBackground, string hoverBackground)
@@ -3391,7 +3391,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private Border MakeCard(string title, string subtitle)
     {
-        var card = new Border { Style = (Style)FindResource("CardBorder"), Margin = new Thickness(0), Padding = new Thickness(14) };
+        var card = new Border { Style = (Style)FindResource("CardBorder"), Margin = new Thickness(0), Padding = new Thickness(11) };
         var stack = NewStack(8);
         stack.Children.Add(new TextBlock { Text = title, FontSize = 10, FontWeight = FontWeights.Bold, Foreground = BrushHex("#6BCFC7") });
         stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 10, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap });
@@ -3431,15 +3431,15 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private StackPanel Heading(string title, string subtitle)
     {
-        var s = NewStack(6); s.Children.Add(new TextBlock { Text = title, FontSize = 25, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextBrush") });
-        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 12, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 920 }); return s;
+        var s = NewStack(4); s.Children.Add(new TextBlock { Text = title, FontSize = 20, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextBrush") });
+        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 10.5, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 920 }); return s;
     }
 
     private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#70CFC8"), TextWrapping = TextWrapping.Wrap };
 
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
-        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 40, Padding = new Thickness(15, 9, 15, 9) };
+        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 32, Padding = new Thickness(10, 6, 10, 6), FontSize = 11, FontWeight = FontWeights.SemiBold };
         b.SetResourceReference(FrameworkElement.StyleProperty, style);
 
         // Keep text contrast explicit even when theme resources or local styles change.
@@ -3456,9 +3456,9 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private Border QuickAction(string title, string description, string buttonText, Action action)
     {
-        var border = new Border { Background = BrushHex("#141F2A"), BorderBrush = BrushHex("#2B3A47"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(11), Margin = new Thickness(0, 0, 8, 0) };
-        var s = NewStack(8); s.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#EAF3FD") });
-        s.Children.Add(new TextBlock { Text = description, FontSize = 10.5, Foreground = BrushHex("#9CB1C6"), TextWrapping = TextWrapping.Wrap, MinHeight = 48 });
+        var border = new Border { Background = BrushHex("#141F2A"), BorderBrush = BrushHex("#2B3A47"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(9), Margin = new Thickness(0, 0, 7, 0) };
+        var s = NewStack(6); s.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#EAF3FD") });
+        s.Children.Add(new TextBlock { Text = description, FontSize = 9.5, Foreground = BrushHex("#9CB1C6"), TextWrapping = TextWrapping.Wrap, MinHeight = 34 });
         s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action())); border.Child = s; AddCardHover(border, "#122438", "#19334A"); return border;
     }
 

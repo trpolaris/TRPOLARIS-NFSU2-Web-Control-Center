@@ -717,12 +717,12 @@ public partial class MainWindow
                 exit 53
             fi
             umask 022
-            printf '%s\\n' {token} > {sftpMarker}
+            printf '%s' {token} > {sftpMarker}
             chmod 644 {sftpMarker}
             echo '[OK] SFTP çalışma alanı etkinleştirildi. Docker/Compose projesine dokunulmadı.'
             """;
-        return "set -eu\\nif [ \\"$(id -u)\\" -eq 0 ]; then sh -c " + ShellQuote(inner) +
-            "; else sudo -n sh -c " + ShellQuote(inner) + "; fi\\n";
+        return "set -eu\nif [ \"$(id -u)\" -eq 0 ]; then sh -c " + ShellQuote(inner) +
+            "; else sudo -n sh -c " + ShellQuote(inner) + "; fi\n";
     }
 
     private static string GetRemoteComposeProjectName(string root)

@@ -346,8 +346,8 @@ public partial class MainWindow
             Background = BrushHex("#101A2C"),
             BorderBrush = BrushHex("#263858"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(11),
+            CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(8),
             Child = new TextBlock
             {
                 Text = "Dosya doğrulaması: SPEED2.EXE sürüm / SHA-256 · seçilmiş oyun veri klasörleri · WASM ve JSON dosyaları",
@@ -379,8 +379,8 @@ public partial class MainWindow
         _remoteAccessHint = new TextBlock
         {
             Text = "Domain için DNS kaydını VPS adresine yönlendir. Caddy otomatik TLS kullanır.",
-            FontSize = 10,
-            Foreground = BrushHex("#AFC4E4"),
+            FontSize = 9,
+            Foreground = BrushHex("#9AA9BE"),
             TextWrapping = TextWrapping.Wrap
         };
         targetStack.Children.Add(_remoteAccessHint);
@@ -465,7 +465,7 @@ public partial class MainWindow
         });
         var serviceButtons = new WrapPanel();
         serviceButtons.Children.Add(MakeButton("Başlat", "ModernButton", async (_, _) => await RunRemoteServiceActionAsync("start")));
-        serviceButtons.Children.Add(MakeButton("Durdur", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("stop"), new Thickness(7, 0, 0, 0)));
+        serviceButtons.Children.Add(MakeButton("Durdur", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("stop"), new Thickness(6, 0, 0, 0)));
         serviceButtons.Children.Add(MakeButton("Yeniden başlat", "SecondaryButton", async (_, _) => await RunRemoteServiceActionAsync("restart"), new Thickness(7, 0, 0, 0)));
         serviceButtons.Children.Add(MakeButton("Canlı günlükler", "SecondaryButton", async (_, _) => await ReadRemoteLogsAsync(), new Thickness(7, 0, 0, 0)));
         serviceStack.Children.Add(serviceButtons);

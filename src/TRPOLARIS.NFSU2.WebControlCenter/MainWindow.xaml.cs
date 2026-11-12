@@ -3499,25 +3499,25 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private void AddGridRow(Grid grid, int rowIndex, string label, out StackPanel cell, string? help = null)
     {
         while (grid.RowDefinitions.Count <= rowIndex) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var labelRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 4, 10, 4) };
+        var labelRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 4, 16, 7) };
         var labelBlock = MutedLabel(label); labelBlock.VerticalAlignment = VerticalAlignment.Center;
         labelRow.Children.Add(labelBlock);
         if (!string.IsNullOrWhiteSpace(help))
         {
             var helpBadge = new Border
             {
-                Width = 17, Height = 17, CornerRadius = new CornerRadius(9),
-                Background = BrushHex("#18364A"), BorderBrush = BrushHex("#39758A"), BorderThickness = new Thickness(1),
+                Width = 21, Height = 21, CornerRadius = new CornerRadius(11),
+                Background = BrushHex("#3B2A20"), BorderBrush = BrushHex("#8B5637"), BorderThickness = new Thickness(1),
                 Margin = new Thickness(7, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
                 Cursor = System.Windows.Input.Cursors.Help,
-                Child = new TextBlock { Text = "?", FontSize = 10, FontWeight = FontWeights.Bold, Foreground = BrushHex("#8CEDE2"),
+                Child = new TextBlock { Text = "?", FontSize = 12, FontWeight = FontWeights.Bold, Foreground = BrushHex("#FFC09A"),
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Center }
             };
             var tip = new ToolTip
             {
-                Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, MaxWidth = 360, FontSize = 11, Foreground = BrushHex("#EAF4FF") },
-                Background = BrushHex("#102137"), BorderBrush = BrushHex("#3B7189"), BorderThickness = new Thickness(1),
-                Padding = new Thickness(11), Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse
+                Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, MaxWidth = 440, FontSize = 12, Foreground = BrushHex("#E8EDF2") },
+                Background = BrushHex("#171F29"), BorderBrush = BrushHex("#4B5968"), BorderThickness = new Thickness(1),
+                Padding = new Thickness(14), Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse
             };
             helpBadge.ToolTip = tip;
             ToolTipService.SetInitialShowDelay(helpBadge, 250);
@@ -3525,7 +3525,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             labelRow.Children.Add(helpBadge);
         }
         Grid.SetRow(labelRow, rowIndex); Grid.SetColumn(labelRow, 0); grid.Children.Add(labelRow);
-        cell = NewStack(4); cell.Margin = new Thickness(0, 2, 0, 4); Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, 1); grid.Children.Add(cell);
+        cell = NewStack(7); cell.Margin = new Thickness(0, 2, 0, 7); Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, 1); grid.Children.Add(cell);
     }
 
     private void AddCardHover(Border card, string normalBackground, string hoverBackground)
@@ -3610,7 +3610,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         return s;
     }
 
-    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#4DDCF2"), TextWrapping = TextWrapping.Wrap };
+    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = BrushHex("#FF9B62"), TextWrapping = TextWrapping.Wrap };
 
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {

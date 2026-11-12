@@ -46,145 +46,239 @@ public partial class MainWindow
 
     private UIElement BuildRemotePage()
     {
-        var root = NewStack(12);
+        var root = NewStack(18);
         root.Children.Add(Heading(
-            "Uzak Linux sunucusu",
-            "SSH üzerinden Ubuntu veya Debian sunucularına bağlan. Bu mod yerel Windows / WSL / Docker Desktop kurulumundan bağımsız çalışır."));
+            "SSH bağlantı merkezi",
+            "Ubuntu ve Debian sunucularını güvenli SSH oturumlarıyla yönet. Bağlantı profillerini kaydet, bağlantıyı doğrula ve uzak dağıtım alanına geç."));
 
-        var profilePanel = RemotePanel();
-        var profileStack = NewStack(9);
-        profileStack.Children.Add(MutedLabel("KAYITLI BAĞLANTILAR"));
+        // Connection profile bar
+        var profileBar = RemotePanel();
+        var profileGrid = new Grid();
+        profileGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        profileGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        profileGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var profileInfo = NewStack(5);
+        profileInfo.Children.Add(MutedLabel("AKTİF BAĞLANTI PROFİLİ"));
         _remoteProfileBox = new ComboBox
         {
             Height = 44,
+            MinWidth = 300,
             Style = (Style)FindResource("DarkComboBox"),
-            Background = BrushHex("#0B192A"),
-            Foreground = BrushHex("#EFF6FF"),
-            BorderBrush = BrushHex("#2A4360"),
+            Background = BrushHex("#111821"),
+            Foreground = BrushHex("#F4F6F8"),
+            BorderBrush = BrushHex("#3A4755"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(7, 4, 7, 4),
+            Padding = new Thickness(13, 8, 13, 8),
             DisplayMemberPath = nameof(RemoteServerProfile.Name),
             ItemsSource = RemoteServerProfileStore.LoadAll().ToList()
         };
         _remoteProfileBox.SelectionChanged += RemoteProfileSelectionChanged;
-        var profileRow = new DockPanel { LastChildFill = true };
-        var newProfileButton = MakeButton("Yeni profil", "SecondaryButton", (_, _) => NewRemoteProfile(), new Thickness(8, 0, 0, 0));
-        DockPanel.SetDock(newProfileButton, Dock.Right);
-        profileRow.Children.Add(newProfileButton);
-        profileRow.Children.Add(_remoteProfileBox);
-        profileStack.Children.Add(profileRow);
-        profilePanel.Child = profileStack;
-        root.Children.Add(profilePanel);
+        profileInfo.Children.Add(_remoteProfileBox);
+        profileGrid.Children.Add(profileInfo);
 
-        var columns = new Grid();
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.12, GridUnitType.Star) });
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.88, GridUnitType.Star) });
+        var newProfile = MakeButton("＋  Yeni profil", "SecondaryButton", (_, _) => NewRemoteProfile(), new Thickness(14, 20, 0, 0));
+        newProfile.MinWidth = 145;
+        Grid.SetColumn(newProfile, 1);
+        profileGrid.Children.Add(newProfile);
+
+        var manageProfiles = MakeButton("Profili sil", "DangerButton", (_, _) => DeleteRemoteProfile(), new Thickness(9, 20, 0, 0));
+        manageProfiles.MinWidth = 120;
+        Grid.SetColumn(manageProfiles, 2);
+        profileGrid.Children.Add(manageProfiles);
+        profileBar.Child = profileGrid;
+        root.Children.Add(profileBar);
+
+        // Main connection workspace
+        var workspace = new Grid();
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.15, GridUnitType.Star) });
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.85, GridUnitType.Star) });
 
         var formPanel = RemotePanel();
         formPanel.Margin = new Thickness(0, 0, 8, 0);
-        var form = NewStack(10);
-        form.Children.Add(RemoteSectionTitle("SSH BAĞLANTI AYARLARI"));
+        var form = NewStack(13);
+        var formHeader = new Grid();
+        formHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        formHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var formHeading = NewStack(4);
+        formHeading.Children.Add(RemoteSectionTitle("BAĞLANTI BİLGİLERİ"));
+        formHeading.Children.Add(new TextBlock { Text = "Sunucu adresini ve kimlik doğrulama yöntemini tanımla.", FontSize = 11, Foreground = BrushHex("#9BA7B4"), TextWrapping = TextWrapping.Wrap });
+        formHeader.Children.Add(formHeading);
+        var lockTag = new Border
+        {
+            Background = BrushHex("#202B37"),
+            BorderBrush = BrushHex("#3A4755"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(10, 7, 10, 7),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        lockTag.Child = new TextBlock { Text = "SSH  /  ENCRYPTED", FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#74C9D0") };
+        Grid.SetColumn(lockTag, 1);
+        formHeader.Children.Add(lockTag);
+        form.Children.Add(formHeader);
 
         _remoteNameBox = RemoteTextBox();
         _remoteHostBox = RemoteTextBox();
         _remotePortBox = RemoteTextBox();
         _remotePortBox.Text = "22";
         _remoteUsernameBox = RemoteTextBox();
+
+        var identityGrid = new Grid();
+        identityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        identityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.35, GridUnitType.Star) });
+        var nameField = RemoteField("Profil adı", _remoteNameBox);
+        var hostField = RemoteField("Sunucu IP adresi veya domain", _remoteHostBox);
+        hostField.Margin = new Thickness(12, 0, 0, 0);
+        identityGrid.Children.Add(nameField);
+        Grid.SetColumn(hostField, 1);
+        identityGrid.Children.Add(hostField);
+        form.Children.Add(identityGrid);
+
+        var loginGrid = new Grid();
+        loginGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.7, GridUnitType.Star) });
+        loginGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.3, GridUnitType.Star) });
+        var portField = RemoteField("SSH portu", _remotePortBox);
+        var userField = RemoteField("Linux kullanıcı adı", _remoteUsernameBox);
+        userField.Margin = new Thickness(12, 0, 0, 0);
+        loginGrid.Children.Add(portField);
+        Grid.SetColumn(userField, 1);
+        loginGrid.Children.Add(userField);
+        form.Children.Add(loginGrid);
+
         _remoteAuthenticationBox = new ComboBox
         {
             Height = 44,
             Style = (Style)FindResource("DarkComboBox"),
-            Background = BrushHex("#0B192A"),
-            Foreground = BrushHex("#EAF3FD"),
-            BorderBrush = BrushHex("#2A4360"),
+            Background = BrushHex("#111821"),
+            Foreground = BrushHex("#F4F6F8"),
+            BorderBrush = BrushHex("#3A4755"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(7, 4, 7, 4),
+            Padding = new Thickness(13, 8, 13, 8),
             ItemsSource = new[] { "Parola", "SSH özel anahtarı" },
             SelectedIndex = 0
         };
+        form.Children.Add(RemoteField("Kimlik doğrulama yöntemi", _remoteAuthenticationBox));
+
         _remotePrivateKeyBox = RemoteTextBox();
-        _remotePasswordBox = new PasswordBox
-        {
-            Height = 44,
-            Background = BrushHex("#0B192A"),
-            Foreground = BrushHex("#EAF3FD"),
-            BorderBrush = BrushHex("#2A4360"),
-            BorderThickness = new Thickness(1),
-            Padding = new Thickness(7, 4, 7, 4)
-        };
-        _remoteKeyPassphraseBox = new PasswordBox
-        {
-            Height = 44,
-            Background = BrushHex("#0B192A"),
-            Foreground = BrushHex("#EAF3FD"),
-            BorderBrush = BrushHex("#2A4360"),
-            BorderThickness = new Thickness(1),
-            Padding = new Thickness(7, 4, 7, 4)
-        };
-
-        form.Children.Add(RemoteField("Profil adı", _remoteNameBox));
-        form.Children.Add(RemoteField("Sunucu IP adresi veya domain", _remoteHostBox));
-
-        var connectionGrid = new Grid();
-        connectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        connectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        var portField = RemoteField("SSH portu", _remotePortBox);
-        var userField = RemoteField("Linux kullanıcı adı", _remoteUsernameBox);
-        userField.Margin = new Thickness(8, 0, 0, 0);
-        connectionGrid.Children.Add(portField);
-        Grid.SetColumn(userField, 1);
-        connectionGrid.Children.Add(userField);
-        form.Children.Add(connectionGrid);
-        form.Children.Add(RemoteField("Kimlik doğrulama", _remoteAuthenticationBox));
-
         var keyGrid = new Grid();
         keyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         keyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         keyGrid.Children.Add(RemoteField("Özel anahtar dosyası", _remotePrivateKeyBox));
-        var browse = MakeButton("Gözat", "SecondaryButton", BrowseRemotePrivateKey, new Thickness(8, 21, 0, 0));
-        browse.MinWidth = 76;
+        var browse = MakeButton("Dosya seç", "SecondaryButton", BrowseRemotePrivateKey, new Thickness(12, 22, 0, 0));
+        browse.MinWidth = 112;
         Grid.SetColumn(browse, 1);
         keyGrid.Children.Add(browse);
         form.Children.Add(keyGrid);
-        form.Children.Add(RemoteField("SSH parolası (profilde saklanmaz)", _remotePasswordBox));
-        form.Children.Add(RemoteField("Anahtar parolası (varsa)", _remoteKeyPassphraseBox));
 
-        var buttonGrid = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 0) };
-        buttonGrid.Children.Add(MakeButton("Profili kaydet", "SecondaryButton", (_, _) => SaveRemoteProfile(), new Thickness(0, 0, 7, 7)));
-        buttonGrid.Children.Add(MakeButton("Bağlan", "ModernButton", async (_, _) => await ConnectRemoteAsync(keepConnected: true), new Thickness(0, 0, 7, 7)));
-        buttonGrid.Children.Add(MakeButton("Bağlantıyı test et", "SecondaryButton", async (_, _) => await ConnectRemoteAsync(keepConnected: false), new Thickness(0, 0, 7, 7)));
-        buttonGrid.Children.Add(MakeButton("Bağlantıyı kes", "DangerButton", (_, _) => DisconnectRemoteSession(), new Thickness(0, 0, 7, 7)));
-        form.Children.Add(buttonGrid);
-        form.Children.Add(MakeButton("Seçili profili sil", "DangerButton", (_, _) => DeleteRemoteProfile(), new Thickness(0, 2, 0, 0)));
-        formPanel.Child = form;
-        Grid.SetColumn(formPanel, 0);
-        columns.Children.Add(formPanel);
-
-        var statusPanel = RemotePanel();
-        statusPanel.Margin = new Thickness(8, 0, 0, 0);
-        var status = NewStack(10);
-        status.Children.Add(RemoteSectionTitle("UZAK SUNUCU DURUMU"));
-        _remoteConnectionState = new TextBlock
+        _remotePasswordBox = new PasswordBox
         {
-            Text = _remoteServerSession?.IsConnected == true ? "SSH BAĞLANTISI AÇIK" : "BAĞLANTI BEKLENİYOR",
-            Foreground = _remoteServerSession?.IsConnected == true ? BrushHex("#65D6B0") : BrushHex("#E5B65B"),
-            FontSize = 10,
-            FontWeight = FontWeights.Bold,
+            Height = 44,
+            Background = BrushHex("#111821"),
+            Foreground = BrushHex("#F4F6F8"),
+            BorderBrush = BrushHex("#3A4755"),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(13, 9, 13, 9)
+        };
+        _remoteKeyPassphraseBox = new PasswordBox
+        {
+            Height = 44,
+            Background = BrushHex("#111821"),
+            Foreground = BrushHex("#F4F6F8"),
+            BorderBrush = BrushHex("#3A4755"),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(13, 9, 13, 9)
+        };
+        var secretGrid = new Grid();
+        secretGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        secretGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        secretGrid.Children.Add(RemoteField("SSH parolası", _remotePasswordBox));
+        var passphraseField = RemoteField("Anahtar parolası", _remoteKeyPassphraseBox);
+        passphraseField.Margin = new Thickness(12, 0, 0, 0);
+        Grid.SetColumn(passphraseField, 1);
+        secretGrid.Children.Add(passphraseField);
+        form.Children.Add(secretGrid);
+
+        var secretNote = new Border
+        {
+            Background = BrushHex("#252019"),
+            BorderBrush = BrushHex("#65452F"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(12, 10, 12, 10)
+        };
+        secretNote.Child = new TextBlock
+        {
+            Text = "Güvenlik: SSH parolası ve özel anahtar parolası profil dosyasına kaydedilmez. İlk bağlantıda sunucu host key parmak izi ayrıca onaylanır.",
+            FontSize = 10.5,
+            Foreground = BrushHex("#D4B39B"),
             TextWrapping = TextWrapping.Wrap
         };
-        status.Children.Add(_remoteConnectionState);
-        var detailRow = new DockPanel { LastChildFill = true };
-        var refresh = MakeButton("Durumu yenile", "SecondaryButton", async (_, _) => await RefreshRemoteDiagnosticsAsync(), new Thickness(0, 0, 0, 4));
-        DockPanel.SetDock(refresh, Dock.Right);
-        detailRow.Children.Add(refresh);
-        detailRow.Children.Add(new TextBlock
+        form.Children.Add(secretNote);
+
+        var actions = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
+        var save = MakeButton("Profili kaydet", "SecondaryButton", (_, _) => SaveRemoteProfile());
+        save.MinWidth = 142;
+        actions.Children.Add(save);
+        var connect = MakeButton("Bağlan", "ModernButton", async (_, _) => await ConnectRemoteAsync(keepConnected: true), new Thickness(8, 0, 0, 0));
+        connect.MinWidth = 130;
+        actions.Children.Add(connect);
+        actions.Children.Add(MakeButton("Bağlantıyı test et", "SecondaryButton", async (_, _) => await ConnectRemoteAsync(keepConnected: false), new Thickness(8, 0, 0, 0)));
+        actions.Children.Add(MakeButton("Bağlantıyı kes", "DangerButton", (_, _) => DisconnectRemoteSession(), new Thickness(8, 0, 0, 0)));
+        form.Children.Add(actions);
+        formPanel.Child = form;
+        Grid.SetColumn(formPanel, 0);
+        workspace.Children.Add(formPanel);
+
+        // Live host status
+        var statusPanel = RemotePanel();
+        statusPanel.Margin = new Thickness(8, 0, 0, 0);
+        var status = NewStack(13);
+        var statusHeader = new Grid();
+        statusHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        statusHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var statusTitles = NewStack(4);
+        statusTitles.Children.Add(RemoteSectionTitle("UZAK SUNUCU"));
+        statusTitles.Children.Add(new TextBlock { Text = "Canlı bağlantı ve altyapı bilgileri", FontSize = 11, Foreground = BrushHex("#9BA7B4") });
+        statusHeader.Children.Add(statusTitles);
+        var statusPill = new Border
         {
-            Text = "Sistem bilgileri ve Docker kontrolü",
-            Foreground = BrushHex("#A9BED1"),
+            Background = BrushHex(_remoteServerSession?.IsConnected == true ? "#183328" : "#352A20"),
+            BorderBrush = BrushHex(_remoteServerSession?.IsConnected == true ? "#366A50" : "#7A5836"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(11, 8, 11, 8),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        _remoteConnectionState = new TextBlock
+        {
+            Text = _remoteServerSession?.IsConnected == true ? "BAĞLI" : "ÇEVRİMDIŞI",
+            Foreground = BrushHex(_remoteServerSession?.IsConnected == true ? "#72D6A9" : "#F5C36A"),
             FontSize = 10,
+            FontWeight = FontWeights.ExtraBold
+        };
+        statusPill.Child = _remoteConnectionState;
+        Grid.SetColumn(statusPill, 1);
+        statusHeader.Children.Add(statusPill);
+        status.Children.Add(statusHeader);
+
+        var diagnosticActions = new Grid();
+        diagnosticActions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        diagnosticActions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        diagnosticActions.Children.Add(new TextBlock
+        {
+            Text = "SİSTEM TANILAMASI",
+            FontSize = 9,
+            FontWeight = FontWeights.Bold,
+            Foreground = BrushHex("#8593A2"),
             VerticalAlignment = VerticalAlignment.Center
         });
-        status.Children.Add(detailRow);
+        var refresh = MakeButton("Yenile", "SecondaryButton", async (_, _) => await RefreshRemoteDiagnosticsAsync());
+        refresh.MinWidth = 100;
+        Grid.SetColumn(refresh, 1);
+        diagnosticActions.Children.Add(refresh);
+        status.Children.Add(diagnosticActions);
+
         _remoteDiagnosticsBox = new TextBox
         {
             IsReadOnly = true,
@@ -192,33 +286,45 @@ public partial class MainWindow
             TextWrapping = TextWrapping.Wrap,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            MinHeight = 340,
-            Background = BrushHex("#081321"),
-            Foreground = BrushHex("#CFE1EF"),
-            BorderBrush = BrushHex("#2A4360"),
+            MinHeight = 360,
+            Background = BrushHex("#111821"),
+            Foreground = BrushHex("#D3DCE5"),
+            BorderBrush = BrushHex("#303D4D"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(14),
+            Padding = new Thickness(16),
             FontFamily = new FontFamily("Cascadia Mono, Consolas"),
             FontSize = 10.5,
             Text = _remoteServerSession?.IsConnected == true
-                ? "Bağlantı açık. Sunucu bilgilerini görüntülemek için 'Durumu yenile' seçeneğini kullan."
-                : "Henüz uzak sunucuya bağlanılmadı."
+                ? "SSH bağlantısı açık.\nSunucu bilgilerini almak için Yenile seçeneğini kullan."
+                : "Henüz uzak sunucuya bağlanılmadı.\nBir profil seçip Bağlan düğmesini kullan."
         };
         status.Children.Add(_remoteDiagnosticsBox);
-        status.Children.Add(new TextBlock
+
+        var securityPanel = new Border
         {
-            Text = "Güvenlik: İlk bağlantıda SSH host key parmak izi gösterilir ve açık onay olmadan bağlantı kurulmaz. Parola ve özel anahtar parolası profil dosyasına kaydedilmez.",
-            Foreground = BrushHex("#A0B5CC"),
-            FontSize = 10,
+            Background = BrushHex("#202A35"),
+            BorderBrush = BrushHex("#3A4755"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(14)
+        };
+        var securityText = NewStack(5);
+        securityText.Children.Add(new TextBlock { Text = "HOST KEY GÜVENLİĞİ", FontSize = 9, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        securityText.Children.Add(new TextBlock
+        {
+            Text = "İlk bağlantıda fingerprint onaylanır. Kayıtlı host key değişirse bağlantı durdurulur ve yeniden doğrulama istenir.",
+            FontSize = 10.5,
+            Foreground = BrushHex("#B7C0CA"),
             TextWrapping = TextWrapping.Wrap
         });
-        status.Children.Add(MakeButton("Kayıtlı host key bilgisini sıfırla", "SecondaryButton", (_, _) => ForgetRemoteHostKey()));
+        securityText.Children.Add(MakeButton("Kayıtlı host key bilgisini sıfırla", "SecondaryButton", (_, _) => ForgetRemoteHostKey()));
+        securityPanel.Child = securityText;
+        status.Children.Add(securityPanel);
         statusPanel.Child = status;
         Grid.SetColumn(statusPanel, 1);
-        columns.Children.Add(statusPanel);
+        workspace.Children.Add(statusPanel);
 
-        root.Children.Add(columns);
-
+        root.Children.Add(workspace);
         RefreshRemoteProfileList(_activeRemoteProfileId);
         return new ScrollViewer
         {

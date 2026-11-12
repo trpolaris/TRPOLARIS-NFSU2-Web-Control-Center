@@ -296,8 +296,8 @@
         <Style x:Key="DarkComboBoxItem" TargetType="{x:Type ComboBoxItem}">
             <Setter Property="Foreground" Value="#E8EDF2" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="13,10" />
-            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="MinHeight" Value="36" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
@@ -362,7 +362,8 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Height" Value="44" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinHeight" Value="38" />
             <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItem}" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="OverridesDefaultStyle" Value="True" />
@@ -386,19 +387,22 @@
                                                   RecognizesAccessKey="True"
                                                   TextElement.Foreground="{TemplateBinding Foreground}" />
                                 <ToggleButton x:Name="DropDownToggle"
-                                              Width="38"
-                                              HorizontalAlignment="Right"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              HorizontalContentAlignment="Stretch"
+                                              VerticalContentAlignment="Stretch"
                                               Focusable="False"
                                               ClickMode="Press"
                                               Background="Transparent"
                                               BorderThickness="0"
                                               Style="{StaticResource DarkComboToggle}"
                                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-                                    <Grid>
+                                    <Grid HorizontalAlignment="Stretch">
                                         <Path Data="M 0,0 L 4,4 L 8,0"
                                               Stroke="#A5B0BE" StrokeThickness="1.6"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Margin="0,0,15,0" />
                                     </Grid>
                                 </ToggleButton>
                             </Grid>
@@ -441,8 +445,8 @@
         <Style x:Key="DarkListBoxItem" TargetType="{x:Type ListBoxItem}">
             <Setter Property="Foreground" Value="#E1E7ED" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="14,11" />
-            <Setter Property="MinHeight" Value="46" />
+            <Setter Property="Padding" Value="11,8" />
+            <Setter Property="MinHeight" Value="38" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Margin" Value="0,0,0,6" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -573,9 +577,9 @@
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="BorderBrush" Value="#3A4755" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="13,9" />
-            <Setter Property="Height" Value="44" />
-            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinHeight" Value="38" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
             <Style.Triggers>

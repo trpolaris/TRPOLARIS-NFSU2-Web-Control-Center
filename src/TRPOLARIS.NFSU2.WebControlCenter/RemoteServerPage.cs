@@ -520,9 +520,34 @@ public partial class MainWindow
         context.Child = contextRow;
         root.Children.Add(context);
 
+        var rootPicker = RemotePanel();
+        var rootPickerGrid = new Grid();
+        rootPickerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        rootPickerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var rootPickerStack = NewStack(5);
+        rootPickerStack.Children.Add(MutedLabel("UZAK DOSYA SİSTEMİ KÖK DİZİNİ"));
+        _remoteFileRootBox = RemoteTextBox();
+        _remoteFileRootBox.Text = GetRemoteFileManagerRootValue();
+        rootPickerStack.Children.Add(_remoteFileRootBox);
+        var rootPickerHint = new TextBlock
+        {
+            Text = "Eski kurulumun yolu farklıysa buradan değiştir. İşaretçisi olmayan klasörler önce salt okunur açılır.",
+            FontSize = 9,
+            Foreground = BrushHex("#91A3BE"),
+            TextWrapping = TextWrapping.Wrap
+        };
+        rootPickerStack.Children.Add(rootPickerHint);
+        rootPickerGrid.Children.Add(rootPickerStack);
+        var openRoot = MakeButton("Kökü aç", "ModernButton", async (_, _) => await ApplyRemoteFileManagerRootAsync(), new Thickness(10, 20, 0, 0));
+        openRoot.MinWidth = 82;
+        Grid.SetColumn(openRoot, 1);
+        rootPickerGrid.Children.Add(openRoot);
+        rootPicker.Child = rootPickerGrid;
+        root.Children.Add(rootPicker);
+
         var workspace = new Grid();
-        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.7, GridUnitType.Star) });
-        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.8, GridUnitType.Star) });
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.65, GridUnitType.Star) });
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.85, GridUnitType.Star) });
 
         var browserPanel = RemotePanel();
         browserPanel.Margin = new Thickness(0, 0, 10, 0);
@@ -535,7 +560,7 @@ public partial class MainWindow
         browser.Children.Add(browserHeader);
 
         _remoteFilePathBox = RemoteTextBox();
-        _remoteFilePathBox.Text = GetRemoteInstallRootValue().TrimEnd('/');
+        _remoteFilePathBox.Text = GetRemoteFileManagerRootValue().TrimEnd('/');
         _remoteFilePathBox.IsReadOnly = true;
         var pathRow = new DockPanel { LastChildFill = true };
         var parentButton = MakeButton("Üst klasör", "SecondaryButton", async (_, _) => await NavigateRemoteParentAsync(), new Thickness(8, 0, 0, 0));
@@ -547,8 +572,8 @@ public partial class MainWindow
         _remoteFileList = new ListBox
         {
             Style = (Style)FindResource("DarkListBox"),
-            MinHeight = 450,
-            MaxHeight = 610,
+            MinHeight = 370,
+            MaxHeight = 520,
             Background = BrushHex("#101A2C"),
             Foreground = BrushHex("#D7E3F8"),
             BorderBrush = BrushHex("#263858"),
@@ -576,7 +601,7 @@ public partial class MainWindow
 
         var actionsPanel = RemotePanel();
         actionsPanel.Margin = new Thickness(10, 0, 0, 0);
-        var actions = NewStack(14);
+        var actions = NewStack(9);
         actions.Children.Add(RemoteSectionTitle("DOSYA İŞLEMLERİ"));
         actions.Children.Add(new TextBlock
         {
@@ -587,6 +612,8 @@ public partial class MainWindow
         });
         actions.Children.Add(MakeButton("Seçili dosyayı indir", "SecondaryButton", async (_, _) => await DownloadSelectedRemoteFileAsync()));
         actions.Children.Add(MakeButton("Bilgisayardan dosya yükle", "ModernButton", async (_, _) => await UploadRemoteFileAsync()));
+        _remoteFileClaimButton = MakeButton("Bu dizini SFTP için etkinleştir", "SecondaryButton", async (_, _) => await ClaimRemoteFileManagerRootAsync());
+        actions.Children.Add(_remoteFileClaimButton);
         actions.Children.Add(new Border { Height = 1, Background = BrushHex("#263858"), Margin = new Thickness(0, 3, 0, 1) });
         actions.Children.Add(RemoteSectionTitle("YENİ KLASÖR"));
         _remoteNewFolderBox = RemoteTextBox();

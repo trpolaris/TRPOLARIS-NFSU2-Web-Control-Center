@@ -137,6 +137,7 @@ jobs:
           profile = (root / "RemoteServerProfile.cs").read_text(encoding="utf-8")
           app = (root / "App.xaml").read_text(encoding="utf-8")
           window = (root / "MainWindow.xaml").read_text(encoding="utf-8")
+          main = (root / "MainWindow.xaml.cs").read_text(encoding="utf-8")
 
           assert 'BuildRemoteFileManagerAccessCheck(root)' in file_manager
           assert 'BuildRemoteFileManagerWriteCheck(root)' in file_manager

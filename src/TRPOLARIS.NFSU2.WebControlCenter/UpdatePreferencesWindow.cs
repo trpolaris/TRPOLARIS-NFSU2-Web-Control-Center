@@ -25,10 +25,10 @@ internal sealed class UpdatePreferencesWindow : Window
         };
 
         Title = "NFSU2 Server control - Güncelleme ve ayarlar";
-        Width = 760;
-        Height = 740;
-        MinWidth = 760;
-        MinHeight = 740;
+        Width = 600;
+        Height = 590;
+        MinWidth = 600;
+        MinHeight = 590;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Owner = Application.Current.MainWindow;
         WindowStyle = WindowStyle.None;
@@ -41,10 +41,10 @@ internal sealed class UpdatePreferencesWindow : Window
         SnapsToDevicePixels = true;
 
         var windowGrid = new Grid();
-        windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(46) });
+        windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(38) });
         windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var root = new Grid { Margin = new Thickness(32, 24, 32, 24) };
+        var root = new Grid { Margin = new Thickness(20, 16, 20, 16) };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -55,15 +55,15 @@ internal sealed class UpdatePreferencesWindow : Window
             Background = Brush("#10151D"),
             BorderBrush = Brush("#303D4D"),
             BorderThickness = new Thickness(0, 0, 0, 1),
-            Padding = new Thickness(20, 0, 10, 0)
+            Padding = new Thickness(16, 0, 8, 0)
         };
         var captionGrid = new Grid();
         captionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         captionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var captionText = new TextBlock
         {
-            Text = "NFSU2 SERVER CONTROL  /  UPDATE CENTER  ·  V2.0",
-            FontSize = 10,
+            Text = "NFSU2 SERVER CONTROL  /  SETTINGS  ·  V2.0",
+            FontSize = 9,
             FontWeight = FontWeights.Bold,
             Foreground = Brush("#FF8243"),
             VerticalAlignment = VerticalAlignment.Center
@@ -107,20 +107,20 @@ internal sealed class UpdatePreferencesWindow : Window
             Child = windowGrid
         };
 
-        var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 22) };
+        var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
         heading.Children.Add(new TextBlock
         {
-            Text = "Güncelleme ve tercih merkezi",
-            FontSize = 29,
+            Text = "Güncelleme ayarları",
+            FontSize = 22,
             FontWeight = FontWeights.SemiBold,
             Foreground = Brush("#F4F6F8")
         });
         heading.Children.Add(new TextBlock
         {
             Text = $"Geçerli sürüm {AppVersion.Display}  ·  Sürüm kanalı, kontrol sıklığı ve işlem geçmişi.",
-            FontSize = 13,
+            FontSize = 11,
             Foreground = Brush("#A5B0BE"),
-            Margin = new Thickness(0, 6, 0, 0)
+            Margin = new Thickness(0, 4, 0, 0)
         });
         Grid.SetRow(heading, 0);
         root.Children.Add(heading);
@@ -130,9 +130,9 @@ internal sealed class UpdatePreferencesWindow : Window
             Background = Brush("#171F29"),
             BorderBrush = Brush("#303D4D"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12),
-            Padding = new Thickness(22),
-            Margin = new Thickness(0, 0, 0, 18)
+            CornerRadius = new CornerRadius(11),
+            Padding = new Thickness(16),
+            Margin = new Thickness(0, 0, 0, 12)
         };
         var settingsStack = new StackPanel();
         AddField(settingsStack, "GÜNCELLEME KANALI", _channel,
@@ -171,8 +171,8 @@ internal sealed class UpdatePreferencesWindow : Window
         var historyList = new ListBox
         {
             Style = (Style)Application.Current.FindResource("DarkListBox"),
-            MinHeight = 88,
-            MaxHeight = 300,
+            MinHeight = 74,
+            MaxHeight = 160,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
         if (history.Count == 0)
@@ -207,10 +207,10 @@ internal sealed class UpdatePreferencesWindow : Window
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 16, 0, 0)
+            Margin = new Thickness(0, 10, 0, 0)
         };
-        var cancel = new Button { Content = "Vazgeç", MinWidth = 95, Padding = new Thickness(18, 10, 18, 10), Margin = new Thickness(0, 0, 8, 0) };
-        var save = new Button { Content = "Kaydet", MinWidth = 110, Padding = new Thickness(14, 8, 14, 8), IsDefault = true };
+        var cancel = new Button { Content = "Vazgeç", MinWidth = 82, Padding = new Thickness(14, 8, 14, 8), Margin = new Thickness(0, 0, 8, 0) };
+        var save = new Button { Content = "Kaydet", MinWidth = 96, Padding = new Thickness(14, 8, 14, 8), IsDefault = true };
         StyleButton(cancel, "#192B44", "#D7EAF8");
         StyleButton(save, "#D87841", "#EFFBFF");
         cancel.IsCancel = true;
@@ -249,13 +249,13 @@ internal sealed class UpdatePreferencesWindow : Window
         foreach (var item in items) combo.Items.Add(item);
         combo.Style = (Style)Application.Current.FindResource("DarkComboBox");
         combo.SelectedIndex = selectedIndex;
-        combo.Height = 44;
-        combo.MaxDropDownHeight = 270;
-        combo.Margin = new Thickness(0, 0, 0, 14);
+        combo.Height = 38;
+        combo.MaxDropDownHeight = 190;
+        combo.Margin = new Thickness(0, 0, 0, 10);
         combo.Background = Brush("#111821");
         combo.Foreground = Brush("#F4F6F8");
         combo.BorderBrush = Brush("#303D4D");
-        combo.Padding = new Thickness(13, 9, 13, 9);
+        combo.Padding = new Thickness(10, 7, 10, 7);
         parent.Children.Add(combo);
     }
 

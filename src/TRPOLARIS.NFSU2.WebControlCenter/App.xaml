@@ -98,9 +98,6 @@
                         <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="7" Padding="{TemplateBinding Padding}">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#79A5E8" BlurRadius="0" ShadowDepth="0" Opacity="0" />
-                            </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                               RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}">
                                 
@@ -136,7 +133,7 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="9" Padding="{TemplateBinding Padding}">
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                               RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
@@ -268,7 +265,7 @@
         <Style x:Key="DarkComboBoxItem" TargetType="{x:Type ComboBoxItem}">
             <Setter Property="Foreground" Value="#E7EDF7" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="11,9" />
+            <Setter Property="Padding" Value="8,5" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -330,8 +327,8 @@
             <Setter Property="Foreground" Value="#E7EDF7" />
             <Setter Property="BorderBrush" Value="#2B3C54" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="10,7" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Height" Value="34" />
             <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItem}" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -411,7 +408,7 @@
         <Style x:Key="DarkListBoxItem" TargetType="{x:Type ListBoxItem}">
             <Setter Property="Foreground" Value="#D4DFEF" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Padding" Value="7,5" />
             <Setter Property="Margin" Value="0,0,0,5" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Template">

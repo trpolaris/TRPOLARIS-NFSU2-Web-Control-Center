@@ -80,13 +80,11 @@
             <Setter Property="Background" Value="{StaticResource PanelSurface}" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="16" />
-            <Setter Property="Padding" Value="22" />
+            <Setter Property="CornerRadius" Value="13" />
+            <Setter Property="Padding" Value="16" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#000000" BlurRadius="20" ShadowDepth="4" Opacity="0.22" />
-                </Setter.Value>
+                <Setter.Value><DropShadowEffect Color="#000000" BlurRadius="14" ShadowDepth="2" Opacity="0.16" /></Setter.Value>
             </Setter>
         </Style>
 
@@ -95,10 +93,10 @@
             <Setter Property="Background" Value="{StaticResource AccentSurface}" />
             <Setter Property="BorderBrush" Value="#FFAA79" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="18,10" />
-            <Setter Property="MinHeight" Value="46" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="MinHeight" Value="38" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -106,7 +104,7 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="11" Padding="{TemplateBinding Padding}">
+                                CornerRadius="9" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                               RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
@@ -114,19 +112,12 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Background" Value="#FFA36F" />
                                 <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFC19B" />
-                                <Setter TargetName="ButtonBorder" Property="Effect">
-                                    <Setter.Value><DropShadowEffect Color="#FF8243" BlurRadius="13" ShadowDepth="0" Opacity="0.2"/></Setter.Value>
-                                </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.82" />
-                                <Setter TargetName="ButtonBorder" Property="RenderTransform">
-                                    <Setter.Value><TranslateTransform Y="1" /></Setter.Value>
-                                </Setter>
+                                <Setter TargetName="ButtonBorder" Property="RenderTransform"><Setter.Value><TranslateTransform Y="1" /></Setter.Value></Setter>
                             </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.38" />
-                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.38" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -175,11 +166,11 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="9,8" />
-            <Setter Property="Margin" Value="0,2,0,2" />
-            <Setter Property="MinHeight" Value="54" />
+            <Setter Property="Padding" Value="7,6" />
+            <Setter Property="Margin" Value="0,1,0,1" />
+            <Setter Property="MinHeight" Value="42" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -188,21 +179,16 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="NavSurface" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="13" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="Center" />
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="NavSurface" Property="Background" Value="#202A35" />
                                 <Setter TargetName="NavSurface" Property="BorderBrush" Value="#3D4A58" />
                             </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="NavSurface" Property="Background" Value="#2E302E" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="NavSurface" Property="Opacity" Value="0.4" />
-                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="NavSurface" Property="Background" Value="#2E302E" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="NavSurface" Property="Opacity" Value="0.4" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>

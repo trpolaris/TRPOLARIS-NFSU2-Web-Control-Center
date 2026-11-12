@@ -152,8 +152,8 @@ jobs:
           assert 'RemoteFileManagerRoot = selected?.RemoteFileManagerRoot ?? ""' in remote
           assert 'Kökü aç' in remote and 'Bu dizini SFTP için etkinleştir' in remote
           assert 'if [ -w ' in deploy, "SFTP marker creation should use the SSH account when it owns the directory before trying sudo."
-          assert '<Setter Property="MinHeight" Value="34" />' in app
-          assert '<Setter Property="MinHeight" Value="36" />' in app
+          assert '<Setter Property="MinHeight" Value="35" />' in app, "Shared text/credential fields must use the redesigned 35 px control rhythm."
+          assert '<Setter Property="MinHeight" Value="36" />' in app, "Primary buttons must use the redesigned 36 px control rhythm."
           assert 'Width="1380" Height="850"' in window
           assert 'Margin="16,12,16,12"' in window
           print("PASS: legacy SFTP read-only browsing, explicit SFTP adoption, write ACL checks and compact UI.")

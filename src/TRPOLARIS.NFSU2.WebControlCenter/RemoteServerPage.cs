@@ -175,12 +175,12 @@ public partial class MainWindow
 
         _remotePasswordBox = new PasswordBox
         {
-            Height = 38,
+            Height = 40,
             Background = BrushHex("#111821"),
             Foreground = BrushHex("#F4F6F8"),
             BorderBrush = BrushHex("#3A4755"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(13, 9, 13, 9)
+            Padding = new Thickness(10, 5, 10, 5)
         };
         _remoteKeyPassphraseBox = new PasswordBox
         {
@@ -846,9 +846,9 @@ public partial class MainWindow
     {
         var box = new TextBox
         {
-            Height = 38,
-            MinHeight = 38,
-            Padding = new Thickness(11, 7, 11, 7),
+            Height = 40,
+            MinHeight = 40,
+            Padding = new Thickness(9, 5, 9, 5),
             FontSize = 11,
             VerticalContentAlignment = VerticalAlignment.Center
         };

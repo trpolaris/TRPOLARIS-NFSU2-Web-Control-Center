@@ -245,7 +245,7 @@ public partial class MainWindow
         profileInfo.Children.Add(new TextBlock
         {
             Text = profile is null ? "Henüz bir bağlantı profili seçilmedi" : profile.Name + "  ·  " + profile.Username + "@" + profile.Host + ":" + profile.Port,
-            FontSize = 13,
+            FontSize = 11,
             FontWeight = FontWeights.SemiBold,
             Foreground = BrushHex("#EDF3FF")
         });
@@ -318,7 +318,7 @@ public partial class MainWindow
 
         var gameRow = new DockPanel { LastChildFill = true };
         gameRow.Children.Add(RemoteField("NFSU2 oyun klasörü · SPEED2.EXE", _remoteGameFolderBox));
-        var gameBrowse = MakeButton("Klasör seç", "SecondaryButton", BrowseRemoteGameFolder, new Thickness(9, 21, 0, 0));
+        var gameBrowse = MakeButton("Klasör seç", "SecondaryButton", BrowseRemoteGameFolder, new Thickness(7, 16, 0, 0));
         DockPanel.SetDock(gameBrowse, Dock.Right);
         gameRow.Children.Insert(0, gameBrowse);
         sourceStack.Children.Add(gameRow);
@@ -508,7 +508,7 @@ public partial class MainWindow
         var contextRow = new DockPanel { LastChildFill = true };
         contextRow.Children.Add(new TextBlock
         {
-            Text = profile is null ? "Bağlantı profili seçilmedi" : "HEDEF  /  " + profile.Name + "  ·  " + (profile.RemoteProjectDirectory ?? "/srv/nfsu2"),
+            Text = profile is null ? "Bağlantı profili seçilmedi" : "HEDEF  /  " + profile.Name + "  ·  " + (!string.IsNullOrWhiteSpace(profile.RemoteFileManagerRoot) ? profile.RemoteFileManagerRoot : profile.RemoteProjectDirectory ?? "/srv/nfsu2"),
             FontSize = 10,
             FontWeight = FontWeights.SemiBold,
             Foreground = BrushHex("#AFC4E4"),
@@ -538,7 +538,7 @@ public partial class MainWindow
         };
         rootPickerStack.Children.Add(rootPickerHint);
         rootPickerGrid.Children.Add(rootPickerStack);
-        var openRoot = MakeButton("Kökü aç", "ModernButton", async (_, _) => await ApplyRemoteFileManagerRootAsync(), new Thickness(10, 20, 0, 0));
+        var openRoot = MakeButton("Kökü aç", "ModernButton", async (_, _) => await ApplyRemoteFileManagerRootAsync(), new Thickness(8, 15, 0, 0));
         openRoot.MinWidth = 82;
         Grid.SetColumn(openRoot, 1);
         rootPickerGrid.Children.Add(openRoot);
@@ -663,8 +663,8 @@ public partial class MainWindow
         Background = BrushHex("#101C2A"),
         BorderBrush = BrushHex("#29445D"),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(12),
-        Padding = new Thickness(16)
+        CornerRadius = new CornerRadius(9),
+        Padding = new Thickness(11)
     };
 
     private static TextBlock RemoteSectionTitle(string text) => new()
@@ -692,9 +692,9 @@ public partial class MainWindow
         panel.Children.Add(new TextBlock
         {
             Text = label,
-            FontSize = 10,
+            FontSize = 9,
             Foreground = BrushHex("#9FB4C8"),
-            Margin = new Thickness(0, 0, 0, 5)
+            Margin = new Thickness(0, 0, 0, 3)
         });
         panel.Children.Add(control);
         return panel;

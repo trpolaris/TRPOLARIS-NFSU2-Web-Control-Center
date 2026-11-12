@@ -46,7 +46,7 @@ public partial class MainWindow
 
     private UIElement BuildRemotePage()
     {
-        var root = NewStack(8);
+        var root = NewStack(12);
         root.Children.Add(Heading(
             "Uzak Linux sunucusu",
             "SSH üzerinden Ubuntu veya Debian sunucularına bağlan. Bu mod yerel Windows / WSL / Docker Desktop kurulumundan bağımsız çalışır."));
@@ -56,11 +56,11 @@ public partial class MainWindow
         profileStack.Children.Add(MutedLabel("KAYITLI BAĞLANTILAR"));
         _remoteProfileBox = new ComboBox
         {
-            Height = 32,
+            Height = 36,
             Style = (Style)FindResource("DarkComboBox"),
-            Background = BrushHex("#0A1724"),
-            Foreground = BrushHex("#EAF3FD"),
-            BorderBrush = BrushHex("#34506A"),
+            Background = BrushHex("#0B192A"),
+            Foreground = BrushHex("#EFF6FF"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(7, 4, 7, 4),
             DisplayMemberPath = nameof(RemoteServerProfile.Name),
@@ -77,12 +77,12 @@ public partial class MainWindow
         root.Children.Add(profilePanel);
 
         var columns = new Grid();
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.08, GridUnitType.Star) });
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.92, GridUnitType.Star) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.12, GridUnitType.Star) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.88, GridUnitType.Star) });
 
         var formPanel = RemotePanel();
         formPanel.Margin = new Thickness(0, 0, 8, 0);
-        var form = NewStack(8);
+        var form = NewStack(10);
         form.Children.Add(RemoteSectionTitle("SSH BAĞLANTI AYARLARI"));
 
         _remoteNameBox = RemoteTextBox();
@@ -162,7 +162,7 @@ public partial class MainWindow
 
         var statusPanel = RemotePanel();
         statusPanel.Margin = new Thickness(8, 0, 0, 0);
-        var status = NewStack(8);
+        var status = NewStack(10);
         status.Children.Add(RemoteSectionTitle("UZAK SUNUCU DURUMU"));
         _remoteConnectionState = new TextBlock
         {
@@ -193,13 +193,13 @@ public partial class MainWindow
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             MinHeight = 290,
-            Background = BrushHex("#07111C"),
+            Background = BrushHex("#081321"),
             Foreground = BrushHex("#CFE1EF"),
-            BorderBrush = BrushHex("#263D52"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(12),
-            FontFamily = new FontFamily("Consolas"),
-            FontSize = 11,
+            Padding = new Thickness(14),
+            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+            FontSize = 10.5,
             Text = _remoteServerSession?.IsConnected == true
                 ? "Bağlantı açık. Sunucu bilgilerini görüntülemek için 'Durumu yenile' seçeneğini kullan."
                 : "Henüz uzak sunucuya bağlanılmadı."
@@ -208,7 +208,7 @@ public partial class MainWindow
         status.Children.Add(new TextBlock
         {
             Text = "Güvenlik: İlk bağlantıda SSH host key parmak izi gösterilir ve açık onay olmadan bağlantı kurulmaz. Parola ve özel anahtar parolası profil dosyasına kaydedilmez.",
-            Foreground = BrushHex("#8FA8BD"),
+            Foreground = BrushHex("#A0B5CC"),
             FontSize = 10,
             TextWrapping = TextWrapping.Wrap
         });
@@ -660,31 +660,31 @@ public partial class MainWindow
 
     private static Border RemotePanel() => new()
     {
-        Background = BrushHex("#162338"),
-        BorderBrush = BrushHex("#2B3C54"),
+        Style = (Style)Application.Current.FindResource("CardBorder"),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(9),
-        Padding = new Thickness(11)
+        CornerRadius = new CornerRadius(12),
+        Padding = new Thickness(15)
     };
 
     private static TextBlock RemoteSectionTitle(string text) => new()
     {
         Text = text,
-        FontSize = 9,
+        FontSize = 10,
         FontWeight = FontWeights.Bold,
-        Foreground = BrushHex("#70CFC8")
+        Foreground = BrushHex("#4DDCF2")
     };
 
-    private static TextBox RemoteTextBox() => new()
+    private static TextBox RemoteTextBox()
     {
-        Height = 32,
-        Background = BrushHex("#0A1724"),
-        Foreground = BrushHex("#EAF3FD"),
-        BorderBrush = BrushHex("#34506A"),
-        BorderThickness = new Thickness(1),
-        Padding = new Thickness(8, 4, 8, 4),
-        VerticalContentAlignment = VerticalAlignment.Center
-    };
+        var box = new TextBox
+        {
+            Height = 36,
+            Padding = new Thickness(10, 6, 10, 6),
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        box.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
+        return box;
+    }
 
     private static StackPanel RemoteField(string label, Control control)
     {
@@ -692,9 +692,10 @@ public partial class MainWindow
         panel.Children.Add(new TextBlock
         {
             Text = label,
-            FontSize = 9,
-            Foreground = BrushHex("#9FB4C8"),
-            Margin = new Thickness(0, 0, 0, 3)
+            FontSize = 10,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = BrushHex("#AFC1D5"),
+            Margin = new Thickness(0, 0, 0, 5)
         });
         panel.Children.Add(control);
         return panel;

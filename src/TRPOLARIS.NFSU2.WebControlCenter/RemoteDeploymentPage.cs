@@ -633,7 +633,7 @@ public partial class MainWindow
         fi
         if [ -f {deploymentMarker} ]; then
             if grep -Fxq {project} {deploymentMarker}; then
-                echo 'MANAGED'
+                if [ -w {rootPath} ]; then echo 'MANAGED'; else echo 'WRITE_DENIED'; fi
                 exit 0
             fi
             echo '[ERROR] Bu klasör başka bir Control Center kurulumuna ait.' >&2
@@ -641,7 +641,7 @@ public partial class MainWindow
         fi
         if [ -f {sftpMarker} ]; then
             if grep -Fxq {token} {sftpMarker}; then
-                echo 'MANAGED'
+                if [ -w {rootPath} ]; then echo 'MANAGED'; else echo 'WRITE_DENIED'; fi
                 exit 0
             fi
             echo '[ERROR] SFTP işaretçisi bu uzak klasör için geçerli değil.' >&2

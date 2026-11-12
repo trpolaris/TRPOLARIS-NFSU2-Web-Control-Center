@@ -155,7 +155,7 @@ jobs:
           assert '<Setter Property="MinHeight" Value="44" />' in app, "Shared text/credential fields must use the redesigned 35 px control rhythm."
           assert '<Setter Property="MinHeight" Value="46" />' in app, "Primary buttons must use the redesigned 36 px control rhythm."
           assert 'Width="1520" Height="940"' in window
-          assert 'Margin="24,20,24,20"' in window
+          assert 'x:Name="PageHost"' in window and 'Grid.Row="1"' in window
           print("PASS: legacy SFTP read-only browsing, explicit SFTP adoption, write ACL checks and Nightshift Garage interface.")
           PY
 

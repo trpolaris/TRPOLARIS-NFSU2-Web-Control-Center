@@ -538,7 +538,7 @@ public partial class MainWindow : Window
             _logsCurrentFileLabel = null;
         }
         _currentPage = page;
-        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(18, 16, 18, 16);
+        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(24, 20, 24, 20);
         _statusLabels.Clear();
         _portBox = null;
         _gameDirBox = null;
@@ -596,9 +596,9 @@ public partial class MainWindow : Window
         foreach (var b in nav)
         {
             bool active = Equals(b.Tag, selected);
-            b.Background = active ? BrushHex("#153B52") : Brushes.Transparent;
-            b.BorderBrush = active ? BrushHex("#328EAE") : Brushes.Transparent;
-            b.Foreground = active ? BrushHex("#D4F7FF") : BrushHex("#A5B5CA");
+            b.Background = active ? BrushHex("#4A2B1D") : Brushes.Transparent;
+            b.BorderBrush = active ? BrushHex("#B7653C") : Brushes.Transparent;
+            b.Foreground = active ? BrushHex("#FFF0E7") : BrushHex("#AAB4C0");
         }
     }
 
@@ -3382,14 +3382,18 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private Border MakeCard(string title, string subtitle)
     {
-        var card = new Border { Style = (Style)FindResource("CardBorder"), Margin = new Thickness(0), Padding = new Thickness(15) };
-        var stack = NewStack(9);
-        stack.Children.Add(new TextBlock { Text = title, FontSize = 10.5, FontWeight = FontWeights.Bold, Foreground = BrushHex("#4DDCF2") });
-        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 10.5, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap });
+        var card = new Border
+        {
+            Style = (Style)FindResource("CardBorder"),
+            Margin = new Thickness(0),
+            Padding = new Thickness(22)
+        };
+        var stack = NewStack(11);
+        stack.Children.Add(new TextBlock { Text = title, FontSize = 12, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 12.5, Foreground = BrushHex("#AEB9C5"), TextWrapping = TextWrapping.Wrap, LineHeight = 19 });
         card.Child = stack;
-        // Expose the content stack so callers can append rows while keeping title/subtitle at the top.
         card.Tag = stack;
-        AddCardHover(card, "#112137", "#14263E");
+        AddCardHover(card, "#171F29", "#202A35");
         return card;
     }
 
@@ -3422,10 +3426,15 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private StackPanel Heading(string title, string subtitle)
     {
-        var s = NewStack(6);
-        s.Children.Add(new Border { Width = 42, Height = 3, CornerRadius = new CornerRadius(2), HorizontalAlignment = HorizontalAlignment.Left, Background = new LinearGradientBrush(BrushHex("#4DDCF2").Color, BrushHex("#7D9FFF").Color, new Point(0, 0), new Point(1, 0)) });
-        s.Children.Add(new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("TextBrush") });
-        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 11, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 960 });
+        var s = NewStack(9) { Margin = new Thickness(0, 0, 0, 8) };
+        s.Children.Add(new Border
+        {
+            Width = 54, Height = 4, CornerRadius = new CornerRadius(2),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = new LinearGradientBrush(BrushHex("#FF8243").Color, BrushHex("#F4C36F").Color, new Point(0, 0), new Point(1, 0))
+        });
+        s.Children.Add(new TextBlock { Text = title, FontSize = 28, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F4F6F8") });
+        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 13, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MaxWidth = 1120 });
         return s;
     }
 
@@ -3433,97 +3442,71 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
-        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 36, Padding = new Thickness(12, 7, 12, 7), FontSize = 11, FontWeight = FontWeights.SemiBold };
+        var b = new Button
+        {
+            Content = text,
+            Margin = margin ?? new Thickness(0),
+            MinHeight = 46,
+            Padding = new Thickness(18, 10, 18, 10),
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
         b.SetResourceReference(FrameworkElement.StyleProperty, style);
-
-        // Keep text contrast explicit even when theme resources or local styles change.
         if (style.Equals("ModernButton", StringComparison.OrdinalIgnoreCase))
-            b.Foreground = BrushHex("#F7FFFF");
+            b.Foreground = BrushHex("#171A1E");
         else if (style.Equals("SecondaryButton", StringComparison.OrdinalIgnoreCase))
-            b.Foreground = BrushHex("#D4E1EC");
+            b.Foreground = BrushHex("#E8EDF2");
         else if (style.Equals("DangerButton", StringComparison.OrdinalIgnoreCase))
-            b.Foreground = BrushHex("#FFE6EA");
-
+            b.Foreground = BrushHex("#FFF1F3");
         b.Click += handler;
         return b;
     }
 
     private Border QuickAction(string title, string description, string buttonText, Action action)
     {
-        var border = new Border { Background = BrushHex("#112137"), BorderBrush = BrushHex("#2A4360"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(11), Padding = new Thickness(13), Margin = new Thickness(0, 0, 9, 0) };
-        var s = NewStack(6); s.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#EAF3FD") });
-        s.Children.Add(new TextBlock { Text = description, FontSize = 9.5, Foreground = BrushHex("#9CB1C6"), TextWrapping = TextWrapping.Wrap, MinHeight = 34 });
-        s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action())); border.Child = s; AddCardHover(border, "#122438", "#19334A"); return border;
+        var border = new Border
+        {
+            Style = (Style)FindResource("CardBorder"),
+            Margin = new Thickness(0, 0, 12, 12),
+            Padding = new Thickness(21)
+        };
+        var s = NewStack(12);
+        s.Children.Add(new TextBlock { Text = title, FontSize = 12, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F1F4F7") });
+        s.Children.Add(new TextBlock { Text = description, FontSize = 12, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MinHeight = 48, LineHeight = 18 });
+        s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action()));
+        border.Child = s;
+        AddCardHover(border, "#171F29", "#202B36");
+        return border;
     }
 
     private UIElement WrapScrollable(UIElement element) => new ScrollViewer { Content = element, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
 
     private static SolidColorBrush BrushHex(string value)
     {
-        // Legacy page colors are routed through the shared Blue Nebula palette.
         var aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        void Map(string token, params string[] legacyValues)
+        void Map(string token, params string[] values)
         {
-            foreach (string legacy in legacyValues)
-                aliases[legacy] = token;
+            foreach (string item in values) aliases[item] = token;
         }
 
-        Map("#081321",
-            "#081321", "#081321", "#0B192A", "#0B192A", "#081321", "#0B192A", "#0B192A",
-            "#0B192A", "#0D1B2D", "#0D1B2D", "#0D1B2D", "#0B192A", "#111C26", "#111B25",
-            "#0D1A2B", "#131F2A", "#112137", "#15222D", "#10231D", "#102C35", "#0D1A2B",
-            "#0B192A", "#1B2224");
-
-        Map("#111C2D",
-            "#143448", "#142B45", "#122438", "#18334A", "#19334A", "#14263E", "#20384F",
-            "#172B40", "#102137", "#102137", "#0D1A2B", "#15283B", "#102B3C", "#1B3037",
-            "#18364A", "#1D344A", "#0D1B2D");
-
-        Map("#112137",
-            "#0D1A2B", "#0D1B2D", "#112137", "#15222D", "#222A2D", "#242D30", "#252E30",
-            "#2A3133", "#2A3437", "#172B40");
-
-        Map("#1C2B42",
-            "#1A354D", "#14263E", "#1C2426", "#20364B", "#20384F", "#222A2D", "#252E30",
-            "#2A3133", "#2A3437", "#172B40", "#183047");
-
-        Map("#E7EDF7",
-            "#EAF3FD", "#EAF5FF", "#F1F7FF", "#EDF4FC", "#DDE5EC", "#DDEAF6", "#CFE1EF",
-            "#B8C5D2", "#D4E1EC", "#F7FFFF", "#E5F0FC", "#E0EAF4", "#FFF9EE", "#EAF4FF",
-            "#F4FFFF", "#EAF3FC", "#F3F0E8", "#F1F7FF", "#F4FFFF");
-
-        Map("#79A5E8", "#FF8968", "#FF9878", "#FF9B78", "#76F0E0", "#8CEDE2", "#6FF5E3",
-            "#6FF5E3", "#76F0E0", "#43E4D0", "#D8DE73");
-
-        Map("#9AA9BE",
-            "#9FB4C8", "#A9BED1", "#9CB1C6", "#8FA8BD", "#AFC0CB", "#829CB4", "#91A3B1",
-            "#9EAFBC", "#91A6BC", "#B8CBDD", "#B6C8E2", "#7896B2", "#7F97A8", "#607990",
-            "#55728A", "#718CA6", "#AFC0D2", "#6F879E", "#7F96AD", "#A8B0AB");
-
-        Map("#70A5FF",
-            "#4DDCF2", "#4DDCF2", "#61D4C7", "#76F0E0", "#43E4D0", "#42C9C0", "#4DD1C7",
-            "#63CEC5", "#62DCCB", "#77DCD1", "#65E8D6", "#8CEDE2", "#63E7D2", "#6FE3C1",
-            "#9CC8FF", "#6D9BFF", "#FF7043", "#FF8968", "#FF9878", "#FF9B78");
-
-        Map("#9692C9", "#B18CFF", "#B7A5FF", "#C3A9DB", "#80603A", "#715331");
-
-        Map("#D9B46F",
-            "#E5B65B", "#F4C15D", "#F8C45C", "#FFCA78", "#F0BE69", "#E0B86C", "#FFC875",
-            "#E7BD67", "#EAB96A");
-
-        Map("#59C5A2", "#38D996", "#65D6B0", "#65D8B5", "#4BD6AC", "#43D6A1", "#78C69A");
-        Map("#D98294", "#FF687D", "#FF8798", "#783340", "#FF6E83", "#F27C82");
-
-        Map("#2A4360",
-            "#2A4360", "#2A4360", "#2A4360", "#29445D", "#263E55", "#35536F", "#315F81",
-            "#31516B", "#344550", "#20364B", "#2D414F", "#3A4648", "#343F41", "#46504C",
-            "#4A5554", "#4A5F90", "#344C75", "#2D4A64");
-
-        Map("#354A66", "#2A4360", "#2D4A64", "#2A4360", "#263E55", "#35536F", "#315F81");
-        Map("#5B79B2", "#3D8292", "#28616A", "#287B7A", "#286D68", "#286C68", "#B45E41");
-        Map("#24344F", "#123D45", "#12332F", "#103B3A", "#19332F", "#3D3829");
-        Map("#3B2C40", "#2B2021", "#652838", "#744447", "#503031", "#2B151B");
-        Map("#6B5A8F", "#755B2B", "#783340");
+        Map("#0D1219", "#081321", "#0B192A", "#0D1B2D", "#0D1A2B", "#111C26", "#111B25", "#131F2A", "#15222D", "#1B2224");
+        Map("#10151D", "#0D1A2B", "#0B1627", "#0C1016");
+        Map("#171F29", "#112137", "#0D1A2B", "#15222D", "#172B40", "#222A2D", "#242D30", "#252E30", "#2A3133", "#2A3437");
+        Map("#202B37", "#192B44", "#14263E", "#1C2426", "#20364B", "#20384F", "#222A2D", "#252E30", "#2A3133", "#2A3437", "#183047");
+        Map("#F4F6F8", "#EFF6FF", "#EAF3FD", "#EAF5FF", "#F1F7FF", "#EDF4FC", "#DDE5EC", "#DDEAF6", "#CFE1EF", "#D4E1EC", "#F7FFFF", "#E5F0FC", "#E0EAF4", "#FFF9EE", "#EAF4FF", "#F4FFFF", "#EAF3FC", "#F3F0E8");
+        Map("#A5B0BE", "#A5B5CA", "#9FB4C8", "#A9BED1", "#9CB1C6", "#8FA8BD", "#AFC0CB", "#829CB4", "#91A3B1", "#9EAFBC", "#91A6BC", "#B8CBDD", "#B6C8E2", "#7896B2", "#7F97A8", "#607990", "#55728A", "#718CA6", "#AFC0D2", "#6F879E", "#7F96AD");
+        Map("#FF8243", "#70A5FF", "#6D9BFF", "#FF7043", "#FF8968", "#FF9878", "#FF9B78", "#4DDCF2");
+        Map("#45C7D0", "#7D9FFF", "#9CC8FF", "#63CEC5", "#62DCCB", "#77DCD1", "#65E8D6", "#8CEDE2", "#63E7D2", "#6FE3C1", "#61D4C7", "#76F0E0", "#43E4D0", "#42C9C0", "#4DD1C7");
+        Map("#A78BFA", "#B18CFF", "#B7A5FF", "#C3A9DB", "#80603A", "#715331");
+        Map("#F5C36A", "#E5B65B", "#F4C15D", "#F8C45C", "#FFCA78", "#F0BE69", "#E0B86C", "#FFC875", "#E7BD67", "#EAB96A");
+        Map("#42D6A4", "#38D996", "#65D6B0", "#65D8B5", "#4BD6AC", "#43D6A1", "#78C69A");
+        Map("#FF637D", "#FF687D", "#FF8798", "#783340", "#FF6E83", "#F27C82", "#D98294");
+        Map("#303D4D", "#2A4360", "#29445D", "#263E55", "#35536F", "#315F81", "#31516B", "#344550", "#20364B", "#2D414F", "#3A4648", "#343F41", "#46504C", "#4A5554", "#4A5F90", "#344C75", "#2D4A64");
+        Map("#76442D", "#3D8292", "#28616A", "#287B7A", "#286D68", "#286C68", "#B45E41");
+        Map("#3B2F26", "#123D45", "#12332F", "#103B3A", "#19332F", "#3D3829", "#755B2B");
+        Map("#532A35", "#2B2021", "#652838", "#744447", "#503031", "#2B151B");
+        Map("#5A4A82", "#6B5A8F");
 
         string color = aliases.TryGetValue(value, out string? mapped) ? mapped : value;
         return new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));

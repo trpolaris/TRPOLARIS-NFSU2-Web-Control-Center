@@ -906,8 +906,12 @@ public partial class MainWindow
         if (_remoteHttpPortBox is not null) _remoteHttpPortBox.Text = profile.HttpPort.ToString();
         if (_remoteProxyModeBox is not null)
             _remoteProxyModeBox.SelectedIndex = string.Equals(profile.ProxyMode, "existing-proxy", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        string fileRoot = string.IsNullOrWhiteSpace(profile.RemoteFileManagerRoot)
+            ? profile.RemoteProjectDirectory ?? "/srv/nfsu2"
+            : profile.RemoteFileManagerRoot;
+        if (_remoteFileRootBox is not null) _remoteFileRootBox.Text = fileRoot;
         if (_remoteFilePathBox is not null)
-            _remoteFilePathBox.Text = (profile.RemoteProjectDirectory ?? "/srv/nfsu2").TrimEnd('/');
+            _remoteFilePathBox.Text = fileRoot.TrimEnd('/');
         if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
         if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
         _activeRemoteProfileId = profile.Id;

@@ -129,6 +129,36 @@ jobs:
           print("PASS: LAN/public-IP/domain TLS modes, dedicated remote pages, and redesigned navigation.")
           PY
 
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("src/TRPOLARIS.NFSU2.WebControlCenter")
+          file_manager = (root / "RemoteFileManagerPage.cs").read_text(encoding="utf-8")
+          remote = (root / "RemoteServerPage.cs").read_text(encoding="utf-8")
+          deploy = (root / "RemoteDeploymentPage.cs").read_text(encoding="utf-8")
+          session = (root / "RemoteServerSession.cs").read_text(encoding="utf-8")
+          profile = (root / "RemoteServerProfile.cs").read_text(encoding="utf-8")
+          app = (root / "App.xaml").read_text(encoding="utf-8")
+          window = (root / "MainWindow.xaml").read_text(encoding="utf-8")
+
+          assert 'BuildRemoteFileManagerAccessCheck(root)' in file_manager
+          assert 'BuildRemoteFileManagerWriteCheck(root)' in file_manager
+          assert 'BuildRemoteOwnershipCheck(root)' not in file_manager, "Legacy SFTP browser must not require the Docker deployment marker."
+          assert 'DownloadRemoteFileAsync(remotePath, dialog.FileName)' in file_manager
+          assert 'READ_ONLY' in deploy and 'WRITE_DENIED' in deploy
+          assert 'if [ ! -w {rootPath} ]' in deploy, "Write operations must check actual SSH-user directory permissions."
+          assert 'BuildRemoteFileManagerClaimCommand(root)' in remote
+          assert '.nfsu2-control-center-sftp-root' in deploy and '.nfsu2-control-center-sftp-root' in session
+          assert 'public string RemoteFileManagerRoot { get; set; }' in profile
+          assert 'RemoteFileManagerRoot = selected?.RemoteFileManagerRoot ?? ""' in remote
+          assert 'Kökü aç' in remote and 'Bu dizini SFTP için etkinleştir' in remote
+          assert 'if [ -w ' in deploy, "SFTP marker creation should use the SSH account when it owns the directory before trying sudo."
+          assert '<Setter Property="MinHeight" Value="34" />' in app
+          assert '<Setter Property="MinHeight" Value="36" />' in app
+          assert 'Width="1380" Height="850"' in window
+          assert 'Margin="16,12,16,12"' in window
+          print("PASS: legacy SFTP read-only browsing, explicit SFTP adoption, write ACL checks and compact UI.")
+          PY
+
   build-win-x64:
     runs-on: windows-latest
     steps:

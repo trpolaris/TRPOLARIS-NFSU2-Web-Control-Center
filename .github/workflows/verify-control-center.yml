@@ -213,7 +213,7 @@ jobs:
       - name: Upload single-file executable
         uses: actions/upload-artifact@v4
         with:
-          name: NFSU2-Server-control-v2.0.0-win-x64
+          name: NFSU2-Server-control-v2.0.1-win-x64
           path: publish/NFSU2 Server control.exe
           if-no-files-found: error
           retention-days: 30

@@ -262,7 +262,7 @@ public partial class MainWindow : Window
             bool stopPending = _operationProgressState == "stop-requested";
             var accent = BrushHex(stopPending ? "#F4C15D" : "#42C9C0");
             OperationProgressPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-            OperationProgressPanel.Background = BrushHex(stopPending ? "#282114" : "#0D1A22");
+            OperationProgressPanel.Background = BrushHex(stopPending ? "#282114" : "#0D1A2B");
             OperationProgressPanel.BorderBrush = BrushHex(stopPending ? "#755B2B" : "#25434A");
             OperationProgressBar.Foreground = accent;
             OperationProgressBar.IsIndeterminate = !stopPending && _operationProgressQuality == "indeterminate";
@@ -791,7 +791,7 @@ public partial class MainWindow : Window
         row.Children.Add(dot); row.Children.Add(state); stack.Children.Add(row);
         var sub = new TextBlock { Text = detail, FontSize = 9, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap };
         stack.Children.Add(sub); card.Child = stack;
-        AddCardHover(card, "#141F2A", "#1B2B36");
+        AddCardHover(card, "#112137", "#14263E");
         _statusLabels.Add((state, sub, dot, kind));
         return card;
     }
@@ -872,7 +872,7 @@ public partial class MainWindow : Window
         {
             CornerRadius = new CornerRadius(16), Padding = new Thickness(22),
             BorderThickness = new Thickness(1), BorderBrush = BrushHex("#315F81"),
-            Background = new LinearGradientBrush(BrushHex("#142B45").Color, BrushHex("#101C30").Color, 0)
+            Background = new LinearGradientBrush(BrushHex("#142B45").Color, BrushHex("#0D1B2D").Color, 0)
         };
         var heroContent = NewStack(8);
         heroContent.Children.Add(MutedLabel("SOURCE UPDATE  /  GITHUB MAIN"));
@@ -981,7 +981,7 @@ public partial class MainWindow : Window
 
         var location = MakeCard("SUNUCU PROJE KLASÖRÜ", "Bu klasör doğrudan WSL içindeki GitHub çalışma kopyasıdır. Windows üzerinden açılan dosyalar aynı depoya yazılır; ayrıca kopyalama gerekmez.");
         var pathRow = new DockPanel { LastChildFill = true };
-        _projectPathBox = new TextBox { Text = "/", MinHeight = 34, Padding = new Thickness(9, 6, 9, 6), Background = BrushHex("#0F1923"), Foreground = BrushHex("#DDE5EC"), BorderBrush = BrushHex("#344550"), BorderThickness = new Thickness(1), VerticalContentAlignment = VerticalAlignment.Center };
+        _projectPathBox = new TextBox { Text = "/", MinHeight = 34, Padding = new Thickness(9, 6, 9, 6), Background = BrushHex("#0B192A"), Foreground = BrushHex("#DDE5EC"), BorderBrush = BrushHex("#344550"), BorderThickness = new Thickness(1), VerticalContentAlignment = VerticalAlignment.Center };
         _projectPathBox.KeyDown += async (_, e) =>
         {
             if (e.Key != System.Windows.Input.Key.Enter) return;
@@ -1004,7 +1004,7 @@ public partial class MainWindow : Window
         {
             MinHeight = 310,
             MaxHeight = 470,
-            Background = BrushHex("#0F1923"),
+            Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#DDE5EC"),
             BorderBrush = BrushHex("#344550"),
             BorderThickness = new Thickness(1),
@@ -1401,7 +1401,7 @@ public partial class MainWindow : Window
         var dialog = new Window { Title = title, Owner = this, Width = 430, Height = 170, WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.NoResize, Background = BrushHex("#111B25"), Foreground = BrushHex("#E8EEF5") };
         var panel = new StackPanel { Margin = new Thickness(16) };
         panel.Children.Add(new TextBlock { Text = prompt, Margin = new Thickness(0, 0, 0, 8), Foreground = BrushHex("#DDE5EC") });
-        var input = new TextBox { Text = initial, MinHeight = 32, Padding = new Thickness(8), Background = BrushHex("#0F1923"), Foreground = BrushHex("#DDE5EC") };
+        var input = new TextBox { Text = initial, MinHeight = 32, Padding = new Thickness(8), Background = BrushHex("#0B192A"), Foreground = BrushHex("#DDE5EC") };
         panel.Children.Add(input);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
         var ok = new Button { Content = "Tamam", Width = 85, Height = 30, IsDefault = true, Margin = new Thickness(0, 0, 8, 0) };
@@ -2228,7 +2228,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var frame = new Border
         {
-            Background = BrushHex("#07111E"),
+            Background = BrushHex("#081321"),
             BorderBrush = BrushHex("#31516B"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(15),
@@ -2244,7 +2244,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var titleBar = new Border
         {
-            Background = BrushHex("#091625"),
+            Background = BrushHex("#0B192A"),
             BorderBrush = BrushHex("#20384F"),
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(17, 0, 9, 0)
@@ -2396,7 +2396,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             var card = new Border
             {
-                Background = BrushHex(highlight ? "#102C35" : "#101F30"),
+                Background = BrushHex(highlight ? "#102C35" : "#0D1B2D"),
                 BorderBrush = BrushHex(highlight ? "#286D70" : "#2A435A"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(10),
@@ -2435,7 +2435,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var releaseCard = new Border
         {
-            Background = BrushHex("#0C1A29"),
+            Background = BrushHex("#0B192A"),
             BorderBrush = BrushHex("#263E55"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
@@ -2448,7 +2448,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             Text = isUpToDate ? "GÜNCELLEME DURUMU" : "YAYIN BİLGİSİ",
             FontSize = 8,
             FontWeight = FontWeights.Bold,
-            Foreground = BrushHex("#6BCFC7")
+            Foreground = BrushHex("#4DDCF2")
         });
         releaseStack.Children.Add(new TextBlock
         {
@@ -2511,7 +2511,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var footer = new Border
         {
-            Background = BrushHex("#091625"),
+            Background = BrushHex("#0B192A"),
             BorderBrush = BrushHex("#20384F"),
             BorderThickness = new Thickness(0, 1, 0, 0),
             Padding = new Thickness(20, 12, 20, 12)
@@ -3062,7 +3062,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         // kept vertical-only so the bottom-follow behavior stays predictable.
         var logCard = new Border
         {
-            Background = BrushHex("#0A1118"), BorderBrush = BrushHex("#2B3E4C"),
+            Background = BrushHex("#081321"), BorderBrush = BrushHex("#2B3E4C"),
             BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
             ClipToBounds = true
         };
@@ -3107,7 +3107,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             TextWrapping = TextWrapping.Wrap,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Background = BrushHex("#0A1118"), Foreground = BrushHex("#D2DDE5"),
+            Background = BrushHex("#081321"), Foreground = BrushHex("#D2DDE5"),
             BorderThickness = new Thickness(0), FontFamily = new FontFamily("Cascadia Mono"),
             FontSize = 10.5, Padding = new Thickness(13, 11, 13, 12), Margin = new Thickness(0),
             Text = ReadSelectedLogText(),
@@ -3344,7 +3344,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             var tip = new ToolTip
             {
                 Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, MaxWidth = 360, FontSize = 11, Foreground = BrushHex("#EAF4FF") },
-                Background = BrushHex("#102237"), BorderBrush = BrushHex("#3B7189"), BorderThickness = new Thickness(1),
+                Background = BrushHex("#102137"), BorderBrush = BrushHex("#3B7189"), BorderThickness = new Thickness(1),
                 Padding = new Thickness(11), Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse
             };
             helpBadge.ToolTip = tip;
@@ -3389,7 +3389,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         card.Child = stack;
         // Expose the content stack so callers can append rows while keeping title/subtitle at the top.
         card.Tag = stack;
-        AddCardHover(card, "#141F2A", "#1B2B36");
+        AddCardHover(card, "#112137", "#14263E");
         return card;
     }
 
@@ -3429,7 +3429,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         return s;
     }
 
-    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#70CFC8"), TextWrapping = TextWrapping.Wrap };
+    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#4DDCF2"), TextWrapping = TextWrapping.Wrap };
 
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
@@ -3468,23 +3468,23 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 aliases[legacy] = token;
         }
 
-        Map("#0E1625",
-            "#07111C", "#07111E", "#091421", "#091625", "#0A1118", "#0A1724", "#0B1929",
-            "#0F1923", "#101C2A", "#101E31", "#101C30", "#0C1A29", "#111C26", "#111B25",
-            "#0D1A22", "#131F2A", "#141F2A", "#15222D", "#10231D", "#102C35", "#0D1D2D",
-            "#0B1A29", "#1B2224");
+        Map("#081321",
+            "#081321", "#081321", "#0B192A", "#0B192A", "#081321", "#0B192A", "#0B192A",
+            "#0B192A", "#0D1B2D", "#0D1B2D", "#0D1B2D", "#0B192A", "#111C26", "#111B25",
+            "#0D1A2B", "#131F2A", "#112137", "#15222D", "#10231D", "#102C35", "#0D1A2B",
+            "#0B192A", "#1B2224");
 
         Map("#111C2D",
-            "#143448", "#142B45", "#122438", "#18334A", "#19334A", "#1B2B36", "#20384F",
-            "#172B40", "#102338", "#102237", "#0D2030", "#15283B", "#102B3C", "#1B3037",
-            "#18364A", "#1D344A", "#101A2C");
+            "#143448", "#142B45", "#122438", "#18334A", "#19334A", "#14263E", "#20384F",
+            "#172B40", "#102137", "#102137", "#0D1A2B", "#15283B", "#102B3C", "#1B3037",
+            "#18364A", "#1D344A", "#0D1B2D");
 
-        Map("#162338",
-            "#0D1E2E", "#101F30", "#141F2A", "#15222D", "#222A2D", "#242D30", "#252E30",
+        Map("#112137",
+            "#0D1A2B", "#0D1B2D", "#112137", "#15222D", "#222A2D", "#242D30", "#252E30",
             "#2A3133", "#2A3437", "#172B40");
 
         Map("#1C2B42",
-            "#1A354D", "#1B2B36", "#1C2426", "#20364B", "#20384F", "#222A2D", "#252E30",
+            "#1A354D", "#14263E", "#1C2426", "#20364B", "#20384F", "#222A2D", "#252E30",
             "#2A3133", "#2A3437", "#172B40", "#183047");
 
         Map("#E7EDF7",
@@ -3501,7 +3501,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             "#55728A", "#718CA6", "#AFC0D2", "#6F879E", "#7F96AD", "#A8B0AB");
 
         Map("#70A5FF",
-            "#70CFC8", "#6BCFC7", "#61D4C7", "#76F0E0", "#43E4D0", "#42C9C0", "#4DD1C7",
+            "#4DDCF2", "#4DDCF2", "#61D4C7", "#76F0E0", "#43E4D0", "#42C9C0", "#4DD1C7",
             "#63CEC5", "#62DCCB", "#77DCD1", "#65E8D6", "#8CEDE2", "#63E7D2", "#6FE3C1",
             "#9CC8FF", "#6D9BFF", "#FF7043", "#FF8968", "#FF9878", "#FF9B78");
 
@@ -3514,12 +3514,12 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         Map("#59C5A2", "#38D996", "#65D6B0", "#65D8B5", "#4BD6AC", "#43D6A1", "#78C69A");
         Map("#D98294", "#FF687D", "#FF8798", "#783340", "#FF6E83", "#F27C82");
 
-        Map("#2B3C54",
-            "#34506A", "#263D52", "#2B3A47", "#29445D", "#263E55", "#35536F", "#315F81",
+        Map("#2A4360",
+            "#2A4360", "#2A4360", "#2A4360", "#29445D", "#263E55", "#35536F", "#315F81",
             "#31516B", "#344550", "#20364B", "#2D414F", "#3A4648", "#343F41", "#46504C",
             "#4A5554", "#4A5F90", "#344C75", "#2D4A64");
 
-        Map("#354A66", "#263D52", "#2D4A64", "#34506A", "#263E55", "#35536F", "#315F81");
+        Map("#354A66", "#2A4360", "#2D4A64", "#2A4360", "#263E55", "#35536F", "#315F81");
         Map("#5B79B2", "#3D8292", "#28616A", "#287B7A", "#286D68", "#286C68", "#B45E41");
         Map("#24344F", "#123D45", "#12332F", "#103B3A", "#19332F", "#3D3829");
         Map("#3B2C40", "#2B2021", "#652838", "#744447", "#503031", "#2B151B");

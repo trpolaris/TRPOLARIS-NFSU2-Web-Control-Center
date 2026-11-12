@@ -1062,6 +1062,7 @@ public partial class MainWindow
         if (_remoteServerSession?.IsConnected == true &&
             !string.Equals(_activeRemoteProfileId, profile.Id, StringComparison.Ordinal))
             DisconnectRemoteSession();
+
         _remoteNameBox!.Text = profile.Name;
         _remoteHostBox!.Text = profile.Host;
         _remotePortBox!.Text = profile.Port.ToString();
@@ -1076,14 +1077,27 @@ public partial class MainWindow
         if (_remoteHttpPortBox is not null) _remoteHttpPortBox.Text = profile.HttpPort.ToString();
         if (_remoteProxyModeBox is not null)
             _remoteProxyModeBox.SelectedIndex = string.Equals(profile.ProxyMode, "existing-proxy", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+
         string fileRoot = string.IsNullOrWhiteSpace(profile.RemoteFileManagerRoot)
             ? profile.RemoteProjectDirectory ?? "/srv/nfsu2"
             : profile.RemoteFileManagerRoot;
         if (_remoteFileRootBox is not null) _remoteFileRootBox.Text = fileRoot;
-        if (_remoteFilePathBox is not null)
-            _remoteFilePathBox.Text = fileRoot.TrimEnd('/');
-        if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
-        if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
+        if (_remoteFilePathBox is not null) _remoteFilePathBox.Text = fileRoot.TrimEnd('/');
+
+        try
+        {
+            if (_remotePasswordBox is not null)
+                _remotePasswordBox.Password = RemoteSecretProtector.Unprotect(profile.ProtectedPassword);
+            if (_remoteKeyPassphraseBox is not null)
+                _remoteKeyPassphraseBox.Password = RemoteSecretProtector.Unprotect(profile.ProtectedKeyPassphrase);
+        }
+        catch (Exception ex)
+        {
+            if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
+            if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
+            SetRemoteStatus("Kaydedilmiş SSH parolası açılamadı. Parolayı yeniden girip profili kaydet. " + ex.Message, connected: false);
+        }
+
         _activeRemoteProfileId = profile.Id;
     }
 
@@ -1107,6 +1121,8 @@ public partial class MainWindow
         if (privateKey && (string.IsNullOrWhiteSpace(keyPath) || !File.Exists(keyPath)))
             throw new InvalidOperationException("SSH özel anahtar dosyasını seç.");
 
+        string typedPassword = _remotePasswordBox?.Password ?? "";
+        string typedKeyPassphrase = _remoteKeyPassphraseBox?.Password ?? "";
         return new RemoteServerProfile
         {
             Id = selected?.Id ?? Guid.NewGuid().ToString("N"),
@@ -1116,6 +1132,12 @@ public partial class MainWindow
             Username = username,
             AuthenticationMode = privateKey ? "private-key" : "password",
             PrivateKeyPath = privateKey ? keyPath : "",
+            ProtectedPassword = string.IsNullOrEmpty(typedPassword)
+                ? selected?.ProtectedPassword ?? ""
+                : RemoteSecretProtector.Protect(typedPassword),
+            ProtectedKeyPassphrase = string.IsNullOrEmpty(typedKeyPassphrase)
+                ? selected?.ProtectedKeyPassphrase ?? ""
+                : RemoteSecretProtector.Protect(typedKeyPassphrase),
             HostKeyFingerprint = selected?.HostKeyFingerprint ?? "",
             RemoteFileManagerRoot = selected?.RemoteFileManagerRoot ?? "",
             RemoteProjectDirectory = _remoteInstallRootBox is not null
@@ -1149,7 +1171,7 @@ public partial class MainWindow
             RemoteServerProfileStore.SaveOrUpdate(profile);
             _activeRemoteProfileId = profile.Id;
             RefreshRemoteProfileList(profile.Id);
-            SetRemoteStatus("Profil kaydedildi. Parola güvenlik nedeniyle kaydedilmedi.", connected: false);
+            SetRemoteStatus("Profil ve parolalar Windows hesabına bağlı DPAPI ile şifrelenerek kaydedildi.", connected: false);
             AppendLog($"Uzak sunucu profili kaydedildi: {profile.Name} ({profile.Host}:{profile.Port})", "OK", "REMOTE");
         }
         catch (Exception ex) { ShowRemoteError(ex.Message); }
@@ -1169,13 +1191,19 @@ public partial class MainWindow
                 await RefreshRemoteDiagnosticsAsync();
                 return;
             }
-            string password = _remotePasswordBox?.Password ?? "";
-            string keyPassphrase = _remoteKeyPassphraseBox?.Password ?? "";
+
+            string password = !string.IsNullOrEmpty(_remotePasswordBox?.Password)
+                ? _remotePasswordBox!.Password
+                : RemoteSecretProtector.Unprotect(profile.ProtectedPassword);
+            string keyPassphrase = !string.IsNullOrEmpty(_remoteKeyPassphraseBox?.Password)
+                ? _remoteKeyPassphraseBox!.Password
+                : RemoteSecretProtector.Unprotect(profile.ProtectedKeyPassphrase);
+
             if (_remoteServerSession?.IsConnected == true)
                 DisconnectRemoteSession();
             if (!string.Equals(profile.AuthenticationMode, "private-key", StringComparison.OrdinalIgnoreCase) &&
                 string.IsNullOrEmpty(password))
-                throw new InvalidOperationException("SSH parolasını gir. Güvenlik nedeniyle parola profilde saklanmaz.");
+                throw new InvalidOperationException("SSH parolasını gir veya parolası kaydedilmiş bir profil seç.");
 
             SetRemoteStatus("SSH bağlantısı kuruluyor...", connected: false);
             session = new RemoteServerSession(profile);
@@ -1200,9 +1228,11 @@ public partial class MainWindow
                 await session.ConnectAsync(password, keyPassphrase);
             }
 
-            if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
-            if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
             string diagnostics = await session.GetServerDiagnosticsAsync();
+            if (!string.IsNullOrEmpty(password))
+                profile.ProtectedPassword = RemoteSecretProtector.Protect(password);
+            if (!string.IsNullOrEmpty(keyPassphrase))
+                profile.ProtectedKeyPassphrase = RemoteSecretProtector.Protect(keyPassphrase);
             profile.LastConnectedUtc = DateTimeOffset.UtcNow;
             RemoteServerProfileStore.SaveOrUpdate(profile);
             _activeRemoteProfileId = profile.Id;
@@ -1242,6 +1272,51 @@ public partial class MainWindow
         finally { session?.Dispose(); }
     }
 
+    private async Task ConnectRemoteAndScanAsync()
+    {
+        await ConnectRemoteAsync(keepConnected: true);
+    }
+
+    private async Task RunRemoteSshCommandAsync()
+    {
+        if (_remoteServerSession?.IsConnected != true)
+        {
+            ShowRemoteError("Komut çalıştırmadan önce SSH bağlantısını kur.");
+            return;
+        }
+
+        string command = _remoteCommandBox?.Text.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            ShowRemoteError("SSH komut penceresine çalıştırılacak komutu yaz.");
+            return;
+        }
+        if (command.Length > 16000)
+        {
+            ShowRemoteError("SSH komutu 16.000 karakterden uzun olamaz.");
+            return;
+        }
+
+        try
+        {
+            if (_remoteCommandOutputBox is not null)
+                _remoteCommandOutputBox.Text = "Komut uzak sunucuda çalıştırılıyor...";
+            SetRemoteStatus("SSH komutu çalıştırılıyor...", connected: true);
+            string output = await _remoteServerSession.ExecuteDeploymentCommandAsync(command, TimeSpan.FromSeconds(60));
+            if (_remoteCommandOutputBox is not null)
+                _remoteCommandOutputBox.Text = string.IsNullOrWhiteSpace(output) ? "Komut tamamlandı; çıktı üretilmedi." : output.TrimEnd();
+            SetRemoteStatus("SSH komutu tamamlandı.", connected: true);
+            AppendLog("SSH komut penceresinde uzak komut tamamlandı.", "OK", "REMOTE");
+        }
+        catch (Exception ex)
+        {
+            if (_remoteCommandOutputBox is not null)
+                _remoteCommandOutputBox.Text = "SSH KOMUT HATASI\n" + ex.Message;
+            SetRemoteStatus("SSH komutu başarısız oldu.", connected: true);
+            AppendLog("SSH komut penceresi başarısız: " + ex.Message, "HATA", "REMOTE");
+        }
+    }
+
     private async Task RefreshRemoteDiagnosticsAsync()
     {
         if (_remoteServerSession?.IsConnected != true)
@@ -1271,9 +1346,7 @@ public partial class MainWindow
         _remoteServerSession?.Dispose();
         _remoteServerSession = null;
         _remoteConnectedProfile = null;
-        if (_remotePasswordBox is not null) _remotePasswordBox.Password = "";
-        if (_remoteKeyPassphraseBox is not null) _remoteKeyPassphraseBox.Password = "";
-        SetRemoteStatus("SSH bağlantısı kapatıldı.", connected: false);
+        SetRemoteStatus("SSH bağlantısı kapatıldı. Kaydedilmiş parolalar profil içinde şifreli olarak korundu.", connected: false);
         AppendLog("Uzak sunucu SSH bağlantısı kapatıldı.", "INFO", "REMOTE");
     }
 

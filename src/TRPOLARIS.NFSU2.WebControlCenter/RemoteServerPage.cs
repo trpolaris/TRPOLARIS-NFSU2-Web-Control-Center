@@ -94,9 +94,9 @@ public partial class MainWindow
         {
             Height = 32,
             Style = (Style)FindResource("DarkComboBox"),
-            Background = BrushHex("#0A1724"),
+            Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#EAF3FD"),
-            BorderBrush = BrushHex("#34506A"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(7, 4, 7, 4),
             ItemsSource = new[] { "Parola", "SSH özel anahtarı" },
@@ -106,18 +106,18 @@ public partial class MainWindow
         _remotePasswordBox = new PasswordBox
         {
             Height = 32,
-            Background = BrushHex("#0A1724"),
+            Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#EAF3FD"),
-            BorderBrush = BrushHex("#34506A"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(7, 4, 7, 4)
         };
         _remoteKeyPassphraseBox = new PasswordBox
         {
             Height = 32,
-            Background = BrushHex("#0A1724"),
+            Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#EAF3FD"),
-            BorderBrush = BrushHex("#34506A"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(7, 4, 7, 4)
         };
@@ -247,7 +247,7 @@ public partial class MainWindow
             Text = profile is null ? "Henüz bir bağlantı profili seçilmedi" : profile.Name + "  ·  " + profile.Username + "@" + profile.Host + ":" + profile.Port,
             FontSize = 11,
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushHex("#EDF3FF")
+            Foreground = BrushHex("#EFF6FF")
         });
         profileInfo.Children.Add(new TextBlock
         {
@@ -271,7 +271,7 @@ public partial class MainWindow
         _remoteDomainBox = RemoteTextBox();
         _remoteAccessModeBox = new ComboBox
         {
-            Height = 33,
+            Height = 36,
             Style = (Style)FindResource("DarkComboBox"),
             ItemsSource = new[] { "Yerel ağ (LAN)", "Public IP (İnternet)", "Domain (HTTPS)" },
             SelectedIndex = 2
@@ -312,7 +312,7 @@ public partial class MainWindow
         {
             Text = "Kendi bilgisayarındaki doğrulanmış oyun klasörü ve yerel WASM çıktıları gönderilir. Oyun arşivinin tamamı veya ilgisiz kişisel dosyalar aktarılmaz.",
             FontSize = 10,
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             TextWrapping = TextWrapping.Wrap
         });
 
@@ -343,8 +343,8 @@ public partial class MainWindow
 
         var sourceFoot = new Border
         {
-            Background = BrushHex("#101A2C"),
-            BorderBrush = BrushHex("#263858"),
+            Background = BrushHex("#0D1B2D"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(7),
             Padding = new Thickness(8),
@@ -352,7 +352,7 @@ public partial class MainWindow
             {
                 Text = "Dosya doğrulaması: SPEED2.EXE sürüm / SHA-256 · seçilmiş oyun veri klasörleri · WASM ve JSON dosyaları",
                 FontSize = 9,
-                Foreground = BrushHex("#AFC4E4"),
+                Foreground = BrushHex("#AFC1D5"),
                 TextWrapping = TextWrapping.Wrap
             }
         };
@@ -369,7 +369,7 @@ public partial class MainWindow
         {
             Text = "Oyuncuların kullanacağı erişim türünü seç. SSH bağlantı adresiyle oyuncu adresi birbirinden bağımsızdır.",
             FontSize = 10,
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             TextWrapping = TextWrapping.Wrap
         });
         targetStack.Children.Add(RemoteField("Erişim modu", _remoteAccessModeBox));
@@ -416,7 +416,7 @@ public partial class MainWindow
         {
             Text = "Ubuntu / Debian  ·  Root veya parola istemeyen sudo  ·  5 GB boş alan",
             FontSize = 9,
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             VerticalAlignment = VerticalAlignment.Center
         };
         DockPanel.SetDock(prerequisites, Dock.Right);
@@ -437,7 +437,7 @@ public partial class MainWindow
             Minimum = 0,
             Maximum = 100,
             Value = 0,
-            Background = BrushHex("#101A2C"),
+            Background = BrushHex("#0D1B2D"),
             Foreground = BrushHex("#70A5FF")
         };
         operationStack.Children.Add(_remoteDeploymentProgress);
@@ -461,7 +461,7 @@ public partial class MainWindow
         {
             Text = "Dağıtılmış NFSU2 servisinin yaşam döngüsünü yönet.",
             FontSize = 10,
-            Foreground = BrushHex("#91A3BE")
+            Foreground = BrushHex("#A5B5CA")
         });
         var serviceButtons = new WrapPanel();
         serviceButtons.Children.Add(MakeButton("Başlat", "ModernButton", async (_, _) => await RunRemoteServiceActionAsync("start")));
@@ -481,7 +481,7 @@ public partial class MainWindow
         {
             Text = "LAN HTTPS için CA sertifikasını indir. Normal kaldırma oyun dosyalarını ve kayıt hacmini korur; tam silme iki ayrı onay ister.",
             FontSize = 10,
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             TextWrapping = TextWrapping.Wrap
         });
         var maintenanceButtons = new WrapPanel();
@@ -511,7 +511,7 @@ public partial class MainWindow
             Text = profile is null ? "Bağlantı profili seçilmedi" : "HEDEF  /  " + profile.Name + "  ·  " + (!string.IsNullOrWhiteSpace(profile.RemoteFileManagerRoot) ? profile.RemoteFileManagerRoot : profile.RemoteProjectDirectory ?? "/srv/nfsu2"),
             FontSize = 10,
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushHex("#AFC4E4"),
+            Foreground = BrushHex("#AFC1D5"),
             VerticalAlignment = VerticalAlignment.Center
         });
         var openConnections = MakeButton("SSH bağlantılarına git", "SecondaryButton", (_, _) => ShowPage("Remote"));
@@ -533,7 +533,7 @@ public partial class MainWindow
         {
             Text = "Eski kurulumun yolu farklıysa buradan değiştir. İşaretçisi olmayan klasörler önce salt okunur açılır.",
             FontSize = 9,
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             TextWrapping = TextWrapping.Wrap
         };
         rootPickerStack.Children.Add(rootPickerHint);
@@ -574,9 +574,9 @@ public partial class MainWindow
             Style = (Style)FindResource("DarkListBox"),
             MinHeight = 370,
             MaxHeight = 520,
-            Background = BrushHex("#101A2C"),
-            Foreground = BrushHex("#D7E3F8"),
-            BorderBrush = BrushHex("#263858"),
+            Background = BrushHex("#0D1B2D"),
+            Foreground = BrushHex("#E5F2FF"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(8),
             FontFamily = new FontFamily("Cascadia Mono, Consolas"),
@@ -590,7 +590,7 @@ public partial class MainWindow
         _remoteFileStatus = new TextBlock
         {
             Text = "SSH bağlantısı kurulduğunda Listele ile uzak klasörü görüntüleyebilirsin.",
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             FontSize = 10,
             TextWrapping = TextWrapping.Wrap
         };
@@ -607,33 +607,33 @@ public partial class MainWindow
         {
             Text = "Seçili dosya veya klasör üzerinde işlem yap. Dosya ağacı çift tıklamayla açılır.",
             FontSize = 10,
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             TextWrapping = TextWrapping.Wrap
         });
         actions.Children.Add(MakeButton("Seçili dosyayı indir", "SecondaryButton", async (_, _) => await DownloadSelectedRemoteFileAsync()));
         actions.Children.Add(MakeButton("Bilgisayardan dosya yükle", "ModernButton", async (_, _) => await UploadRemoteFileAsync()));
         _remoteFileClaimButton = MakeButton("Bu dizini SFTP için etkinleştir", "SecondaryButton", async (_, _) => await ClaimRemoteFileManagerRootAsync());
         actions.Children.Add(_remoteFileClaimButton);
-        actions.Children.Add(new Border { Height = 1, Background = BrushHex("#263858"), Margin = new Thickness(0, 3, 0, 1) });
+        actions.Children.Add(new Border { Height = 1, Background = BrushHex("#2A4360"), Margin = new Thickness(0, 3, 0, 1) });
         actions.Children.Add(RemoteSectionTitle("YENİ KLASÖR"));
         _remoteNewFolderBox = RemoteTextBox();
         _remoteNewFolderBox.Text = "";
         actions.Children.Add(RemoteField("Klasör adı", _remoteNewFolderBox));
         actions.Children.Add(MakeButton("Klasör oluştur", "SecondaryButton", async (_, _) => await CreateRemoteFolderAsync()));
-        actions.Children.Add(new Border { Height = 1, Background = BrushHex("#263858"), Margin = new Thickness(0, 3, 0, 1) });
+        actions.Children.Add(new Border { Height = 1, Background = BrushHex("#2A4360"), Margin = new Thickness(0, 3, 0, 1) });
         actions.Children.Add(RemoteSectionTitle("KALICI SİLME"));
         actions.Children.Add(new TextBlock
         {
             Text = "Dosyalar kalıcı silinir. Klasörler yalnızca boş olduklarında silinebilir. Kurulum kökü ve sahiplik işaretçisi korunur.",
             FontSize = 10,
-            Foreground = BrushHex("#91A3BE"),
+            Foreground = BrushHex("#A5B5CA"),
             TextWrapping = TextWrapping.Wrap
         });
         actions.Children.Add(MakeButton("Seçili dosya / boş klasörü sil", "DangerButton", async (_, _) => await DeleteSelectedRemoteEntryAsync()));
         actions.Children.Add(new Border
         {
-            Background = BrushHex("#101A2C"),
-            BorderBrush = BrushHex("#263858"),
+            Background = BrushHex("#0D1B2D"),
+            BorderBrush = BrushHex("#2A4360"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(11),
@@ -641,7 +641,7 @@ public partial class MainWindow
             {
                 Text = "Güvenlik sınırları\n• Yalnızca uygulama kurulum dizini\n• Üst dizine çıkış engelli\n• Sembolik bağlantılar gizli\n• Sahiplik işaretçisi korumalı",
                 FontSize = 9,
-                Foreground = BrushHex("#AFC4E4"),
+                Foreground = BrushHex("#AFC1D5"),
                 TextWrapping = TextWrapping.Wrap
             }
         });

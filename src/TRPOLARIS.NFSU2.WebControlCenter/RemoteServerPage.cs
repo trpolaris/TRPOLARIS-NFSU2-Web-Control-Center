@@ -56,7 +56,7 @@ public partial class MainWindow
         profileStack.Children.Add(MutedLabel("KAYITLI BAĞLANTILAR"));
         _remoteProfileBox = new ComboBox
         {
-            Height = 36,
+            Height = 44,
             Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#EFF6FF"),
@@ -92,7 +92,7 @@ public partial class MainWindow
         _remoteUsernameBox = RemoteTextBox();
         _remoteAuthenticationBox = new ComboBox
         {
-            Height = 32,
+            Height = 44,
             Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#EAF3FD"),
@@ -105,7 +105,7 @@ public partial class MainWindow
         _remotePrivateKeyBox = RemoteTextBox();
         _remotePasswordBox = new PasswordBox
         {
-            Height = 32,
+            Height = 44,
             Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#2A4360"),
@@ -114,7 +114,7 @@ public partial class MainWindow
         };
         _remoteKeyPassphraseBox = new PasswordBox
         {
-            Height = 32,
+            Height = 44,
             Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#2A4360"),
@@ -192,7 +192,7 @@ public partial class MainWindow
             TextWrapping = TextWrapping.Wrap,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            MinHeight = 290,
+            MinHeight = 340,
             Background = BrushHex("#081321"),
             Foreground = BrushHex("#CFE1EF"),
             BorderBrush = BrushHex("#2A4360"),
@@ -271,7 +271,7 @@ public partial class MainWindow
         _remoteDomainBox = RemoteTextBox();
         _remoteAccessModeBox = new ComboBox
         {
-            Height = 36,
+            Height = 44,
             Style = (Style)FindResource("DarkComboBox"),
             ItemsSource = new[] { "Yerel ağ (LAN)", "Public IP (İnternet)", "Domain (HTTPS)" },
             SelectedIndex = 2
@@ -662,24 +662,26 @@ public partial class MainWindow
     {
         Style = (Style)Application.Current.FindResource("CardBorder"),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(12),
-        Padding = new Thickness(15)
+        CornerRadius = new CornerRadius(16),
+        Padding = new Thickness(22)
     };
 
     private static TextBlock RemoteSectionTitle(string text) => new()
     {
         Text = text,
-        FontSize = 10,
-        FontWeight = FontWeights.Bold,
-        Foreground = BrushHex("#4DDCF2")
+        FontSize = 12,
+        FontWeight = FontWeights.ExtraBold,
+        Foreground = BrushHex("#FF9B62")
     };
 
     private static TextBox RemoteTextBox()
     {
         var box = new TextBox
         {
-            Height = 36,
-            Padding = new Thickness(10, 6, 10, 6),
+            Height = 44,
+            MinHeight = 44,
+            Padding = new Thickness(13, 9, 13, 9),
+            FontSize = 12,
             VerticalContentAlignment = VerticalAlignment.Center
         };
         box.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
@@ -692,10 +694,10 @@ public partial class MainWindow
         panel.Children.Add(new TextBlock
         {
             Text = label,
-            FontSize = 10,
+            FontSize = 12,
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushHex("#AFC1D5"),
-            Margin = new Thickness(0, 0, 0, 5)
+            Foreground = BrushHex("#B7C0CA"),
+            Margin = new Thickness(0, 0, 0, 8)
         });
         panel.Children.Add(control);
         return panel;

@@ -604,87 +604,88 @@ public partial class MainWindow : Window
 
     private UIElement BuildDashboardPage()
     {
-        var root = NewStack(12);
+        var root = NewStack(20);
         root.Children.Add(Heading(
-            "Control room",
-            "Yerel makineni ve uzak Linux sunucularını tek yerden yönet. Her operasyon kendi çalışma alanında."));
+            "Operasyon merkezi",
+            "Yerel NFSU2 sunucunu ve uzak Linux makinelerini tek bir kontrol alanından izle ve yönet."));
 
+        // Primary welcome / action surface
         var hero = new Border
         {
-            CornerRadius = new CornerRadius(18),
-            Padding = new Thickness(18),
+            CornerRadius = new CornerRadius(20),
+            Padding = new Thickness(30, 27, 30, 27),
             BorderThickness = new Thickness(1),
-            BorderBrush = BrushHex("#31486A"),
+            BorderBrush = BrushHex("#76442D"),
             Background = new LinearGradientBrush(
-                BrushHex("#1B2A40").Color,
-                BrushHex("#121D2D").Color,
+                BrushHex("#342318").Color,
+                BrushHex("#171F29").Color,
                 new Point(0, 0),
                 new Point(1, 1))
         };
         var heroGrid = new Grid();
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var intro = NewStack(6);
+
+        var intro = NewStack(9);
         intro.Children.Add(new TextBlock
         {
-            Text = "TRPOLARIS  /  NFSU2 INFRASTRUCTURE",
-            FontSize = 9,
+            Text = "TRPOLARIS  /  NFS UNDERGROUND 2 WEB",
+            FontSize = 10,
             FontWeight = FontWeights.ExtraBold,
-            Foreground = BrushHex("#88B4FF")
+            Foreground = BrushHex("#FF9B62")
         });
         intro.Children.Add(new TextBlock
         {
-            Text = "Bütün sunucuların.\nTek kontrol merkezi.",
-            FontSize = 23,
+            Text = "Sunucu operasyonu.\nTek merkezden kontrol.",
+            FontSize = 29,
             FontWeight = FontWeights.Bold,
-            LineHeight = 28,
-            Foreground = BrushHex("#F1F5FF"),
+            LineHeight = 36,
+            Foreground = BrushHex("#FFF4EC"),
             TextWrapping = TextWrapping.Wrap
         });
         intro.Children.Add(new TextBlock
         {
-            Text = "Yerel Windows kurulumu, VPS dağıtımı, ağ erişimi ve dosya yönetimi için ayrılmış çalışma alanları.",
-            FontSize = 12,
-            Foreground = BrushHex("#AABBD6"),
+            Text = "Kurulum, güncelleme, bağlantı, dağıtım ve dosya yönetimi için tüm araçların bir arada.",
+            FontSize = 13,
+            Foreground = BrushHex("#C2B9B0"),
             TextWrapping = TextWrapping.Wrap,
-            MaxWidth = 650
+            MaxWidth = 700
         });
         heroGrid.Children.Add(intro);
 
-        var heroActions = new StackPanel
-        {
-            Width = 176,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(16, 0, 0, 0)
-        };
-        heroActions.Children.Add(MakeButton("＋  Uzak sunucu ekle", "ModernButton", (_, _) => ShowPage("Remote")));
-        heroActions.Children.Add(MakeButton("Yerel kurulumu aç", "SecondaryButton", (_, _) => ShowPage("Install"), new Thickness(0, 6, 0, 0)));
+        var heroActions = NewStack(9);
+        heroActions.Width = 210;
+        heroActions.VerticalAlignment = VerticalAlignment.Center;
+        heroActions.Margin = new Thickness(25, 0, 0, 0);
+        heroActions.Children.Add(MakeButton("＋  VPS bağlantısı ekle", "ModernButton", (_, _) => ShowPage("Remote")));
+        heroActions.Children.Add(MakeButton("Yerel kurulumu yapılandır", "SecondaryButton", (_, _) => ShowPage("Install")));
         Grid.SetColumn(heroActions, 1);
         heroGrid.Children.Add(heroActions);
         hero.Child = heroGrid;
         root.Children.Add(hero);
 
-        var healthTitle = new DockPanel { LastChildFill = true };
-        var healthName = new TextBlock
+        // Health overview
+        var healthHeader = new Grid();
+        healthHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        healthHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        healthHeader.Children.Add(new TextBlock
         {
-            Text = "SİSTEM SAĞLIĞI",
-            FontSize = 9,
+            Text = "ORTAM SAĞLIĞI",
+            FontSize = 11,
             FontWeight = FontWeights.ExtraBold,
-            Foreground = BrushHex("#83AEF8"),
+            Foreground = BrushHex("#FF9B62"),
             VerticalAlignment = VerticalAlignment.Center
-        };
-        healthTitle.Children.Add(healthName);
+        });
         var healthHint = new TextBlock
         {
-            Text = "Yerel Windows ortamı",
-            FontSize = 10,
-            Foreground = BrushHex("#91A3C1"),
-            HorizontalAlignment = HorizontalAlignment.Right,
+            Text = "Bu bilgisayardaki altyapı kontrolleri",
+            FontSize = 11,
+            Foreground = BrushHex("#8F9CA9"),
             VerticalAlignment = VerticalAlignment.Center
         };
-        DockPanel.SetDock(healthHint, Dock.Right);
-        healthTitle.Children.Insert(0, healthHint);
-        root.Children.Add(healthTitle);
+        Grid.SetColumn(healthHint, 1);
+        healthHeader.Children.Add(healthHint);
+        root.Children.Add(healthHeader);
 
         var healthGrid = new UniformGrid { Columns = 4, Rows = 1 };
         healthGrid.Children.Add(BuildStatusCard("WSL 2", "WSL", "Windows Linux ortamı"));
@@ -693,88 +694,113 @@ public partial class MainWindow : Window
         healthGrid.Children.Add(BuildStatusCard("NFSU2 SERVER", "Server", "Yerel servis durumu"));
         root.Children.Add(healthGrid);
 
-        var inventoryHeading = new DockPanel { LastChildFill = true };
-        inventoryHeading.Children.Add(new TextBlock
+        // Local and remote workspaces
+        var workspaceHeader = new Grid();
+        workspaceHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        workspaceHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        workspaceHeader.Children.Add(new TextBlock
         {
-            Text = "SUNUCU ENVANTERİ",
-            FontSize = 9,
+            Text = "ÇALIŞMA ALANLARI",
+            FontSize = 11,
             FontWeight = FontWeights.ExtraBold,
-            Foreground = BrushHex("#83AEF8"),
-            VerticalAlignment = VerticalAlignment.Center
+            Foreground = BrushHex("#FF9B62")
         });
-        var inventoryHint = new TextBlock
+        var workspaceHint = new TextBlock
         {
-            Text = "Yönetim alanını seçerek ayrıntılara geç",
-            FontSize = 9,
-            Foreground = BrushHex("#91A3C1"),
+            Text = "Bir yönetim alanı seç",
+            FontSize = 11,
+            Foreground = BrushHex("#8F9CA9"),
             VerticalAlignment = VerticalAlignment.Center
         };
-        DockPanel.SetDock(inventoryHint, Dock.Right);
-        inventoryHeading.Children.Add(inventoryHint);
-        var remoteCount = RemoteServerProfileStore.LoadAll().Count;
-        var inventoryGrid = new Grid();
-        inventoryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        inventoryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(workspaceHint, 1);
+        workspaceHeader.Children.Add(workspaceHint);
+        root.Children.Add(workspaceHeader);
+
+        int remoteCount = RemoteServerProfileStore.LoadAll().Count;
+        var workspaceGrid = new Grid();
+        workspaceGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        workspaceGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         var localCard = MakeCard("LOCAL HOST  /  WINDOWS + WSL 2",
-            "Geliştirme, yerel test, Docker Desktop ve kaynak kod güncellemeleri.");
-        var localStatus = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 6) };
-        localStatus.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = BrushHex("#F6C66B"), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
-        localStatus.Children.Add(new TextBlock { Text = "Yerel ortam", FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#E8EEFB") });
-        AddCardChild(localCard, localStatus);
+            "Bu bilgisayardaki NFSU2 Web kurulumunu, oyun verisini, ağ erişimini ve kaynak güncellemelerini yönet.");
+        localCard.Margin = new Thickness(0, 0, 9, 0);
+        var localState = new Border
+        {
+            Background = BrushHex("#252019"),
+            BorderBrush = BrushHex("#69452F"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(11, 8, 11, 8),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        localState.Child = new TextBlock { Text = "WINDOWS  /  WSL 2  /  DOCKER", FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F6B183") };
+        AddCardChild(localCard, localState);
         var localActions = new WrapPanel();
         localActions.Children.Add(MakeButton("Kurulum", "SecondaryButton", (_, _) => ShowPage("Install")));
-        localActions.Children.Add(MakeButton("Altyapı güncelle", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(8, 0, 0, 0)));
-        localActions.Children.Add(MakeButton("Yerel erişim", "SecondaryButton", (_, _) => ShowPage("Access"), new Thickness(8, 0, 0, 0)));
+        localActions.Children.Add(MakeButton("Güncelleme", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(8, 0, 0, 0)));
+        localActions.Children.Add(MakeButton("Ağ erişimi", "SecondaryButton", (_, _) => ShowPage("Access"), new Thickness(8, 0, 0, 0)));
+        localActions.Children.Add(MakeButton("Dosyalar", "SecondaryButton", (_, _) => ShowPage("Files"), new Thickness(8, 0, 0, 0)));
         AddCardChild(localCard, localActions);
         Grid.SetColumn(localCard, 0);
-        inventoryGrid.Children.Add(localCard);
+        workspaceGrid.Children.Add(localCard);
 
         var remoteCard = MakeCard("REMOTE HOSTS  /  LINUX + VPS",
-            "SSH profilleri, bağımsız dağıtım, servis kontrolü ve güvenli SFTP dosya erişimi.");
-        var remoteStatus = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 10) };
-        remoteStatus.Children.Add(new Ellipse { Width = 7, Height = 7, Fill = BrushHex(_remoteServerSession?.IsConnected == true ? "#3DD6AE" : "#8D9BB3"), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
-        remoteStatus.Children.Add(new TextBlock { Text = _remoteServerSession?.IsConnected == true ? "SSH oturumu bağlı" : $"{remoteCount} kayıtlı bağlantı profili", FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#E8EEFB") });
-        AddCardChild(remoteCard, remoteStatus);
+            "SSH profillerini, bağımsız dağıtımı, uzak servisleri ve güvenli SFTP dosya erişimini yönet.");
+        remoteCard.Margin = new Thickness(9, 0, 0, 0);
+        var remoteState = new Border
+        {
+            Background = BrushHex(_remoteServerSession?.IsConnected == true ? "#183328" : "#202A35"),
+            BorderBrush = BrushHex(_remoteServerSession?.IsConnected == true ? "#366A50" : "#3A4755"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(11, 8, 11, 8),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        remoteState.Child = new TextBlock
+        {
+            Text = _remoteServerSession?.IsConnected == true ? "SSH OTURUMU BAĞLI" : $"{remoteCount} KAYITLI BAĞLANTI PROFİLİ",
+            FontSize = 9,
+            FontWeight = FontWeights.Bold,
+            Foreground = BrushHex(_remoteServerSession?.IsConnected == true ? "#72D6A9" : "#AEB9C5")
+        };
+        AddCardChild(remoteCard, remoteState);
         var remoteActions = new WrapPanel();
-        remoteActions.Children.Add(MakeButton("Bağlantılar", "SecondaryButton", (_, _) => ShowPage("Remote")));
+        remoteActions.Children.Add(MakeButton("SSH bağlantıları", "SecondaryButton", (_, _) => ShowPage("Remote")));
         remoteActions.Children.Add(MakeButton("Dağıtım", "SecondaryButton", (_, _) => ShowPage("RemoteDeploy"), new Thickness(8, 0, 0, 0)));
-        remoteActions.Children.Add(MakeButton("Dosyalar", "SecondaryButton", (_, _) => ShowPage("RemoteFiles"), new Thickness(8, 0, 0, 0)));
+        remoteActions.Children.Add(MakeButton("Dosya yöneticisi", "SecondaryButton", (_, _) => ShowPage("RemoteFiles"), new Thickness(8, 0, 0, 0)));
         AddCardChild(remoteCard, remoteActions);
         Grid.SetColumn(remoteCard, 1);
-        inventoryGrid.Children.Add(remoteCard);
-        root.Children.Add(inventoryHeading);
-        root.Children.Add(inventoryGrid);
+        workspaceGrid.Children.Add(remoteCard);
+        root.Children.Add(workspaceGrid);
 
-        var operationsHeading = new TextBlock
+        // Operation shortcuts
+        root.Children.Add(new TextBlock
         {
-            Text = "OPERASYON MERKEZLERİ",
-            FontSize = 9,
+            Text = "HIZLI İŞLEMLER",
+            FontSize = 11,
             FontWeight = FontWeights.ExtraBold,
-            Foreground = BrushHex("#83AEF8")
-        };
-        root.Children.Add(operationsHeading);
-
+            Foreground = BrushHex("#FF9B62")
+        });
         var operationsGrid = new UniformGrid { Columns = 3 };
         operationsGrid.Children.Add(QuickAction(
-            "01  /  YEREL SUNUCU",
-            "Windows üzerindeki WSL 2 ve Docker tabanlı NFSU2 Web kurulumunu yönet.",
-            "Yerel sunucuya git",
+            "01  /  SUNUCU KURULUMU",
+            "Oyun verisini doğrula, WSL 2 ve Docker altyapısını hazırla.",
+            "Kurulum alanını aç",
             () => ShowPage("Install")));
         operationsGrid.Children.Add(QuickAction(
             "02  /  VPS DAĞITIMI",
-            "Oyun verisi, WASM modülü ve HTTPS erişim profilini uzak Linux sunucusuna gönder.",
-            "Dağıtımı aç",
+            "Oyun verisi, WASM modülü ve HTTPS profilini uzak Linux sunucusuna gönder.",
+            "Dağıtım alanını aç",
             () => ShowPage("RemoteDeploy")));
         operationsGrid.Children.Add(QuickAction(
-            "03  /  GÜVENLİK VE TEMİZLİK",
-            "Paylaşılan altyapıyı koruyarak NFSU2 bileşenlerini yönet ve kaldır.",
-            "Kaldırma merkezi",
+            "03  /  GÜVENLİ BAKIM",
+            "Sistem tanılamasını, günlükleri ve kaldırma seçeneklerini yönet.",
+            "Bakım alanını aç",
             () => ShowPage("Uninstall")));
         root.Children.Add(operationsGrid);
 
-        var activity = MakeCard("SON İŞLEMLER", "Ayrıntılı uygulama ve WSL kayıtlarına İşlem günlükleri ekranından ulaşabilirsin.");
-        AddCardChild(activity, MakeButton("Canlı işlem akışını aç", "SecondaryButton", (_, _) => ShowPage("Logs")));
+        var activity = MakeCard("İŞLEM GEÇMİŞİ", "Kurulum, derleme, bağlantı ve dağıtım çıktılarının tamamına canlı günlük ekranından ulaş.");
+        AddCardChild(activity, MakeButton("Canlı işlem günlüğünü görüntüle", "SecondaryButton", (_, _) => ShowPage("Logs")));
         root.Children.Add(activity);
 
         return WrapScrollable(root);

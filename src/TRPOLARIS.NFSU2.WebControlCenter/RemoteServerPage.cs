@@ -22,6 +22,8 @@ public partial class MainWindow
     private PasswordBox? _remoteKeyPassphraseBox;
     private TextBlock? _remoteConnectionState;
     private TextBox? _remoteDiagnosticsBox;
+    private TextBox? _remoteCommandBox;
+    private TextBox? _remoteCommandOutputBox;
     private TextBox? _remoteGameFolderBox;
     private TextBox? _remoteWasmPathBox;
     private TextBox? _remoteJsonPathBox;
@@ -46,7 +48,7 @@ public partial class MainWindow
 
     private UIElement BuildRemotePage()
     {
-        var root = NewStack(18);
+        var root = NewStack(12);
         root.Children.Add(Heading(
             "SSH bağlantı merkezi",
             "Ubuntu ve Debian sunucularını güvenli SSH oturumlarıyla yönet. Bağlantı profillerini kaydet, bağlantıyı doğrula ve uzak dağıtım alanına geç."));
@@ -62,14 +64,14 @@ public partial class MainWindow
         profileInfo.Children.Add(MutedLabel("AKTİF BAĞLANTI PROFİLİ"));
         _remoteProfileBox = new ComboBox
         {
-            Height = 44,
-            MinWidth = 300,
+            Height = 38,
+            MinWidth = 230,
             Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#111821"),
             Foreground = BrushHex("#F4F6F8"),
             BorderBrush = BrushHex("#3A4755"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(13, 8, 13, 8),
+            Padding = new Thickness(11, 7, 11, 7),
             DisplayMemberPath = nameof(RemoteServerProfile.Name),
             ItemsSource = RemoteServerProfileStore.LoadAll().ToList()
         };
@@ -77,13 +79,13 @@ public partial class MainWindow
         profileInfo.Children.Add(_remoteProfileBox);
         profileGrid.Children.Add(profileInfo);
 
-        var newProfile = MakeButton("＋  Yeni profil", "SecondaryButton", (_, _) => NewRemoteProfile(), new Thickness(14, 20, 0, 0));
-        newProfile.MinWidth = 145;
+        var newProfile = MakeButton("＋  Yeni profil", "SecondaryButton", (_, _) => NewRemoteProfile(), new Thickness(10, 16, 0, 0));
+        newProfile.MinWidth = 122;
         Grid.SetColumn(newProfile, 1);
         profileGrid.Children.Add(newProfile);
 
-        var manageProfiles = MakeButton("Profili sil", "DangerButton", (_, _) => DeleteRemoteProfile(), new Thickness(9, 20, 0, 0));
-        manageProfiles.MinWidth = 120;
+        var manageProfiles = MakeButton("Profili sil", "DangerButton", (_, _) => DeleteRemoteProfile(), new Thickness(7, 16, 0, 0));
+        manageProfiles.MinWidth = 100;
         Grid.SetColumn(manageProfiles, 2);
         profileGrid.Children.Add(manageProfiles);
         profileBar.Child = profileGrid;
@@ -96,7 +98,7 @@ public partial class MainWindow
 
         var formPanel = RemotePanel();
         formPanel.Margin = new Thickness(0, 0, 8, 0);
-        var form = NewStack(13);
+        var form = NewStack(9);
         var formHeader = new Grid();
         formHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         formHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -148,7 +150,7 @@ public partial class MainWindow
 
         _remoteAuthenticationBox = new ComboBox
         {
-            Height = 44,
+            Height = 38,
             Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#111821"),
             Foreground = BrushHex("#F4F6F8"),
@@ -165,15 +167,15 @@ public partial class MainWindow
         keyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         keyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         keyGrid.Children.Add(RemoteField("Özel anahtar dosyası", _remotePrivateKeyBox));
-        var browse = MakeButton("Dosya seç", "SecondaryButton", BrowseRemotePrivateKey, new Thickness(12, 22, 0, 0));
-        browse.MinWidth = 112;
+        var browse = MakeButton("Dosya seç", "SecondaryButton", BrowseRemotePrivateKey, new Thickness(9, 17, 0, 0));
+        browse.MinWidth = 92;
         Grid.SetColumn(browse, 1);
         keyGrid.Children.Add(browse);
         form.Children.Add(keyGrid);
 
         _remotePasswordBox = new PasswordBox
         {
-            Height = 44,
+            Height = 38,
             Background = BrushHex("#111821"),
             Foreground = BrushHex("#F4F6F8"),
             BorderBrush = BrushHex("#3A4755"),
@@ -182,7 +184,7 @@ public partial class MainWindow
         };
         _remoteKeyPassphraseBox = new PasswordBox
         {
-            Height = 44,
+            Height = 38,
             Background = BrushHex("#111821"),
             Foreground = BrushHex("#F4F6F8"),
             BorderBrush = BrushHex("#3A4755"),
@@ -218,10 +220,10 @@ public partial class MainWindow
 
         var actions = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
         var save = MakeButton("Profili kaydet", "SecondaryButton", (_, _) => SaveRemoteProfile());
-        save.MinWidth = 142;
+        save.MinWidth = 120;
         actions.Children.Add(save);
         var connect = MakeButton("Bağlan", "ModernButton", async (_, _) => await ConnectRemoteAsync(keepConnected: true), new Thickness(8, 0, 0, 0));
-        connect.MinWidth = 130;
+        connect.MinWidth = 110;
         actions.Children.Add(connect);
         actions.Children.Add(MakeButton("Bağlantıyı test et", "SecondaryButton", async (_, _) => await ConnectRemoteAsync(keepConnected: false), new Thickness(8, 0, 0, 0)));
         actions.Children.Add(MakeButton("Bağlantıyı kes", "DangerButton", (_, _) => DisconnectRemoteSession(), new Thickness(8, 0, 0, 0)));
@@ -233,7 +235,7 @@ public partial class MainWindow
         // Live host status
         var statusPanel = RemotePanel();
         statusPanel.Margin = new Thickness(8, 0, 0, 0);
-        var status = NewStack(13);
+        var status = NewStack(9);
         var statusHeader = new Grid();
         statusHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         statusHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -286,7 +288,7 @@ public partial class MainWindow
             TextWrapping = TextWrapping.Wrap,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            MinHeight = 360,
+            MinHeight = 220,
             Background = BrushHex("#111821"),
             Foreground = BrushHex("#D3DCE5"),
             BorderBrush = BrushHex("#303D4D"),
@@ -377,7 +379,7 @@ public partial class MainWindow
         _remoteDomainBox = RemoteTextBox();
         _remoteAccessModeBox = new ComboBox
         {
-            Height = 44,
+            Height = 38,
             Style = (Style)FindResource("DarkComboBox"),
             ItemsSource = new[] { "Yerel ağ (LAN)", "Public IP (İnternet)", "Domain (HTTPS)" },
             SelectedIndex = 2
@@ -768,14 +770,14 @@ public partial class MainWindow
     {
         Style = (Style)Application.Current.FindResource("CardBorder"),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(16),
-        Padding = new Thickness(22)
+        CornerRadius = new CornerRadius(13),
+        Padding = new Thickness(15)
     };
 
     private static TextBlock RemoteSectionTitle(string text) => new()
     {
         Text = text,
-        FontSize = 12,
+        FontSize = 11,
         FontWeight = FontWeights.ExtraBold,
         Foreground = BrushHex("#FF9B62")
     };
@@ -784,10 +786,10 @@ public partial class MainWindow
     {
         var box = new TextBox
         {
-            Height = 44,
-            MinHeight = 44,
-            Padding = new Thickness(13, 9, 13, 9),
-            FontSize = 12,
+            Height = 38,
+            MinHeight = 38,
+            Padding = new Thickness(11, 7, 11, 7),
+            FontSize = 11,
             VerticalContentAlignment = VerticalAlignment.Center
         };
         box.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
@@ -800,10 +802,10 @@ public partial class MainWindow
         panel.Children.Add(new TextBlock
         {
             Text = label,
-            FontSize = 12,
+            FontSize = 11,
             FontWeight = FontWeights.SemiBold,
             Foreground = BrushHex("#B7C0CA"),
-            Margin = new Thickness(0, 0, 0, 8)
+            Margin = new Thickness(0, 0, 0, 6)
         });
         panel.Children.Add(control);
         return panel;

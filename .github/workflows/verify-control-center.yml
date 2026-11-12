@@ -159,7 +159,18 @@ jobs:
           assert "ProtectedPassword" in profile and "ProtectedKeyPassphrase" in profile
           assert "RemoteSecretProtector" in remote and "CryptProtectData" in profile
           assert "VerticalContentAlignment = VerticalAlignment.Top" in main
-          print("PASS: legacy SFTP read-only browsing, explicit SFTP adoption, write ACL checks and Nightshift Garage interface.")
+          text_box_style = app.split('<Style x:Key="DarkTextBox"', 1)[1].split('</Style>', 1)[0]
+          assert 'Setter Property="Height"' not in text_box_style, "Multiline text boxes must stretch to the available row height."
+          assert 'Padding="{TemplateBinding Padding}"' in text_box_style
+          combo_style = app.split('<Style x:Key="DarkComboBox"', 1)[1].split('</Style>', 1)[0]
+          assert combo_style.index('</ToggleButton>') < combo_style.index('x:Name="SelectionPresenter"'), "ComboBox selection text must render above the full-surface click target."
+          assert 'ModernScrollThumb' in app and 'TargetName="ItemContent"' in app
+          logs_page = main.split('private UIElement BuildLogsPage()', 1)[1].split('private string GetProgressStatusText()', 1)[0]
+          assert 'FlushPendingDiskLogs();' in logs_page
+          assert 'TextWrapping = TextWrapping.NoWrap' in logs_page
+          assert 'VerticalAlignment = VerticalAlignment.Stretch' in logs_page
+          assert 'VerticalContentAlignment="Stretch"' in window
+          print("PASS: compact pages, fully visible text controls, dropdown stacking, modern scrollbars, live logs and Nightshift Garage interface.")
           PY
 
   build-win-x64:

@@ -116,7 +116,7 @@ jobs:
           assert 'DownloadRemoteLanCertificateAsync' in remote
           assert 'DownloadRemoteFileAsync(root + "/lan-ca-root.crt"' in deploy
           assert 'BuildRemoteDeploymentPage' in remote and 'BuildRemoteFilesPage' in remote
-          assert 'Blue Nebula' in app
+          assert 'Midnight Ops' in app, "The shared control theme must use the Midnight Ops palette."
           for name in (
               'WindowTitleBar', 'NavDashboard', 'NavInstall', 'NavUpdate', 'NavAccess', 'NavFiles',
               'NavRemote', 'NavRemoteDeploy', 'NavRemoteFiles', 'NavUninstall', 'NavLogs',

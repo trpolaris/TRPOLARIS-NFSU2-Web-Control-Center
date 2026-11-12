@@ -268,7 +268,7 @@ internal sealed class UpdatePreferencesWindow : Window
 
     private static void StyleButton(Button button, string background, string foreground)
     {
-        try { button.Style = (Style)Application.Current.FindResource(background == "#3E6EB2" ? "ModernButton" : "SecondaryButton"); } catch { }
+        try { button.Style = (Style)Application.Current.FindResource(background is "#3E6EB2" or "#1E7492" ? "ModernButton" : "SecondaryButton"); } catch { }
         button.MinHeight = 36;
         button.Background = Brush(background);
         button.Foreground = Brush(foreground);

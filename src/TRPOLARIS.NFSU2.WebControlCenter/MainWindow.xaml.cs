@@ -204,9 +204,8 @@ public partial class MainWindow : Window
 
     private void SetApplicationVersion()
     {
-        var displayVersion = ControlCenterCurrentVersion;
-        Title = $"NFSU2 Server control v{displayVersion}";
-        AppVersionText.Text = $"v{displayVersion}";
+        Title = $"NFSU2 Server control {AppVersion.Display}";
+        AppVersionText.Text = AppVersion.Display;
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -218,6 +217,7 @@ public partial class MainWindow : Window
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
         StopProjectChangeMonitor();
+        DisposeRemoteServerSession();
         _logsVisible = false;
         _statusTimer.Stop();
         _projectSnapshotTimer.Stop();
@@ -262,7 +262,7 @@ public partial class MainWindow : Window
             bool stopPending = _operationProgressState == "stop-requested";
             var accent = BrushHex(stopPending ? "#F4C15D" : "#42C9C0");
             OperationProgressPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-            OperationProgressPanel.Background = BrushHex(stopPending ? "#282114" : "#0D1A22");
+            OperationProgressPanel.Background = BrushHex(stopPending ? "#282114" : "#0D1A2B");
             OperationProgressPanel.BorderBrush = BrushHex(stopPending ? "#755B2B" : "#25434A");
             OperationProgressBar.Foreground = accent;
             OperationProgressBar.IsIndeterminate = !stopPending && _operationProgressQuality == "indeterminate";
@@ -538,7 +538,7 @@ public partial class MainWindow : Window
             _logsCurrentFileLabel = null;
         }
         _currentPage = page;
-        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(20, 18, 20, 16);
+        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(14, 10, 14, 10);
         _statusLabels.Clear();
         _portBox = null;
         _gameDirBox = null;
@@ -563,8 +563,14 @@ public partial class MainWindow : Window
         _statusLabels.Clear();
         switch (page)
         {
+            case "Remote":
+                TopEyebrow.Text = "REMOTE INFRASTRUCTURE / CONNECTIONS"; TopTitle.Text = "SSH bağlantıları"; PageHost.Content = BuildRemotePage(); break;
+            case "RemoteDeploy":
+                TopEyebrow.Text = "REMOTE INFRASTRUCTURE / DEPLOYMENT"; TopTitle.Text = "Uzak sunucu dağıtımı"; PageHost.Content = BuildRemoteDeploymentPage(); break;
+            case "RemoteFiles":
+                TopEyebrow.Text = "REMOTE INFRASTRUCTURE / STORAGE"; TopTitle.Text = "Uzak dosyalar"; PageHost.Content = BuildRemoteFilesPage(); break;
             case "Dashboard":
-                TopEyebrow.Text = "DEPLOYMENT / OVERVIEW"; TopTitle.Text = "Altyapı kontrol merkezi"; PageHost.Content = BuildDashboardPage(); break;
+                TopEyebrow.Text = "CONTROL ROOM / OVERVIEW"; TopTitle.Text = "Operasyon merkezi"; PageHost.Content = BuildDashboardPage(); break;
             case "Install":
                 TopEyebrow.Text = "DEPLOYMENT / INSTALL"; TopTitle.Text = "Sunucu kurulumu"; PageHost.Content = BuildInstallPage(); break;
             case "Update":
@@ -586,83 +592,217 @@ public partial class MainWindow : Window
 
     private void SetNavState(string selected)
     {
-        var nav = new[] { NavDashboard, NavInstall, NavUpdate, NavFiles, NavAccess, NavUninstall, NavLogs };
+        var nav = new[] { NavDashboard, NavInstall, NavUpdate, NavAccess, NavFiles, NavRemote, NavRemoteDeploy, NavRemoteFiles, NavUninstall, NavLogs };
         foreach (var b in nav)
         {
             bool active = Equals(b.Tag, selected);
-            b.Background = active ? BrushHex("#143448") : Brushes.Transparent;
-            b.BorderBrush = active ? BrushHex("#3D8292") : Brushes.Transparent;
-            b.Foreground = active ? BrushHex("#76F0E0") : BrushHex("#AFC0D2");
+            b.Background = active ? BrushHex("#4A2B1D") : Brushes.Transparent;
+            b.BorderBrush = active ? BrushHex("#B7653C") : Brushes.Transparent;
+            b.Foreground = active ? BrushHex("#FFF0E7") : BrushHex("#AAB4C0");
         }
     }
 
     private UIElement BuildDashboardPage()
     {
-        var root = NewStack(17);
-        root.Children.Add(Heading("Altyapı durumu", "Windows bilgisayarındaki NFSU2 Web sunucu kurulumunu ve onu çalıştıran altyapıyı tek ekrandan hazırla."));
+        var root = NewStack(20);
+        root.Children.Add(Heading(
+            "Operasyon merkezi",
+            "Yerel NFSU2 sunucunu ve uzak Linux makinelerini tek bir kontrol alanından izle ve yönet."));
 
+        // Primary welcome / action surface
         var hero = new Border
         {
-            CornerRadius = new CornerRadius(17), Padding = new Thickness(23),
-            BorderThickness = new Thickness(1), BorderBrush = BrushHex("#2C6070"),
-            Background = new LinearGradientBrush(BrushHex("#143448").Color, BrushHex("#101E31").Color, 0)
-        };
-        hero.Effect = new System.Windows.Media.Effects.DropShadowEffect
-        {
-            Color = (Color)ColorConverter.ConvertFromString("#43E4D0"), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.10
+            CornerRadius = new CornerRadius(20),
+            Padding = new Thickness(30, 27, 30, 27),
+            BorderThickness = new Thickness(1),
+            BorderBrush = BrushHex("#76442D"),
+            Background = new LinearGradientBrush(
+                BrushHex("#342318").Color,
+                BrushHex("#171F29").Color,
+                new Point(0, 0),
+                new Point(1, 1))
         };
         var heroGrid = new Grid();
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var heroText = NewStack(8);
-        heroText.Children.Add(MutedLabel("TRPOLARIS  /  DEPLOYMENT CONSOLE"));
-        heroText.Children.Add(new TextBlock
+
+        var intro = NewStack(9);
+        intro.Children.Add(new TextBlock
         {
-            Text = "Sunucunu kur.\nAltyapını güncel tut.", FontSize = 26, FontWeight = FontWeights.SemiBold,
-            Foreground = BrushHex("#F1F7FF"), TextWrapping = TextWrapping.Wrap
+            Text = "TRPOLARIS  /  NFS UNDERGROUND 2 WEB",
+            FontSize = 10,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF9B62")
         });
-        heroText.Children.Add(new TextBlock
+        intro.Children.Add(new TextBlock
         {
-            Text = "NFSU2 Server control yalnızca Windows kurulumunu, kaldırmayı ve WSL–Docker güncelleme zincirini yönetir. Web sitesinin veya oyunun iç yönetim ekranlarına müdahale etmez.",
-            FontSize = 11, Foreground = BrushHex("#A9BED1"), TextWrapping = TextWrapping.Wrap, MaxWidth = 610
+            Text = "Sunucu operasyonu.\nTek merkezden kontrol.",
+            FontSize = 29,
+            FontWeight = FontWeights.Bold,
+            LineHeight = 36,
+            Foreground = BrushHex("#FFF4EC"),
+            TextWrapping = TextWrapping.Wrap
         });
-        heroGrid.Children.Add(heroText);
-        var heroActions = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(24, 0, 0, 0), Width = 210 };
-        heroActions.Children.Add(MakeButton("＋  Sunucuyu kur", "ModernButton", (_, _) => ShowPage("Install")));
-        heroActions.Children.Add(MakeButton("↻  Altyapıyı güncelle", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(0, 9, 0, 0)));
+        intro.Children.Add(new TextBlock
+        {
+            Text = "Kurulum, güncelleme, bağlantı, dağıtım ve dosya yönetimi için tüm araçların bir arada.",
+            FontSize = 13,
+            Foreground = BrushHex("#C2B9B0"),
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 700
+        });
+        heroGrid.Children.Add(intro);
+
+        var heroActions = NewStack(9);
+        heroActions.Width = 210;
+        heroActions.VerticalAlignment = VerticalAlignment.Center;
+        heroActions.Margin = new Thickness(25, 0, 0, 0);
+        heroActions.Children.Add(MakeButton("＋  VPS bağlantısı ekle", "ModernButton", (_, _) => ShowPage("Remote")));
+        heroActions.Children.Add(MakeButton("Yerel kurulumu yapılandır", "SecondaryButton", (_, _) => ShowPage("Install")));
         Grid.SetColumn(heroActions, 1);
         heroGrid.Children.Add(heroActions);
         hero.Child = heroGrid;
         root.Children.Add(hero);
 
-        var statusHeader = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        statusHeader.Children.Add(new TextBlock { Text = "BİLEŞEN SAĞLIĞI", Style = (Style)FindResource("Eyebrow"), VerticalAlignment = VerticalAlignment.Center });
-        statusHeader.Children.Add(new TextBlock { Text = "  ·  WSL 2 / Ubuntu / Docker / Sunucu", FontSize = 9, Foreground = BrushHex("#6F879E"), VerticalAlignment = VerticalAlignment.Center });
-        root.Children.Add(statusHeader);
+        // Health overview
+        var healthHeader = new Grid();
+        healthHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        healthHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        healthHeader.Children.Add(new TextBlock
+        {
+            Text = "ORTAM SAĞLIĞI",
+            FontSize = 11,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF9B62"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var healthHint = new TextBlock
+        {
+            Text = "Bu bilgisayardaki altyapı kontrolleri",
+            FontSize = 11,
+            Foreground = BrushHex("#8F9CA9"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(healthHint, 1);
+        healthHeader.Children.Add(healthHint);
+        root.Children.Add(healthHeader);
 
-        var statusGrid = new UniformGrid { Columns = 4, Rows = 1 };
-        statusGrid.Children.Add(BuildStatusCard("WSL 2", "WSL", "Windows Linux ortamı"));
-        statusGrid.Children.Add(BuildStatusCard("Ubuntu", "Ubuntu", "Derleme dağıtımı"));
-        statusGrid.Children.Add(BuildStatusCard("Docker Engine", "Docker", "Container motoru"));
-        statusGrid.Children.Add(BuildStatusCard("NFSU2 Server", "Server", "Kurulum / sağlık durumu"));
-        root.Children.Add(statusGrid);
+        var healthGrid = new UniformGrid { Columns = 4, Rows = 1 };
+        healthGrid.Children.Add(BuildStatusCard("WSL 2", "WSL", "Windows Linux ortamı"));
+        healthGrid.Children.Add(BuildStatusCard("UBUNTU", "Ubuntu", "Linux geliştirme dağıtımı"));
+        healthGrid.Children.Add(BuildStatusCard("DOCKER ENGINE", "Docker", "Konteyner motoru"));
+        healthGrid.Children.Add(BuildStatusCard("NFSU2 SERVER", "Server", "Yerel servis durumu"));
+        root.Children.Add(healthGrid);
 
-        var lifecycle = MakeCard("DOCKER SERVİS YAŞAM DÖNGÜSÜ", "Yalnızca NFSU2 Server control tarafından kurulan NFSU2 Compose servisini başlatır, durdurur veya yeniden başlatır. Diğer Docker projeleri hedeflenmez.");
-        var lifecycleActions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        lifecycleActions.Children.Add(MakeButton("▶  Başlat", "ModernButton", async (_, _) => await ManageServerAsync("up -d")));
-        lifecycleActions.Children.Add(MakeButton("■  Durdur", "DangerButton", async (_, _) => await ManageServerAsync("stop"), new Thickness(9, 0, 0, 0)));
-        lifecycleActions.Children.Add(MakeButton("↻  Yeniden başlat", "SecondaryButton", async (_, _) => await ManageServerAsync("restart"), new Thickness(9, 0, 0, 0)));
-        lifecycleActions.Children.Add(MakeButton("İşlem günlükleri", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(9, 0, 0, 0)));
-        AddCardChild(lifecycle, lifecycleActions);
-        root.Children.Add(lifecycle);
+        // Local and remote workspaces
+        var workspaceHeader = new Grid();
+        workspaceHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        workspaceHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        workspaceHeader.Children.Add(new TextBlock
+        {
+            Text = "ÇALIŞMA ALANLARI",
+            FontSize = 11,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF9B62")
+        });
+        var workspaceHint = new TextBlock
+        {
+            Text = "Bir yönetim alanı seç",
+            FontSize = 11,
+            Foreground = BrushHex("#8F9CA9"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(workspaceHint, 1);
+        workspaceHeader.Children.Add(workspaceHint);
+        root.Children.Add(workspaceHeader);
 
-        var actionsCard = MakeCard("HIZLI ERİŞİM", "Kurulum ve altyapı bakımının temel adımları.");
-        var actions = new UniformGrid { Columns = 3 };
-        actions.Children.Add(QuickAction("Tek tık kurulum", "WSL, Ubuntu, Docker ve proje bağımlılıklarını hazırla; Rust + React sunucusunu oluştur.", "Kurulum sihirbazı", () => ShowPage("Install")));
-        actions.Children.Add(QuickAction("GitHub güncellemesi", "main dalını çek; Python, Node.js, Rust, WASI, React, WASM ve Docker çıktısını güncelle.", "Güncellemeyi aç", () => ShowPage("Update")));
-        actions.Children.Add(QuickAction("Güvenli kaldırma", "NFSU2 container ve imajını kaldır. Kalıcı veriler ve paylaşılan altyapı varsayılan olarak korunur.", "Kaldırma merkezi", () => ShowPage("Uninstall")));
-        AddCardChild(actionsCard, actions);
-        root.Children.Add(actionsCard);
+        int remoteCount = RemoteServerProfileStore.LoadAll().Count;
+        var workspaceGrid = new Grid();
+        workspaceGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        workspaceGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var localCard = MakeCard("LOCAL HOST  /  WINDOWS + WSL 2",
+            "Bu bilgisayardaki NFSU2 Web kurulumunu, oyun verisini, ağ erişimini ve kaynak güncellemelerini yönet.");
+        localCard.Margin = new Thickness(0, 0, 9, 0);
+        var localState = new Border
+        {
+            Background = BrushHex("#252019"),
+            BorderBrush = BrushHex("#69452F"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(11, 8, 11, 8),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        localState.Child = new TextBlock { Text = "WINDOWS  /  WSL 2  /  DOCKER", FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F6B183") };
+        AddCardChild(localCard, localState);
+        var localActions = new WrapPanel();
+        localActions.Children.Add(MakeButton("Kurulum", "SecondaryButton", (_, _) => ShowPage("Install")));
+        localActions.Children.Add(MakeButton("Güncelleme", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(8, 0, 0, 0)));
+        localActions.Children.Add(MakeButton("Ağ erişimi", "SecondaryButton", (_, _) => ShowPage("Access"), new Thickness(8, 0, 0, 0)));
+        localActions.Children.Add(MakeButton("Dosyalar", "SecondaryButton", (_, _) => ShowPage("Files"), new Thickness(8, 0, 0, 0)));
+        AddCardChild(localCard, localActions);
+        Grid.SetColumn(localCard, 0);
+        workspaceGrid.Children.Add(localCard);
+
+        var remoteCard = MakeCard("REMOTE HOSTS  /  LINUX + VPS",
+            "SSH profillerini, bağımsız dağıtımı, uzak servisleri ve güvenli SFTP dosya erişimini yönet.");
+        remoteCard.Margin = new Thickness(9, 0, 0, 0);
+        var remoteState = new Border
+        {
+            Background = BrushHex(_remoteServerSession?.IsConnected == true ? "#183328" : "#202A35"),
+            BorderBrush = BrushHex(_remoteServerSession?.IsConnected == true ? "#366A50" : "#3A4755"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(11, 8, 11, 8),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        remoteState.Child = new TextBlock
+        {
+            Text = _remoteServerSession?.IsConnected == true ? "SSH OTURUMU BAĞLI" : $"{remoteCount} KAYITLI BAĞLANTI PROFİLİ",
+            FontSize = 9,
+            FontWeight = FontWeights.Bold,
+            Foreground = BrushHex(_remoteServerSession?.IsConnected == true ? "#72D6A9" : "#AEB9C5")
+        };
+        AddCardChild(remoteCard, remoteState);
+        var remoteActions = new WrapPanel();
+        remoteActions.Children.Add(MakeButton("SSH bağlantıları", "SecondaryButton", (_, _) => ShowPage("Remote")));
+        remoteActions.Children.Add(MakeButton("Dağıtım", "SecondaryButton", (_, _) => ShowPage("RemoteDeploy"), new Thickness(8, 0, 0, 0)));
+        remoteActions.Children.Add(MakeButton("Dosya yöneticisi", "SecondaryButton", (_, _) => ShowPage("RemoteFiles"), new Thickness(8, 0, 0, 0)));
+        AddCardChild(remoteCard, remoteActions);
+        Grid.SetColumn(remoteCard, 1);
+        workspaceGrid.Children.Add(remoteCard);
+        root.Children.Add(workspaceGrid);
+
+        // Operation shortcuts
+        root.Children.Add(new TextBlock
+        {
+            Text = "HIZLI İŞLEMLER",
+            FontSize = 11,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF9B62")
+        });
+        var operationsGrid = new UniformGrid { Columns = 3 };
+        operationsGrid.Children.Add(QuickAction(
+            "01  /  SUNUCU KURULUMU",
+            "Oyun verisini doğrula, WSL 2 ve Docker altyapısını hazırla.",
+            "Kurulum alanını aç",
+            () => ShowPage("Install")));
+        operationsGrid.Children.Add(QuickAction(
+            "02  /  VPS DAĞITIMI",
+            "Oyun verisi, WASM modülü ve HTTPS profilini uzak Linux sunucusuna gönder.",
+            "Dağıtım alanını aç",
+            () => ShowPage("RemoteDeploy")));
+        operationsGrid.Children.Add(QuickAction(
+            "03  /  GÜVENLİ BAKIM",
+            "Sistem tanılamasını, günlükleri ve kaldırma seçeneklerini yönet.",
+            "Bakım alanını aç",
+            () => ShowPage("Uninstall")));
+        root.Children.Add(operationsGrid);
+
+        var activity = MakeCard("İŞLEM GEÇMİŞİ", "Kurulum, derleme, bağlantı ve dağıtım çıktılarının tamamına canlı günlük ekranından ulaş.");
+        AddCardChild(activity, MakeButton("Canlı işlem günlüğünü görüntüle", "SecondaryButton", (_, _) => ShowPage("Logs")));
+        root.Children.Add(activity);
+
         return WrapScrollable(root);
     }
 
@@ -677,49 +817,155 @@ public partial class MainWindow : Window
         row.Children.Add(dot); row.Children.Add(state); stack.Children.Add(row);
         var sub = new TextBlock { Text = detail, FontSize = 9, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap };
         stack.Children.Add(sub); card.Child = stack;
-        AddCardHover(card, "#141F2A", "#1B2B36");
+        AddCardHover(card, "#112137", "#14263E");
         _statusLabels.Add((state, sub, dot, kind));
         return card;
     }
 
     private UIElement BuildInstallPage()
     {
-        var root = NewStack(16);
-        root.Children.Add(Heading("NFSU2 Web sunucu kurulumu", "Windows üzerinde WSL 2, Ubuntu, Docker ve güncel React + Rust sunucu bileşenlerini tek kurulum akışıyla hazırla."));
-        var card = MakeCard("KURULUM ÖN HAZIRLIĞI", "Oyun verisi doğrulanır; doğrulama tamamlanmadan WSL veya Docker kurulumu başlatılmaz. Ayrıntılar için soru işaretlerinin üzerine gel.");
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        AddGridRow(grid, 0, "HTTP portu", out var portCell,
-            "Yerel NFSU2 Web HTTP portu. Varsayılan değer 9093'tür. Başka bir uygulama bu portu kullanıyorsa boş bir port seç.");
-        _portBox = new TextBox { Text = "9093", Width = 130, HorizontalAlignment = HorizontalAlignment.Left }; _portBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
-        portCell.Children.Add(_portBox);
-        AddGridRow(grid, 1, "Oyun klasörü", out var gameCell,
-            "SPEED2.EXE ile CARS, FRONTEND, GLOBAL ve TRACKS klasörlerini içeren NFS Underground 2 kök klasörü gerekir. Desteklenen oyun sürümü ve SHA-256 doğrulaması tamamlanmadan altyapı kurulumu başlamaz.");
-        var gamePanel = NewStack(8);
-        _gameDirBox = new TextBox { Text = Path.Combine(RootDir, "game"), MinWidth = 320, ToolTip = "SPEED2.EXE ve temel oyun klasörlerini içeren NFS Underground 2 kök klasörü" };
+        var root = NewStack(20);
+        root.Children.Add(Heading(
+            "Yerel sunucu kurulumu",
+            "NFSU2 Web altyapısını bu bilgisayarda hazırla. Önce oyun verisini doğrula; ardından WSL 2, Ubuntu, Docker ve uygulama bileşenlerini kur."));
+
+        var hero = new Border
+        {
+            CornerRadius = new CornerRadius(19),
+            Padding = new Thickness(27, 24, 27, 24),
+            BorderThickness = new Thickness(1),
+            BorderBrush = BrushHex("#76442D"),
+            Background = new LinearGradientBrush(
+                BrushHex("#302017").Color,
+                BrushHex("#1A222C").Color,
+                new Point(0, 0),
+                new Point(1, 1))
+        };
+        var heroGrid = new Grid();
+        heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var intro = NewStack(8);
+        intro.Children.Add(new TextBlock
+        {
+            Text = "NIGHTSHIFT GARAGE  /  LOCAL DEPLOYMENT",
+            FontSize = 10,
+            FontWeight = FontWeights.ExtraBold,
+            Foreground = BrushHex("#FF9B62")
+        });
+        intro.Children.Add(new TextBlock
+        {
+            Text = "Kendi oyun sunucunu\nbirkaç adımda hazırla.",
+            FontSize = 25,
+            FontWeight = FontWeights.Bold,
+            LineHeight = 31,
+            Foreground = BrushHex("#F4F6F8"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        intro.Children.Add(new TextBlock
+        {
+            Text = "Kurulum başlamadan önce oyun klasörü kontrol edilir. Mevcut WSL ve Docker ortamı incelenir; eksik bileşenler tamamlanır.",
+            FontSize = 12,
+            Foreground = BrushHex("#BCC5CF"),
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 700
+        });
+        heroGrid.Children.Add(intro);
+
+        var heroBadge = new Border
+        {
+            Width = 158,
+            CornerRadius = new CornerRadius(15),
+            BorderBrush = BrushHex("#795039"),
+            BorderThickness = new Thickness(1),
+            Background = BrushHex("#352319"),
+            Padding = new Thickness(16),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(20, 0, 0, 0)
+        };
+        var badgeStack = NewStack(5);
+        badgeStack.Children.Add(new TextBlock { Text = "UYGULAMA", FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#D9A07C") });
+        badgeStack.Children.Add(new TextBlock { Text = AppVersion.Display, FontSize = 25, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FFE1CE") });
+        badgeStack.Children.Add(new TextBlock { Text = "LOCAL WORKSPACE", FontSize = 9, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#B89A88") });
+        heroBadge.Child = badgeStack;
+        Grid.SetColumn(heroBadge, 1);
+        heroGrid.Children.Add(heroBadge);
+        hero.Child = heroGrid;
+        root.Children.Add(hero);
+
+        var workspace = new Grid();
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.35, GridUnitType.Star) });
+        workspace.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.85, GridUnitType.Star) });
+
+        // Game source panel
+        var gameCard = MakeCard(
+            "01  /  OYUN VERİSİ",
+            "Desteklenen NFS Underground 2 oyun klasörünü seç. Kurulumdan önce SPEED2.EXE ve gerekli oyun dizinleri doğrulanır.");
+        var gameForm = NewStack(11);
+        gameForm.Children.Add(MutedLabel("OYUN KLASÖRÜ"));
+        _gameDirBox = new TextBox
+        {
+            Text = Path.Combine(RootDir, "game"),
+            MinWidth = 320,
+            ToolTip = "SPEED2.EXE ile CARS, FRONTEND, GLOBAL ve TRACKS klasörlerini içeren NFS Underground 2 kök klasörü"
+        };
         _gameDirBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
         _gameDirBox.LostFocus += (_, _) => RefreshGameFolderValidation();
-        gamePanel.Children.Add(_gameDirBox);
+        gameForm.Children.Add(_gameDirBox);
+
         var gameActions = new WrapPanel();
-        _gameDownloadStartButton = MakeButton("İndir ve otomatik yerleştir", "ModernButton", DownloadGameArchive_Click);
-        _gameDownloadStartButton.ToolTip = "ZIP arşivini NFSU2 Server control üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
+        _gameDownloadStartButton = MakeButton("Oyunu indir ve yerleştir", "ModernButton", DownloadGameArchive_Click);
+        _gameDownloadStartButton.ToolTip = "ZIP arşivini uygulama üzerinden indirir ve oyun klasörüne otomatik yerleştirir.";
         gameActions.Children.Add(_gameDownloadStartButton);
-        gameActions.Children.Add(MakeButton("Bilgisayardaki ZIP arşivini içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
+        gameActions.Children.Add(MakeButton("ZIP içe aktar", "SecondaryButton", ImportGameArchive_Click, new Thickness(8, 0, 0, 0)));
         gameActions.Children.Add(MakeButton("Klasörü doğrula", "SecondaryButton", VerifyGameFolder_Click, new Thickness(8, 0, 0, 0)));
-        var browserDownloadButton = MakeButton("Oyunu indir", "ModernButton", OpenGameArchiveInBrowser_Click, new Thickness(8, 0, 0, 0));
-        browserDownloadButton.ToolTip = "NFS Underground 2 ZIP arşivini MediaFire üzerinden varsayılan tarayıcıda indir.";
+        var browserDownloadButton = MakeButton("Tarayıcıda indir", "SecondaryButton", OpenGameArchiveInBrowser_Click, new Thickness(8, 0, 0, 0));
+        browserDownloadButton.ToolTip = "Oyun ZIP arşivini varsayılan tarayıcıda aç.";
         gameActions.Children.Add(browserDownloadButton);
-        gamePanel.Children.Add(gameActions);
-        _gameValidationStatus = new TextBlock { Text = "Oyun klasörü henüz doğrulanmadı.", Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, TextWrapping = TextWrapping.Wrap };
-        gamePanel.Children.Add(_gameValidationStatus);
-        _gameDownloadProgressBar = new ProgressBar { Minimum = 0, Maximum = 100, Height = 7, Margin = new Thickness(0, 5, 0, 0), Background = BrushHex("#263541"), Foreground = BrushHex("#61D4C7"), BorderThickness = new Thickness(0), Visibility = Visibility.Collapsed };
-        gamePanel.Children.Add(_gameDownloadProgressBar);
-        _gameDownloadProgressText = new TextBlock { Text = string.Empty, FontSize = 9, Foreground = BrushHex("#AFC0CB"), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
-        gamePanel.Children.Add(_gameDownloadProgressText);
-        var downloadControlRow = new WrapPanel { Margin = new Thickness(0, 3, 0, 0) };
-        _gameDownloadPauseButton = MakeButton("Ⅱ  Duraklat", "SecondaryButton", PauseGameArchiveDownload_Click);
-        _gameDownloadResumeButton = MakeButton("▶  Devam et", "ModernButton", ResumeGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
+        gameForm.Children.Add(gameActions);
+
+        var validationPanel = new Border
+        {
+            Background = BrushHex("#111821"),
+            BorderBrush = BrushHex("#303D4D"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(11),
+            Padding = new Thickness(14)
+        };
+        var validationStack = NewStack(7);
+        validationStack.Children.Add(new TextBlock { Text = "DOSYA DOĞRULAMA", FontSize = 9, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        _gameValidationStatus = new TextBlock
+        {
+            Text = "Oyun klasörü henüz doğrulanmadı.",
+            Foreground = BrushHex("#A5B0BE"),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap
+        };
+        validationStack.Children.Add(_gameValidationStatus);
+        _gameDownloadProgressBar = new ProgressBar
+        {
+            Minimum = 0,
+            Maximum = 100,
+            Height = 7,
+            Margin = new Thickness(0, 4, 0, 0),
+            Background = BrushHex("#303D4D"),
+            Foreground = BrushHex("#FF8243"),
+            BorderThickness = new Thickness(0),
+            Visibility = Visibility.Collapsed
+        };
+        validationStack.Children.Add(_gameDownloadProgressBar);
+        _gameDownloadProgressText = new TextBlock
+        {
+            Text = string.Empty,
+            FontSize = 10,
+            Foreground = BrushHex("#B7C0CA"),
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = Visibility.Collapsed
+        };
+        validationStack.Children.Add(_gameDownloadProgressText);
+
+        var downloadControlRow = new WrapPanel();
+        _gameDownloadPauseButton = MakeButton("Duraklat", "SecondaryButton", PauseGameArchiveDownload_Click);
+        _gameDownloadResumeButton = MakeButton("Devam et", "ModernButton", ResumeGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
         _gameDownloadCancelButton = MakeButton("İndirmeyi iptal et", "DangerButton", CancelGameArchiveDownload_Click, new Thickness(7, 0, 0, 0));
         _gameDownloadPauseButton.Visibility = Visibility.Collapsed;
         _gameDownloadResumeButton.Visibility = Visibility.Collapsed;
@@ -727,38 +973,104 @@ public partial class MainWindow : Window
         downloadControlRow.Children.Add(_gameDownloadPauseButton);
         downloadControlRow.Children.Add(_gameDownloadResumeButton);
         downloadControlRow.Children.Add(_gameDownloadCancelButton);
-        gamePanel.Children.Add(downloadControlRow);
+        validationStack.Children.Add(downloadControlRow);
+        validationPanel.Child = validationStack;
+        gameForm.Children.Add(validationPanel);
         SetGameDownloadControls(active: _gameArchiveBusy, paused: _gameDownloadPaused);
+        AddCardChild(gameCard, gameForm);
+        Grid.SetColumn(gameCard, 0);
+        workspace.Children.Add(gameCard);
 
-        gameCell.Children.Add(gamePanel);
-        AddGridRow(grid, 2, "Kurulum kapsamı", out var scopeCell,
-            "Windows WSL 2 ve Ubuntu, Docker Desktop WSL entegrasyonu, GitHub main kaynakları, Python, Node.js 24, Rust stable, WASI SDK, React bağımlılıkları, Rust Cargo bağımlılıkları, WASM üretimi ve Docker image derlemesi.");
-        scopeCell.Children.Add(new TextBlock { Text = "WSL 2 · Ubuntu · Docker · GitHub · Python · Node.js · Rust · WASI · React · WASM", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("TextBrush"), FontSize = 10, MaxWidth = 680 });
-        AddGridRow(grid, 3, "İlk çalıştırma", out var infoCell,
-            "İlk Ubuntu açılışında Linux kullanıcı adı ve parola oluşturman istenebilir. Docker Desktop WSL Integration ayarı uygulanırken Docker Desktop yeniden başlatılabilir. Varsayılan erişim profili yalnızca bu bilgisayardır.");
-        infoCell.Children.Add(new TextBlock { Text = "Yerel profil · WSL 2 · Ubuntu · Docker Desktop · React + Rust", TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("MutedBrush"), FontSize = 10, MaxWidth = 680 });
-        AddCardChild(card, grid);
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 18, 0, 0) };
-        _installButton = MakeButton("Kurulumu başlat", "ModernButton", Install_Click); actions.Children.Add(_installButton);
-        actions.Children.Add(MakeButton("Altyapı güncelleme", "SecondaryButton", (_, _) => ShowPage("Update"), new Thickness(10, 0, 0, 0)));
-        actions.Children.Add(MakeButton("Canlı günlüğü aç", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(10, 0, 0, 0)));
-        AddCardChild(card, actions);
-        _installState = new TextBlock { Text = "Hazır. Kurulum başlatılmadı.", Foreground = (Brush)FindResource("MutedBrush"), Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap };
-        AddCardChild(card, _installState);
-        root.Children.Add(card);
+        // Local network and build profile panel
+        var setupCard = MakeCard(
+            "02  /  SUNUCU AYARLARI",
+            "Yerel web arayüzünün portunu belirle ve kurulacak bileşenleri gözden geçir.");
+        var setupFields = NewStack(12);
+        setupFields.Children.Add(MutedLabel("HTTP PORTU"));
+        _portBox = new TextBox { Text = "9093", Width = 170, HorizontalAlignment = HorizontalAlignment.Left };
+        _portBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
+        setupFields.Children.Add(_portBox);
+        setupFields.Children.Add(new TextBlock
+        {
+            Text = "Varsayılan: 9093. Port doluysa kullanılmayan başka bir port seçebilirsin.",
+            FontSize = 11,
+            Foreground = BrushHex("#9BA7B4"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        setupFields.Children.Add(new Border { Height = 1, Background = BrushHex("#303D4D"), Margin = new Thickness(0, 7, 0, 3) });
+        setupFields.Children.Add(MutedLabel("KURULUM ZİNCİRİ"));
+        foreach (var item in new[]
+        {
+            ("WSL 2", "Windows Linux alt sistemi"),
+            ("Ubuntu", "Linux çalışma ortamı"),
+            ("Docker Desktop", "Konteyner motoru ve Compose"),
+            ("Node.js 24 + React", "Web arayüzü bağımlılıkları"),
+            ("Rust + WASI SDK", "Sunucu ve oyun WASM modülü"),
+            ("GitHub main", "Güncel kaynak kodu")
+        })
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 1, 0, 1) };
+            var dot = new Border { Width = 7, Height = 7, CornerRadius = new CornerRadius(4), Background = BrushHex("#45C7D0"), Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
+            row.Children.Add(dot);
+            var labels = NewStack(2);
+            labels.Children.Add(new TextBlock { Text = item.Item1, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#E8EDF2") });
+            labels.Children.Add(new TextBlock { Text = item.Item2, FontSize = 10, Foreground = BrushHex("#8F9CA9") });
+            row.Children.Add(labels);
+            setupFields.Children.Add(row);
+        }
+        AddCardChild(setupCard, setupFields);
+        Grid.SetColumn(setupCard, 1);
+        workspace.Children.Add(setupCard);
+        root.Children.Add(workspace);
+
+        // Primary installation action
+        var launchCard = new Border
+        {
+            Background = new LinearGradientBrush(BrushHex("#252019").Color, BrushHex("#171F29").Color, new Point(0, 0), new Point(1, 0)),
+            BorderBrush = BrushHex("#6B422D"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(22)
+        };
+        var launchGrid = new Grid();
+        launchGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        launchGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var launchInfo = NewStack(6);
+        launchInfo.Children.Add(new TextBlock { Text = "03  /  KURULUMU BAŞLAT", FontSize = 11, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        launchInfo.Children.Add(new TextBlock { Text = "Hazır olduğunda yerel sunucuyu oluştur.", FontSize = 17, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F4F6F8") });
+        _installState = new TextBlock
+        {
+            Text = "Hazır. Kurulum başlatılmadı.",
+            Foreground = BrushHex("#A5B0BE"),
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap
+        };
+        launchInfo.Children.Add(_installState);
+        launchGrid.Children.Add(launchInfo);
+
+        var launchActions = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20, 0, 0, 0) };
+        _installButton = MakeButton("Kurulumu başlat", "ModernButton", Install_Click);
+        _installButton.MinWidth = 190;
+        launchActions.Children.Add(_installButton);
+        launchActions.Children.Add(MakeButton("İşlem günlüğünü aç", "SecondaryButton", (_, _) => ShowPage("Logs"), new Thickness(0, 8, 0, 0)));
+        Grid.SetColumn(launchActions, 1);
+        launchGrid.Children.Add(launchActions);
+        launchCard.Child = launchGrid;
+        root.Children.Add(launchCard);
+
         return WrapScrollable(root);
     }
 
     private UIElement BuildUpdatePage()
     {
-        var root = NewStack(17);
+        var root = NewStack(10);
         root.Children.Add(Heading("Altyapı güncelleme", "NFSU2-Web deposunun main dalını ve bu projeyi derleyen WSL / Docker araç zincirini güncel tut."));
 
         var hero = new Border
         {
             CornerRadius = new CornerRadius(16), Padding = new Thickness(22),
             BorderThickness = new Thickness(1), BorderBrush = BrushHex("#315F81"),
-            Background = new LinearGradientBrush(BrushHex("#142B45").Color, BrushHex("#101C30").Color, 0)
+            Background = new LinearGradientBrush(BrushHex("#142B45").Color, BrushHex("#0D1B2D").Color, 0)
         };
         var heroContent = NewStack(8);
         heroContent.Children.Add(MutedLabel("SOURCE UPDATE  /  GITHUB MAIN"));
@@ -862,12 +1174,12 @@ public partial class MainWindow : Window
 
     private UIElement BuildServerFilesPage()
     {
-        var root = NewStack(14);
+        var root = NewStack(9);
         root.Children.Add(Heading("GitHub proje yöneticisi", "Kurulan NFSU2-Web deposunun tamamını FTP benzeri biçimde görüntüle. Frontend ve backend dosyalarını VS Code / Not Defteri ile aç; kaydedilen web kaynakları otomatik derlenip sunucuya uygulanabilir."));
 
         var location = MakeCard("SUNUCU PROJE KLASÖRÜ", "Bu klasör doğrudan WSL içindeki GitHub çalışma kopyasıdır. Windows üzerinden açılan dosyalar aynı depoya yazılır; ayrıca kopyalama gerekmez.");
         var pathRow = new DockPanel { LastChildFill = true };
-        _projectPathBox = new TextBox { Text = "/", MinHeight = 34, Padding = new Thickness(9, 6, 9, 6), Background = BrushHex("#0F1923"), Foreground = BrushHex("#DDE5EC"), BorderBrush = BrushHex("#344550"), BorderThickness = new Thickness(1), VerticalContentAlignment = VerticalAlignment.Center };
+        _projectPathBox = new TextBox { Text = "/", MinHeight = 34, Padding = new Thickness(9, 6, 9, 6), Background = BrushHex("#0B192A"), Foreground = BrushHex("#DDE5EC"), BorderBrush = BrushHex("#344550"), BorderThickness = new Thickness(1), VerticalContentAlignment = VerticalAlignment.Center };
         _projectPathBox.KeyDown += async (_, e) =>
         {
             if (e.Key != System.Windows.Input.Key.Enter) return;
@@ -890,7 +1202,7 @@ public partial class MainWindow : Window
         {
             MinHeight = 310,
             MaxHeight = 470,
-            Background = BrushHex("#0F1923"),
+            Background = BrushHex("#0B192A"),
             Foreground = BrushHex("#DDE5EC"),
             BorderBrush = BrushHex("#344550"),
             BorderThickness = new Thickness(1),
@@ -1287,7 +1599,7 @@ public partial class MainWindow : Window
         var dialog = new Window { Title = title, Owner = this, Width = 430, Height = 170, WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.NoResize, Background = BrushHex("#111B25"), Foreground = BrushHex("#E8EEF5") };
         var panel = new StackPanel { Margin = new Thickness(16) };
         panel.Children.Add(new TextBlock { Text = prompt, Margin = new Thickness(0, 0, 0, 8), Foreground = BrushHex("#DDE5EC") });
-        var input = new TextBox { Text = initial, MinHeight = 32, Padding = new Thickness(8), Background = BrushHex("#0F1923"), Foreground = BrushHex("#DDE5EC") };
+        var input = new TextBox { Text = initial, MinHeight = 32, Padding = new Thickness(8), Background = BrushHex("#0B192A"), Foreground = BrushHex("#DDE5EC") };
         panel.Children.Add(input);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
         var ok = new Button { Content = "Tamam", Width = 85, Height = 30, IsDefault = true, Margin = new Thickness(0, 0, 8, 0) };
@@ -2114,7 +2426,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var frame = new Border
         {
-            Background = BrushHex("#07111E"),
+            Background = BrushHex("#081321"),
             BorderBrush = BrushHex("#31516B"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(15),
@@ -2130,7 +2442,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var titleBar = new Border
         {
-            Background = BrushHex("#091625"),
+            Background = BrushHex("#0B192A"),
             BorderBrush = BrushHex("#20384F"),
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(17, 0, 9, 0)
@@ -2282,7 +2594,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             var card = new Border
             {
-                Background = BrushHex(highlight ? "#102C35" : "#101F30"),
+                Background = BrushHex(highlight ? "#102C35" : "#0D1B2D"),
                 BorderBrush = BrushHex(highlight ? "#286D70" : "#2A435A"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(10),
@@ -2321,7 +2633,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var releaseCard = new Border
         {
-            Background = BrushHex("#0C1A29"),
+            Background = BrushHex("#0B192A"),
             BorderBrush = BrushHex("#263E55"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
@@ -2334,7 +2646,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             Text = isUpToDate ? "GÜNCELLEME DURUMU" : "YAYIN BİLGİSİ",
             FontSize = 8,
             FontWeight = FontWeights.Bold,
-            Foreground = BrushHex("#6BCFC7")
+            Foreground = BrushHex("#4DDCF2")
         });
         releaseStack.Children.Add(new TextBlock
         {
@@ -2397,7 +2709,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         var footer = new Border
         {
-            Background = BrushHex("#091625"),
+            Background = BrushHex("#0B192A"),
             BorderBrush = BrushHex("#20384F"),
             BorderThickness = new Thickness(0, 1, 0, 0),
             Padding = new Thickness(20, 12, 20, 12)
@@ -2819,9 +3131,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private UIElement BuildLogsPage()
     {
+        // Persist startup/operation entries that were queued while the log view was closed
+        // before loading the initial tail, otherwise an empty file can leave the first view blank.
+        FlushPendingDiskLogs();
+
         // The page heading already lives in the application shell. Keep this view focused
         // on operation state, log controls, and the live terminal rather than repeating it.
-        var root = new Grid { Margin = new Thickness(16, 10, 16, 10) };
+        var root = new Grid { Margin = new Thickness(10, 7, 10, 8), ClipToBounds = true };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -2833,8 +3149,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             BorderBrush = BrushHex("#2D414F"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(13),
-            Margin = new Thickness(0, 0, 0, 10)
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 7)
         };
         var operationGrid = new Grid();
         operationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.25, GridUnitType.Star) });
@@ -2948,12 +3264,12 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         // kept vertical-only so the bottom-follow behavior stays predictable.
         var logCard = new Border
         {
-            Background = BrushHex("#0A1118"), BorderBrush = BrushHex("#2B3E4C"),
+            Background = BrushHex("#081321"), BorderBrush = BrushHex("#2B3E4C"),
             BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
             ClipToBounds = true
         };
         var terminalGrid = new Grid();
-        terminalGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(36) });
+        terminalGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
         terminalGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         var terminalHeader = new Border
         {
@@ -2989,15 +3305,27 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
         _liveLogBox = new TextBox
         {
-            IsReadOnly = true, IsUndoEnabled = false, AcceptsReturn = true, AcceptsTab = true,
-            TextWrapping = TextWrapping.Wrap,
+            IsReadOnly = true,
+            IsUndoEnabled = false,
+            AcceptsReturn = true,
+            AcceptsTab = false,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Background = BrushHex("#0A1118"), Foreground = BrushHex("#D2DDE5"),
-            BorderThickness = new Thickness(0), FontFamily = new FontFamily("Cascadia Mono"),
-            FontSize = 10.5, Padding = new Thickness(13, 11, 13, 12), Margin = new Thickness(0),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Background = BrushHex("#081321"),
+            Foreground = BrushHex("#DCE5EC"),
+            BorderThickness = new Thickness(0),
+            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+            FontSize = 11.5,
+            Padding = new Thickness(12, 9, 12, 10),
+            Margin = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
             Text = ReadSelectedLogText(),
-            SelectionBrush = BrushHex("#31586A"), CaretBrush = BrushHex("#62DCCB")
+            SelectionBrush = BrushHex("#31586A"),
+            CaretBrush = BrushHex("#62DCCB")
         };
         _liveLogCharCount = _liveLogBox.Text.Length;
         Grid.SetRow(_liveLogBox, 1);
@@ -3050,6 +3378,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private void RefreshVisibleLog()
     {
+        FlushPendingDiskLogs();
         if (_liveLogBox is not null)
         {
             var text = ReadSelectedLogText();
@@ -3088,7 +3417,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private string ReadSelectedLogText()
     {
         var path = GetSelectedLogPath();
-        return File.Exists(path) ? TailText(path, LiveLogMaxChars) : $"Henüz kayıt yok.\n\nGünlük dosyası: {path}";
+        if (!File.Exists(path))
+            return $"Henüz kayıt yok.\n\nGünlük dosyası: {path}";
+
+        string content = TailText(path, LiveLogMaxChars);
+        return string.IsNullOrWhiteSpace(content)
+            ? $"Henüz kayıt yok. Yeni işlemler burada canlı olarak görünecek.\n\nGünlük dosyası: {path}"
+            : content;
     }
 
     private void OpenSelectedLogFile()
@@ -3213,25 +3548,25 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
     private void AddGridRow(Grid grid, int rowIndex, string label, out StackPanel cell, string? help = null)
     {
         while (grid.RowDefinitions.Count <= rowIndex) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var labelRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 7, 12, 7) };
+        var labelRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 4, 16, 7) };
         var labelBlock = MutedLabel(label); labelBlock.VerticalAlignment = VerticalAlignment.Center;
         labelRow.Children.Add(labelBlock);
         if (!string.IsNullOrWhiteSpace(help))
         {
             var helpBadge = new Border
             {
-                Width = 17, Height = 17, CornerRadius = new CornerRadius(9),
-                Background = BrushHex("#18364A"), BorderBrush = BrushHex("#39758A"), BorderThickness = new Thickness(1),
+                Width = 21, Height = 21, CornerRadius = new CornerRadius(11),
+                Background = BrushHex("#3B2A20"), BorderBrush = BrushHex("#8B5637"), BorderThickness = new Thickness(1),
                 Margin = new Thickness(7, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
                 Cursor = System.Windows.Input.Cursors.Help,
-                Child = new TextBlock { Text = "?", FontSize = 10, FontWeight = FontWeights.Bold, Foreground = BrushHex("#8CEDE2"),
+                Child = new TextBlock { Text = "?", FontSize = 12, FontWeight = FontWeights.Bold, Foreground = BrushHex("#FFC09A"),
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Center }
             };
             var tip = new ToolTip
             {
-                Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, MaxWidth = 360, FontSize = 11, Foreground = BrushHex("#EAF4FF") },
-                Background = BrushHex("#102237"), BorderBrush = BrushHex("#3B7189"), BorderThickness = new Thickness(1),
-                Padding = new Thickness(11), Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse
+                Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, MaxWidth = 440, FontSize = 12, Foreground = BrushHex("#E8EDF2") },
+                Background = BrushHex("#171F29"), BorderBrush = BrushHex("#4B5968"), BorderThickness = new Thickness(1),
+                Padding = new Thickness(14), Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse
             };
             helpBadge.ToolTip = tip;
             ToolTipService.SetInitialShowDelay(helpBadge, 250);
@@ -3239,7 +3574,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             labelRow.Children.Add(helpBadge);
         }
         Grid.SetRow(labelRow, rowIndex); Grid.SetColumn(labelRow, 0); grid.Children.Add(labelRow);
-        cell = NewStack(4); cell.Margin = new Thickness(0, 3, 0, 8); Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, 1); grid.Children.Add(cell);
+        cell = NewStack(7); cell.Margin = new Thickness(0, 2, 0, 7); Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, 1); grid.Children.Add(cell);
     }
 
     private void AddCardHover(Border card, string normalBackground, string hoverBackground)
@@ -3268,14 +3603,18 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private Border MakeCard(string title, string subtitle)
     {
-        var card = new Border { Style = (Style)FindResource("CardBorder"), Margin = new Thickness(0), Padding = new Thickness(14) };
-        var stack = NewStack(8);
-        stack.Children.Add(new TextBlock { Text = title, FontSize = 10, FontWeight = FontWeights.Bold, Foreground = BrushHex("#6BCFC7") });
-        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 10, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap });
+        var card = new Border
+        {
+            Style = (Style)FindResource("CardBorder"),
+            Margin = new Thickness(0),
+            Padding = new Thickness(16)
+        };
+        var stack = NewStack(9);
+        stack.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.ExtraBold, Foreground = BrushHex("#FF9B62") });
+        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 11.5, Foreground = BrushHex("#AEB9C5"), TextWrapping = TextWrapping.Wrap, LineHeight = 17 });
         card.Child = stack;
-        // Expose the content stack so callers can append rows while keeping title/subtitle at the top.
         card.Tag = stack;
-        AddCardHover(card, "#141F2A", "#1B2B36");
+        AddCardHover(card, "#171F29", "#202A35");
         return card;
     }
 
@@ -3308,40 +3647,92 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private StackPanel Heading(string title, string subtitle)
     {
-        var s = NewStack(6); s.Children.Add(new TextBlock { Text = title, FontSize = 25, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextBrush") });
-        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 12, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 920 }); return s;
+        var s = NewStack(9);
+        s.Margin = new Thickness(0, 0, 0, 8);
+        s.Children.Add(new Border
+        {
+            Width = 42, Height = 3, CornerRadius = new CornerRadius(2),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = new LinearGradientBrush(BrushHex("#FF8243").Color, BrushHex("#F4C36F").Color, new Point(0, 0), new Point(1, 0))
+        });
+        s.Children.Add(new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F4F6F8") });
+        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 11.5, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MaxWidth = 980 });
+        return s;
     }
 
-    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#70CFC8"), TextWrapping = TextWrapping.Wrap };
+    private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = BrushHex("#FF9B62"), TextWrapping = TextWrapping.Wrap };
 
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
-        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 40, Padding = new Thickness(15, 9, 15, 9) };
+        var b = new Button
+        {
+            Content = text,
+            Margin = margin ?? new Thickness(0),
+            MinHeight = 38,
+            Padding = new Thickness(14, 8, 14, 8),
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
         b.SetResourceReference(FrameworkElement.StyleProperty, style);
-
-        // Keep text contrast explicit even when theme resources or local styles change.
         if (style.Equals("ModernButton", StringComparison.OrdinalIgnoreCase))
-            b.Foreground = BrushHex("#F7FFFF");
+            b.Foreground = BrushHex("#171A1E");
         else if (style.Equals("SecondaryButton", StringComparison.OrdinalIgnoreCase))
-            b.Foreground = BrushHex("#D4E1EC");
+            b.Foreground = BrushHex("#E8EDF2");
         else if (style.Equals("DangerButton", StringComparison.OrdinalIgnoreCase))
-            b.Foreground = BrushHex("#FFE6EA");
-
+            b.Foreground = BrushHex("#FFF1F3");
         b.Click += handler;
         return b;
     }
 
     private Border QuickAction(string title, string description, string buttonText, Action action)
     {
-        var border = new Border { Background = BrushHex("#141F2A"), BorderBrush = BrushHex("#2B3A47"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(11), Margin = new Thickness(0, 0, 8, 0) };
-        var s = NewStack(8); s.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#EAF3FD") });
-        s.Children.Add(new TextBlock { Text = description, FontSize = 10.5, Foreground = BrushHex("#9CB1C6"), TextWrapping = TextWrapping.Wrap, MinHeight = 48 });
-        s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action())); border.Child = s; AddCardHover(border, "#122438", "#19334A"); return border;
+        var border = new Border
+        {
+            Style = (Style)FindResource("CardBorder"),
+            Margin = new Thickness(0, 0, 9, 9),
+            Padding = new Thickness(16)
+        };
+        var s = NewStack(9);
+        s.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = BrushHex("#F1F4F7") });
+        s.Children.Add(new TextBlock { Text = description, FontSize = 11, Foreground = BrushHex("#A5B0BE"), TextWrapping = TextWrapping.Wrap, MinHeight = 40, LineHeight = 16 });
+        s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action()));
+        border.Child = s;
+        AddCardHover(border, "#171F29", "#202B36");
+        return border;
     }
 
     private UIElement WrapScrollable(UIElement element) => new ScrollViewer { Content = element, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
 
-    private static SolidColorBrush BrushHex(string value) => new((Color)ColorConverter.ConvertFromString(value));
+    private static SolidColorBrush BrushHex(string value)
+    {
+        var aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        void Map(string token, params string[] values)
+        {
+            foreach (string item in values) aliases[item] = token;
+        }
+
+        Map("#0D1219", "#081321", "#0B192A", "#0D1B2D", "#0D1A2B", "#111C26", "#111B25", "#131F2A", "#15222D", "#1B2224");
+        Map("#10151D", "#0D1A2B", "#0B1627", "#0C1016");
+        Map("#171F29", "#112137", "#0D1A2B", "#15222D", "#172B40", "#222A2D", "#242D30", "#252E30", "#2A3133", "#2A3437");
+        Map("#202B37", "#192B44", "#14263E", "#1C2426", "#20364B", "#20384F", "#222A2D", "#252E30", "#2A3133", "#2A3437", "#183047");
+        Map("#F4F6F8", "#EFF6FF", "#EAF3FD", "#EAF5FF", "#F1F7FF", "#EDF4FC", "#DDE5EC", "#DDEAF6", "#CFE1EF", "#D4E1EC", "#F7FFFF", "#E5F0FC", "#E0EAF4", "#FFF9EE", "#EAF4FF", "#F4FFFF", "#EAF3FC", "#F3F0E8");
+        Map("#A5B0BE", "#A5B5CA", "#9FB4C8", "#A9BED1", "#9CB1C6", "#8FA8BD", "#AFC0CB", "#829CB4", "#91A3B1", "#9EAFBC", "#91A6BC", "#B8CBDD", "#B6C8E2", "#7896B2", "#7F97A8", "#607990", "#55728A", "#718CA6", "#AFC0D2", "#6F879E", "#7F96AD");
+        Map("#FF8243", "#70A5FF", "#6D9BFF", "#FF7043", "#FF8968", "#FF9878", "#FF9B78", "#4DDCF2");
+        Map("#45C7D0", "#7D9FFF", "#9CC8FF", "#63CEC5", "#62DCCB", "#77DCD1", "#65E8D6", "#8CEDE2", "#63E7D2", "#6FE3C1", "#61D4C7", "#76F0E0", "#43E4D0", "#42C9C0", "#4DD1C7");
+        Map("#A78BFA", "#B18CFF", "#B7A5FF", "#C3A9DB", "#80603A", "#715331");
+        Map("#F5C36A", "#E5B65B", "#F4C15D", "#F8C45C", "#FFCA78", "#F0BE69", "#E0B86C", "#FFC875", "#E7BD67", "#EAB96A");
+        Map("#42D6A4", "#38D996", "#65D6B0", "#65D8B5", "#4BD6AC", "#43D6A1", "#78C69A");
+        Map("#FF637D", "#FF687D", "#FF8798", "#783340", "#FF6E83", "#F27C82", "#D98294");
+        Map("#303D4D", "#2A4360", "#29445D", "#263E55", "#35536F", "#315F81", "#31516B", "#344550", "#20364B", "#2D414F", "#3A4648", "#343F41", "#46504C", "#4A5554", "#4A5F90", "#344C75", "#2D4A64");
+        Map("#76442D", "#3D8292", "#28616A", "#287B7A", "#286D68", "#286C68", "#B45E41");
+        Map("#3B2F26", "#123D45", "#12332F", "#103B3A", "#19332F", "#3D3829", "#755B2B");
+        Map("#532A35", "#2B2021", "#652838", "#744447", "#503031", "#2B151B");
+        Map("#5A4A82", "#6B5A8F");
+
+        string color = aliases.TryGetValue(value, out string? mapped) ? mapped : value;
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+    }
 
     private void AppendLog(string message, string level = "INFO", string category = "APP")
     {
@@ -3635,20 +4026,27 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 }
             }
 
-            string serverState = dockerReady ? "NFSU2 konteyneri bulunamadı" : "Docker Engine hazır değil";
+            string serverState = dockerReady ? "NFSU2 dağıtımı bekleniyor — kurulum veya derleme henüz tamamlanmamış olabilir" : "Docker Engine hazır değil";
             bool httpReachable = false;
             bool serverContainerRunning = false;
             if (dockerReady && !string.IsNullOrWhiteSpace(dockerExe))
             {
                 var ps = await RunCommandAsync(dockerExe, new[] { "ps", "-a", "--format", "{{.Names}}|{{.Image}}|{{.Status}}" }, TimeSpan.FromSeconds(7), logOutput: false);
-                var found = ps.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .FirstOrDefault(line => line.Contains("nfsu2", StringComparison.OrdinalIgnoreCase)
-                        && (line.Contains("server", StringComparison.OrdinalIgnoreCase) || line.Contains("nfsu2-web-rs", StringComparison.OrdinalIgnoreCase)));
-                if (found is not null)
+                if (ps.ExitCode != 0)
                 {
-                    var columns = found.Split('|', 3);
-                    serverState = columns.Length >= 3 ? columns[2].Trim() : found.Trim();
-                    serverContainerRunning = serverState.StartsWith("Up ", StringComparison.OrdinalIgnoreCase);
+                    serverState = $"Docker Engine yanıt verdi ancak konteyner listesi alınamadı (kod {ps.ExitCode})";
+                }
+                else
+                {
+                    var found = ps.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                        .FirstOrDefault(line => line.Contains("nfsu2", StringComparison.OrdinalIgnoreCase)
+                            && (line.Contains("server", StringComparison.OrdinalIgnoreCase) || line.Contains("nfsu2-web-rs", StringComparison.OrdinalIgnoreCase)));
+                    if (found is not null)
+                    {
+                        var columns = found.Split('|', 3);
+                        serverState = columns.Length >= 3 ? columns[2].Trim() : found.Trim();
+                        serverContainerRunning = serverState.StartsWith("Up ", StringComparison.OrdinalIgnoreCase);
+                    }
                 }
             }
 
@@ -3733,11 +4131,14 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         SetStatusTexts("Docker", s.DockerReady ? "ÇALIŞIYOR" : s.DockerAppOpen ? "ENGINE BEKLENİYOR" : "ERİŞİLEMİYOR",
             dockerDetail, s.DockerReady ? "success" : s.DockerAppOpen ? "warning" : "danger");
 
-        string serverLevel = s.HttpReachable ? "success" : s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "warning" : "danger";
-        string serverLabel = s.HttpReachable ? "ERİŞİLEBİLİR" : s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "KONTEYNER AÇIK" : "DURMUŞ / YOK";
+        bool deploymentPending = s.ServerState.Contains("dağıtımı bekleniyor", StringComparison.OrdinalIgnoreCase);
+        string serverLevel = s.HttpReachable ? "success" : deploymentPending || s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "warning" : "danger";
+        string serverLabel = s.HttpReachable ? "ERİŞİLEBİLİR" : deploymentPending ? "KURULUM BEKLENİYOR" : s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "KONTEYNER AÇIK" : "SERVİS DURUMU";
         string serverDetail = s.HttpReachable
             ? $"{s.ProbeUrl} yanıt veriyor. Aktif adres: {s.ActiveUrl}"
-            : $"{s.ServerState}. Kontrol edilen: {s.ProbeUrl}. Açılacak adres: {s.ActiveUrl}";
+            : deploymentPending
+                ? $"{s.ServerState}. Bu aşamada konteynerin bulunmaması tek başına Docker hatası değildir; İşlem Günlükleri ekranında ilk WASM derleme hatasını kontrol et."
+                : $"{s.ServerState}. Kontrol edilen: {s.ProbeUrl}. Açılacak adres: {s.ActiveUrl}";
         SetStatusTexts("Server", serverLabel, serverDetail, serverLevel);
 
         Brush wslBrush = BrushHex(!s.WslPresent ? "#FF687D" : s.WslListAvailable ? "#38D996" : "#F8C45C");
@@ -4828,6 +5229,17 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             return;
         }
         AppendLog("=== NFSU2 Docker tanılaması ===", "INFO");
+        var engine = await RunCommandAsync(docker,
+            new[] { "version", "--format", "{{.Server.Version}}" },
+            TimeSpan.FromSeconds(10), logOutput: false);
+        if (engine.ExitCode != 0 || string.IsNullOrWhiteSpace(engine.Output))
+        {
+            AppendLog("Docker CLI bulundu ancak Docker Engine yanıt vermiyor. Konteyner sorgusu yapılmadı; Docker Desktop/Linux Engine bağlantısını kontrol et.", "UYARI");
+            if (!string.IsNullOrWhiteSpace(engine.Output))
+                AppendLog(engine.Output.Trim(), "UYARI", "WSL");
+            return;
+        }
+        AppendLog("Docker Engine erişilebilir: " + engine.Output.Trim(), "OK");
         var list = await RunCommandAsync(docker,
             new[] { "ps", "-a", "--filter", "name=nfsu2", "--format", "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}" },
             TimeSpan.FromSeconds(12), logCategory: "WSL");
@@ -5088,17 +5500,33 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         {
             var docker = FindDockerExe();
             if (tunnel) await StopOwnedTunnelAsync();
-            var targetContainers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (docker is not null && containers)
+            bool dockerEngineReady = false;
+            if (docker is not null && (containers || images || volume))
             {
+                var engineProbe = await RunCommandAsync(docker,
+                    new[] { "version", "--format", "{{.Server.Version}}" },
+                    TimeSpan.FromSeconds(10), logOutput: false);
+                dockerEngineReady = engineProbe.ExitCode == 0 && !string.IsNullOrWhiteSpace(engineProbe.Output);
+                if (!dockerEngineReady)
+                {
+                    cleanupHadWarnings = true;
+                    AppendLog("Docker CLI bulundu ancak Engine erişilemiyor. Güvenlik için konteyner, imaj ve volume temizliği atlandı; diğer seçili Windows/WSL adımları ayrıca işlenecek.", "UYARI");
+                    if (!string.IsNullOrWhiteSpace(engineProbe.Output))
+                        AppendLog(engineProbe.Output.Trim(), "UYARI", "WSL");
+                }
+            }
+            var targetContainers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (docker is not null && dockerEngineReady && containers)
+            {
+                bool containerQueryFailed = false;
                 foreach (var label in new[] { "nfsu2-web-local", "nfsu2-web", "nfsu2-web-rs" })
                 {
                     var query = await RunCommandAsync(docker, new[] { "ps", "-a", "--filter", "label=com.docker.compose.project=" + label, "--format", "{{.ID}}|{{.Names}}|{{.Image}}" }, TimeSpan.FromSeconds(10), logOutput: false);
-                    if (query.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"NFSU2 konteyner sorgusu başarısız (kod {query.ExitCode}); Docker Engine durumunu kontrol et.", "HATA"); }
+                    if (query.ExitCode != 0) { containerQueryFailed = true; cleanupHadWarnings = true; AppendLog($"NFSU2 konteyner sorgusu başarısız (kod {query.ExitCode}); bu sorguya göre konteyner bulunmadığı varsayılmayacak.", "HATA"); }
                     foreach (var line in query.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) { var parts = line.Split('|'); if (parts.Length >= 3) targetContainers.Add(parts[0].Trim()); }
                 }
                 var all = await RunCommandAsync(docker, new[] { "ps", "-a", "--format", "{{.ID}}|{{.Names}}|{{.Image}}" }, TimeSpan.FromSeconds(10), logOutput: false);
-                if (all.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"Docker konteyner listesi alınamadı (kod {all.ExitCode}).", "HATA"); }
+                if (all.ExitCode != 0) { containerQueryFailed = true; cleanupHadWarnings = true; AppendLog($"Docker konteyner listesi alınamadı (kod {all.ExitCode}).", "HATA"); }
                 foreach (var line in all.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     var p = line.Split('|'); if (p.Length < 3) continue; var name=p[1].Trim(); var img=p[2].Trim();
@@ -5109,10 +5537,13 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                     var removeContainer = await RunCommandAsync(docker, new[] { "rm", "-f", id }, TimeSpan.FromSeconds(30));
                     if (removeContainer.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"NFSU2 konteyneri kaldırılamadı: {id} (kod {removeContainer.ExitCode}).", "HATA"); }
                 }
-                if (targetContainers.Count == 0) AppendLog("NFSU2 konteyneri bulunamadı; başka konteynerlere dokunulmadı.", "UYARI");
+                if (targetContainers.Count == 0 && !containerQueryFailed)
+                    AppendLog("Docker Engine erişilebilir; NFSU2 konteyneri bulunamadı. Başka konteynerlere dokunulmadı.", "UYARI");
+                else if (targetContainers.Count == 0 && containerQueryFailed)
+                    AppendLog("NFSU2 konteynerinin varlığı doğrulanamadı; sorgu başarısız olduğu için başka konteynerlere dokunulmadı.", "UYARI");
             }
             if (docker is null && (containers || images || volume)) { cleanupHadWarnings = true; AppendLog("Docker CLI bulunamadı; seçilen Docker kaynakları temizlenemedi.", "UYARI"); }
-            if (images && docker is not null)
+            if (images && docker is not null && dockerEngineReady)
             {
                 var imagesResult = await RunCommandAsync(docker, new[] { "images", "--format", "{{.Repository}}:{{.Tag}}|{{.ID}}" }, TimeSpan.FromSeconds(10), logOutput: false);
                 if (imagesResult.ExitCode != 0) { cleanupHadWarnings = true; AppendLog($"Docker imaj listesi alınamadı (kod {imagesResult.ExitCode}).", "HATA"); }
@@ -5126,7 +5557,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                     }
                 }
             }
-            if (volume && docker is not null)
+            if (volume && docker is not null && dockerEngineReady)
             {
                 foreach (var vol in new[] { "nfsu2-web-local_state", "nfsu2-web_state", "nfsu2-web-local-state" })
                 {

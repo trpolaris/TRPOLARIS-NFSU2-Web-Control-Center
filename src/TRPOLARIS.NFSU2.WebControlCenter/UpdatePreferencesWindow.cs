@@ -24,27 +24,27 @@ internal sealed class UpdatePreferencesWindow : Window
             BetaReleaseJson = settings.BetaReleaseJson
         };
 
-        Title = "NFSU2 Server control - Güncelleme tercihleri";
-        Width = 650;
-        Height = 650;
-        MinWidth = 650;
-        MinHeight = 650;
+        Title = "NFSU2 Server control - Güncelleme ve ayarlar";
+        Width = 600;
+        Height = 590;
+        MinWidth = 600;
+        MinHeight = 590;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Owner = Application.Current.MainWindow;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
-        Background = Brush("#081523");
-        Foreground = Brush("#EDF4FC");
+        Background = Brush("#0D1219");
+        Foreground = Brush("#F4F6F8");
         FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI");
         ShowInTaskbar = false;
         UseLayoutRounding = true;
         SnapsToDevicePixels = true;
 
         var windowGrid = new Grid();
-        windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(42) });
+        windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(38) });
         windowGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var root = new Grid { Margin = new Thickness(24, 18, 24, 20) };
+        var root = new Grid { Margin = new Thickness(20, 16, 20, 16) };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -52,20 +52,20 @@ internal sealed class UpdatePreferencesWindow : Window
 
         var caption = new Border
         {
-            Background = Brush("#0A1828"),
-            BorderBrush = Brush("#20384E"),
+            Background = Brush("#10151D"),
+            BorderBrush = Brush("#303D4D"),
             BorderThickness = new Thickness(0, 0, 0, 1),
-            Padding = new Thickness(17, 0, 8, 0)
+            Padding = new Thickness(16, 0, 8, 0)
         };
         var captionGrid = new Grid();
         captionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         captionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var captionText = new TextBlock
         {
-            Text = "NFSU2 SERVER CONTROL",
+            Text = "NFSU2 SERVER CONTROL  /  SETTINGS  ·  V2.0",
             FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = Brush("#68DCCC"),
+            Foreground = Brush("#FF8243"),
             VerticalAlignment = VerticalAlignment.Center
         };
         captionGrid.Children.Add(captionText);
@@ -78,7 +78,7 @@ internal sealed class UpdatePreferencesWindow : Window
             FontSize = 19,
             Focusable = false,
             Cursor = System.Windows.Input.Cursors.Hand,
-            Foreground = Brush("#D9E8F5"),
+            Foreground = Brush("#E8EDF2"),
             Background = Brush("Transparent"),
             BorderThickness = new Thickness(0)
         };
@@ -99,40 +99,40 @@ internal sealed class UpdatePreferencesWindow : Window
         windowGrid.Children.Add(root);
         Content = new Border
         {
-            Background = Brush("#081523"),
-            BorderBrush = Brush("#31506A"),
+            Background = Brush("#111821"),
+            BorderBrush = Brush("#3A4755"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12),
+            CornerRadius = new CornerRadius(16),
             ClipToBounds = true,
             Child = windowGrid
         };
 
-        var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 18) };
+        var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
         heading.Children.Add(new TextBlock
         {
-            Text = "Güncelleme tercihleri",
-            FontSize = 23,
+            Text = "Güncelleme ayarları",
+            FontSize = 22,
             FontWeight = FontWeights.SemiBold,
-            Foreground = Brush("#F1F7FF")
+            Foreground = Brush("#F4F6F8")
         });
         heading.Children.Add(new TextBlock
         {
-            Text = "Sürüm kanalı, kontrol sıklığı ve son güncelleme geçmişi.",
+            Text = $"Geçerli sürüm {AppVersion.Display}  ·  Sürüm kanalı, kontrol sıklığı ve işlem geçmişi.",
             FontSize = 11,
-            Foreground = Brush("#93A9BE"),
-            Margin = new Thickness(0, 6, 0, 0)
+            Foreground = Brush("#A5B0BE"),
+            Margin = new Thickness(0, 4, 0, 0)
         });
         Grid.SetRow(heading, 0);
         root.Children.Add(heading);
 
         var settingsCard = new Border
         {
-            Background = Brush("#102033"),
-            BorderBrush = Brush("#2A435A"),
+            Background = Brush("#171F29"),
+            BorderBrush = Brush("#303D4D"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10),
+            CornerRadius = new CornerRadius(11),
             Padding = new Thickness(16),
-            Margin = new Thickness(0, 0, 0, 17)
+            Margin = new Thickness(0, 0, 0, 12)
         };
         var settingsStack = new StackPanel();
         AddField(settingsStack, "GÜNCELLEME KANALI", _channel,
@@ -162,17 +162,17 @@ internal sealed class UpdatePreferencesWindow : Window
         var historySection = new StackPanel();
         historySection.Children.Add(new TextBlock
         {
-            Text = "GÜNCELLEME GEÇMİŞİ",
-            FontSize = 9,
+            Text = "SON GÜNCELLEME İŞLEMLERİ",
+            FontSize = 10,
             FontWeight = FontWeights.Bold,
-            Foreground = Brush("#70D7CE"),
+            Foreground = Brush("#FF9B62"),
             Margin = new Thickness(2, 0, 0, 9)
         });
         var historyList = new ListBox
         {
             Style = (Style)Application.Current.FindResource("DarkListBox"),
-            MinHeight = 76,
-            MaxHeight = 260,
+            MinHeight = 74,
+            MaxHeight = 160,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
         if (history.Count == 0)
@@ -180,7 +180,7 @@ internal sealed class UpdatePreferencesWindow : Window
             historyList.Items.Add(new ListBoxItem
             {
                 Content = "Henüz tamamlanmış bir uygulama güncellemesi kaydı yok.",
-                Foreground = Brush("#90A6BB"),
+                Foreground = Brush("#91A3BE"),
                 Padding = new Thickness(8)
             });
         }
@@ -195,7 +195,7 @@ internal sealed class UpdatePreferencesWindow : Window
                     Content = text,
                     Padding = new Thickness(8),
                     Margin = new Thickness(0, 0, 0, 4),
-                    Foreground = Brush("#DCE8F5")
+                    Foreground = Brush("#E5F2FF")
                 });
             }
         }
@@ -207,12 +207,12 @@ internal sealed class UpdatePreferencesWindow : Window
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 16, 0, 0)
+            Margin = new Thickness(0, 10, 0, 0)
         };
-        var cancel = new Button { Content = "Vazgeç", MinWidth = 95, Padding = new Thickness(14, 8, 14, 8), Margin = new Thickness(0, 0, 8, 0) };
-        var save = new Button { Content = "Kaydet", MinWidth = 110, Padding = new Thickness(14, 8, 14, 8), IsDefault = true };
-        StyleButton(cancel, "#1A2C40", "#B7C9DA");
-        StyleButton(save, "#176B70", "#F2FFFF");
+        var cancel = new Button { Content = "Vazgeç", MinWidth = 82, Padding = new Thickness(14, 8, 14, 8), Margin = new Thickness(0, 0, 8, 0) };
+        var save = new Button { Content = "Kaydet", MinWidth = 96, Padding = new Thickness(14, 8, 14, 8), IsDefault = true };
+        StyleButton(cancel, "#192B44", "#D7EAF8");
+        StyleButton(save, "#D87841", "#EFFBFF");
         cancel.IsCancel = true;
         cancel.Click += (_, _) => DialogResult = false;
         save.Click += (_, _) =>
@@ -241,20 +241,20 @@ internal sealed class UpdatePreferencesWindow : Window
         parent.Children.Add(new TextBlock
         {
             Text = label,
-            FontSize = 8,
+            FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = Brush("#83A0B8"),
+            Foreground = Brush("#A5B0BE"),
             Margin = new Thickness(0, 0, 0, 7)
         });
         foreach (var item in items) combo.Items.Add(item);
         combo.Style = (Style)Application.Current.FindResource("DarkComboBox");
         combo.SelectedIndex = selectedIndex;
-        combo.Height = 42;
-        combo.MaxDropDownHeight = 270;
-        combo.Margin = new Thickness(0, 0, 0, 18);
-        combo.Background = Brush("#0D1D2D");
-        combo.Foreground = Brush("#EDF5FF");
-        combo.BorderBrush = Brush("#3B5872");
+        combo.Height = 38;
+        combo.MaxDropDownHeight = 190;
+        combo.Margin = new Thickness(0, 0, 0, 10);
+        combo.Background = Brush("#111821");
+        combo.Foreground = Brush("#F4F6F8");
+        combo.BorderBrush = Brush("#303D4D");
         combo.Padding = new Thickness(10, 7, 10, 7);
         parent.Children.Add(combo);
     }
@@ -268,15 +268,18 @@ internal sealed class UpdatePreferencesWindow : Window
 
     private static void StyleButton(Button button, string background, string foreground)
     {
-        try { button.Style = (Style)Application.Current.FindResource(background == "#176B70" ? "ModernButton" : "SecondaryButton"); } catch { }
-        button.MinHeight = 40;
+        try { button.Style = (Style)Application.Current.FindResource(background is "#D87841" or "#D87841" ? "ModernButton" : "SecondaryButton"); } catch { }
+        button.MinHeight = 46;
         button.Background = Brush(background);
         button.Foreground = Brush(foreground);
-        button.BorderBrush = Brush("#36536A");
+        button.BorderBrush = Brush("#4B5968");
         button.BorderThickness = new Thickness(1);
         button.FontWeight = FontWeights.SemiBold;
         button.Cursor = System.Windows.Input.Cursors.Hand;
     }
+
+    private static string FormatVersion(string value) =>
+        value.Equals("2.0.0", StringComparison.OrdinalIgnoreCase) ? "2.0" : value;
 
     private static SolidColorBrush Brush(string value) => new((Color)ColorConverter.ConvertFromString(value));
 }

@@ -1,27 +1,11 @@
-using System.Reflection;
-
 namespace TRPOLARIS.NFSU2.WebControlCenter;
 
 /// <summary>
-/// Single source of truth for the version displayed throughout the application.
-/// Uses informational SemVer so beta/preview labels remain visible.
+/// Product release identity. Keep the semantic version at 2.0.0 for updater
+/// comparisons while presenting the requested concise v2.0 product version.
 /// </summary>
 internal static class AppVersion
 {
-    public static string Current { get; } = Resolve();
-
-    public static string Display => $"v{Current}";
-
-    private static string Resolve()
-    {
-        var assembly = typeof(App).Assembly;
-        var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        if (!string.IsNullOrWhiteSpace(informational))
-        {
-            int metadataSeparator = informational.IndexOf('+');
-            return metadataSeparator >= 0 ? informational[..metadataSeparator] : informational;
-        }
-
-        return assembly.GetName().Version?.ToString(3) ?? "0.0.0";
-    }
+    public const string Current = "2.0.0";
+    public const string Display = "v2.0";
 }

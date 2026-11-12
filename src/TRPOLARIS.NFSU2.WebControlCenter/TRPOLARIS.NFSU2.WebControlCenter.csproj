@@ -9,9 +9,9 @@
     <ApplicationIcon>Assets\TRPOLARIS-NFSU2.ico</ApplicationIcon>
     <AssemblyName>NFSU2 Server control</AssemblyName>
     <RootNamespace>TRPOLARIS.NFSU2.WebControlCenter</RootNamespace>
-    <Version>1.8.3</Version>
-    <AssemblyVersion>1.8.3.0</AssemblyVersion>
-    <FileVersion>1.8.3.0</FileVersion>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <Product>NFSU2 Server control</Product>
     <Authors>TRPOLARIS</Authors>
@@ -28,5 +28,8 @@
     <EmbeddedResource Include="Resources\nfsu2-access.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-access.sh" />
     <EmbeddedResource Include="Resources\nfsu2-project-lookup.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-project-lookup.sh" />
     <EmbeddedResource Include="Resources\nfsu2-git-update.sh" LogicalName="TRPOLARIS.NFSU2.WebControlCenter.Resources.nfsu2-git-update.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
   </ItemGroup>
 </Project>

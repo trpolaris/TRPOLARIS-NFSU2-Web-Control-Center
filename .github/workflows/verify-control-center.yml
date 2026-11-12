@@ -77,6 +77,102 @@ jobs:
           print("PASS: installer no longer self-dirties tracked source files.")
           PY
 
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("src/TRPOLARIS.NFSU2.WebControlCenter")
+          ssh = (root / "RemoteServerSession.cs").read_text(encoding="utf-8")
+          remote_page = (root / "RemoteServerPage.cs").read_text(encoding="utf-8")
+          app = (root / "App.xaml").read_text(encoding="utf-8")
+          installer = (root / "Resources/NFSU2-Windows-OneClick-Installer.ps1").read_text(encoding="utf-8")
+          main = (root / "MainWindow.xaml.cs").read_text(encoding="utf-8")
+
+          assert 'Replace("\\r\\n", "\\n", StringComparison.Ordinal)' in ssh, "SSH command transport must normalize CRLF to LF."
+          assert remote_page.count('Style = (Style)FindResource("DarkComboBox")') >= 4, "All remote page ComboBoxes must use the dark template."
+          assert 'x:Key="DarkComboBox"' in app, "Dark ComboBox template is missing."
+          assert 'if ($null -eq $dockerProbeLine)' in installer, "Docker readiness probe must handle empty output."
+          assert '$DockerProbeDetail' in installer, "Docker readiness failure must retain diagnostic output."
+          assert 'bool dockerEngineReady = false;' in main, "Uninstall must probe Docker Engine before container cleanup."
+          assert 'containerQueryFailed' in main, "Uninstall must distinguish query failures from an absent container."
+          assert 'Docker CLI bulundu ancak Docker Engine yanıt vermiyor' in main, "Docker diagnostics must report engine unavailability."
+          print("PASS: SSH LF normalization, dark remote selectors, and Docker Engine safety checks.")
+          PY
+
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("src/TRPOLARIS.NFSU2.WebControlCenter")
+          remote = (root / "RemoteServerPage.cs").read_text(encoding="utf-8")
+          deploy = (root / "RemoteDeploymentPage.cs").read_text(encoding="utf-8")
+          profile = (root / "RemoteServerProfile.cs").read_text(encoding="utf-8")
+          window = (root / "MainWindow.xaml").read_text(encoding="utf-8")
+          main = (root / "MainWindow.xaml.cs").read_text(encoding="utf-8")
+          app = (root / "App.xaml").read_text(encoding="utf-8")
+
+          assert 'public string AccessMode { get; set; } = "domain";' in profile
+          for value in ('"lan"', '"public-ip"', '"domain"'):
+              assert value in remote, f"Remote access mode {value} is missing."
+          for token in ('tls internal', 'profile shortlived', 'bind ', '--cacert', 'api.ipify.org'):
+              assert token in deploy, f"Secure endpoint implementation missing: {token}"
+          assert 'DownloadRemoteLanCertificateAsync' in remote
+          assert 'DownloadRemoteFileAsync(root + "/lan-ca-root.crt"' in deploy
+          assert 'BuildRemoteDeploymentPage' in remote and 'BuildRemoteFilesPage' in remote
+          assert 'Nightshift Garage' in app, "The shared control theme must use the Nightshift Garage design system."
+          for name in (
+              'WindowTitleBar', 'NavDashboard', 'NavInstall', 'NavUpdate', 'NavAccess', 'NavFiles',
+              'NavRemote', 'NavRemoteDeploy', 'NavRemoteFiles', 'NavUninstall', 'NavLogs',
+              'PageHost', 'OperationProgressPanel', 'OperationProgressBar', 'FooterStatus'
+          ):
+              assert f'x:Name="{name}"' in window, f"Required WPF shell element was removed: {name}"
+          assert 'SSH bağlantıları' in window and 'Uzak dağıtım' in window and 'Uzak dosya yöneticisi' in window
+          print("PASS: LAN/public-IP/domain TLS modes, dedicated remote pages, and redesigned navigation.")
+          PY
+
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("src/TRPOLARIS.NFSU2.WebControlCenter")
+          file_manager = (root / "RemoteFileManagerPage.cs").read_text(encoding="utf-8")
+          remote = (root / "RemoteServerPage.cs").read_text(encoding="utf-8")
+          deploy = (root / "RemoteDeploymentPage.cs").read_text(encoding="utf-8")
+          session = (root / "RemoteServerSession.cs").read_text(encoding="utf-8")
+          profile = (root / "RemoteServerProfile.cs").read_text(encoding="utf-8")
+          app = (root / "App.xaml").read_text(encoding="utf-8")
+          window = (root / "MainWindow.xaml").read_text(encoding="utf-8")
+          main = (root / "MainWindow.xaml.cs").read_text(encoding="utf-8")
+
+          assert 'BuildRemoteFileManagerAccessCheck(root)' in file_manager
+          assert 'BuildRemoteFileManagerWriteCheck(root)' in file_manager
+          assert 'BuildRemoteOwnershipCheck(root)' not in file_manager, "Legacy SFTP browser must not require the Docker deployment marker."
+          assert 'DownloadRemoteFileAsync(remotePath, dialog.FileName)' in file_manager
+          assert 'READ_ONLY' in deploy and 'WRITE_DENIED' in deploy
+          assert 'if [ ! -w {rootPath} ]' in deploy, "Write operations must check actual SSH-user directory permissions."
+          assert 'BuildRemoteFileManagerClaimCommand(root)' in remote
+          assert '.nfsu2-control-center-sftp-root' in deploy and '.nfsu2-control-center-sftp-root' in session
+          assert 'public string RemoteFileManagerRoot { get; set; }' in profile
+          assert 'RemoteFileManagerRoot = selected?.RemoteFileManagerRoot ?? ""' in remote
+          assert 'Kökü aç' in remote and 'Bu dizini SFTP için etkinleştir' in remote
+          assert 'if [ -w ' in deploy, "SFTP marker creation should use the SSH account when it owns the directory before trying sudo."
+          assert '<Setter Property="MinHeight" Value="38" />' in app, "Compact text/password fields must use the 38 px control rhythm."
+          assert '<Setter Property="MinHeight" Value="38" />' in app, "Compact primary buttons must use the 38 px control rhythm."
+          assert 'x:Name="PageHost"' in window
+          assert 'Width="1280" Height="820"' in window, "The main window should use compact dimensions."
+          assert "SSH KOMUT PENCERESİ" in remote and "RunRemoteSshCommandAsync" in remote
+          assert "ProtectedPassword" in profile and "ProtectedKeyPassphrase" in profile
+          assert "RemoteSecretProtector" in remote and "CryptProtectData" in profile
+          assert "VerticalContentAlignment = VerticalAlignment.Top" in main
+          text_box_style = app.split('<Style x:Key="DarkTextBox"', 1)[1].split('</Style>', 1)[0]
+          assert 'Setter Property="Height"' not in text_box_style, "Multiline text boxes must stretch to the available row height."
+          assert 'Padding="{TemplateBinding Padding}"' in text_box_style
+          combo_style = app.split('<Style x:Key="DarkComboBox"', 1)[1].split('</Style>', 1)[0]
+          assert combo_style.index('</ToggleButton>') < combo_style.index('x:Name="SelectionPresenter"'), "ComboBox selection text must render above the full-surface click target."
+          assert 'ModernScrollThumb' in app and 'TargetName="ItemContent"' in app
+          logs_page = main.split('private UIElement BuildLogsPage()', 1)[1].split('private string GetProgressStatusText()', 1)[0]
+          assert 'FlushPendingDiskLogs();' in logs_page
+          assert 'TextWrapping = TextWrapping.NoWrap' in logs_page
+          assert 'VerticalAlignment = VerticalAlignment.Stretch' in logs_page
+          assert 'VerticalContentAlignment="Stretch"' in window
+          print("PASS: compact pages, fully visible text controls, dropdown stacking, modern scrollbars, live logs and Nightshift Garage interface.")
+          PY
+
   build-win-x64:
     runs-on: windows-latest
     steps:
@@ -131,7 +227,7 @@ jobs:
       - name: Upload single-file executable
         uses: actions/upload-artifact@v4
         with:
-          name: NFSU2-Server-control-v1.8.3-win-x64
+          name: NFSU2-Server-control-v2.0-win-x64
           path: publish/NFSU2 Server control.exe
           if-no-files-found: error
           retention-days: 30

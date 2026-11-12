@@ -3598,7 +3598,8 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private StackPanel Heading(string title, string subtitle)
     {
-        var s = NewStack(9) { Margin = new Thickness(0, 0, 0, 8) };
+        var s = NewStack(9);
+        s.Margin = new Thickness(0, 0, 0, 8);
         s.Children.Add(new Border
         {
             Width = 54, Height = 4, CornerRadius = new CornerRadius(2),

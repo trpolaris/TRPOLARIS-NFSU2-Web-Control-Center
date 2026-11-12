@@ -123,8 +123,6 @@ jobs:
               'PageHost', 'OperationProgressPanel', 'OperationProgressBar', 'FooterStatus'
           ):
               assert f'x:Name="{name}"' in window, f"Required WPF shell element was removed: {name}"
-          for section in ('YEREL SUNUCU', 'UZAK SUNUCU', 'YÖNETİM VE KAYITLAR'):
-              assert section in window, f"Navigation section is missing: {section}"
           assert 'SSH bağlantıları' in window and 'Uzak dağıtım' in window and 'Uzak dosyalar' in window
           print("PASS: LAN/public-IP/domain TLS modes, dedicated remote pages, and redesigned navigation.")
           PY

@@ -204,9 +204,8 @@ public partial class MainWindow : Window
 
     private void SetApplicationVersion()
     {
-        var displayVersion = ControlCenterCurrentVersion;
-        Title = $"NFSU2 Server control v{displayVersion}";
-        AppVersionText.Text = $"v{displayVersion}";
+        Title = $"NFSU2 Server control {AppVersion.Display}";
+        AppVersionText.Text = AppVersion.Display;
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -539,7 +538,7 @@ public partial class MainWindow : Window
             _logsCurrentFileLabel = null;
         }
         _currentPage = page;
-        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(26, 22, 26, 20);
+        PageHost.Margin = page == "Logs" ? new Thickness(0) : new Thickness(18, 16, 18, 16);
         _statusLabels.Clear();
         _portBox = null;
         _gameDirBox = null;
@@ -597,9 +596,9 @@ public partial class MainWindow : Window
         foreach (var b in nav)
         {
             bool active = Equals(b.Tag, selected);
-            b.Background = active ? BrushHex("#1A2D4D") : Brushes.Transparent;
-            b.BorderBrush = active ? BrushHex("#3F5F92") : Brushes.Transparent;
-            b.Foreground = active ? BrushHex("#B7CBFF") : BrushHex("#91A3BE");
+            b.Background = active ? BrushHex("#153B52") : Brushes.Transparent;
+            b.BorderBrush = active ? BrushHex("#328EAE") : Brushes.Transparent;
+            b.Foreground = active ? BrushHex("#D4F7FF") : BrushHex("#A5B5CA");
         }
     }
 
@@ -3383,10 +3382,10 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private Border MakeCard(string title, string subtitle)
     {
-        var card = new Border { Style = (Style)FindResource("CardBorder"), Margin = new Thickness(0), Padding = new Thickness(11) };
-        var stack = NewStack(8);
-        stack.Children.Add(new TextBlock { Text = title, FontSize = 10, FontWeight = FontWeights.Bold, Foreground = BrushHex("#6BCFC7") });
-        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 10, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap });
+        var card = new Border { Style = (Style)FindResource("CardBorder"), Margin = new Thickness(0), Padding = new Thickness(15) };
+        var stack = NewStack(9);
+        stack.Children.Add(new TextBlock { Text = title, FontSize = 10.5, FontWeight = FontWeights.Bold, Foreground = BrushHex("#4DDCF2") });
+        stack.Children.Add(new TextBlock { Text = subtitle, FontSize = 10.5, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap });
         card.Child = stack;
         // Expose the content stack so callers can append rows while keeping title/subtitle at the top.
         card.Tag = stack;
@@ -3423,15 +3422,18 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private StackPanel Heading(string title, string subtitle)
     {
-        var s = NewStack(4); s.Children.Add(new TextBlock { Text = title, FontSize = 20, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextBrush") });
-        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 10.5, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 920 }); return s;
+        var s = NewStack(6);
+        s.Children.Add(new Border { Width = 42, Height = 3, CornerRadius = new CornerRadius(2), HorizontalAlignment = HorizontalAlignment.Left, Background = new LinearGradientBrush(BrushHex("#4DDCF2").Color, BrushHex("#7D9FFF").Color, new Point(0, 0), new Point(1, 0)) });
+        s.Children.Add(new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("TextBrush") });
+        s.Children.Add(new TextBlock { Text = subtitle, FontSize = 11, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 960 });
+        return s;
     }
 
     private TextBlock MutedLabel(string text) => new() { Text = text, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = BrushHex("#70CFC8"), TextWrapping = TextWrapping.Wrap };
 
     private Button MakeButton(string text, string style, RoutedEventHandler handler, Thickness? margin = null)
     {
-        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 32, Padding = new Thickness(10, 6, 10, 6), FontSize = 11, FontWeight = FontWeights.SemiBold };
+        var b = new Button { Content = text, Margin = margin ?? new Thickness(0), MinHeight = 36, Padding = new Thickness(12, 7, 12, 7), FontSize = 11, FontWeight = FontWeights.SemiBold };
         b.SetResourceReference(FrameworkElement.StyleProperty, style);
 
         // Keep text contrast explicit even when theme resources or local styles change.
@@ -3448,7 +3450,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private Border QuickAction(string title, string description, string buttonText, Action action)
     {
-        var border = new Border { Background = BrushHex("#141F2A"), BorderBrush = BrushHex("#2B3A47"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(9), Margin = new Thickness(0, 0, 7, 0) };
+        var border = new Border { Background = BrushHex("#112137"), BorderBrush = BrushHex("#2A4360"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(11), Padding = new Thickness(13), Margin = new Thickness(0, 0, 9, 0) };
         var s = NewStack(6); s.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#EAF3FD") });
         s.Children.Add(new TextBlock { Text = description, FontSize = 9.5, Foreground = BrushHex("#9CB1C6"), TextWrapping = TextWrapping.Wrap, MinHeight = 34 });
         s.Children.Add(MakeButton(buttonText, "SecondaryButton", (_, _) => action())); border.Child = s; AddCardHover(border, "#122438", "#19334A"); return border;
@@ -3819,7 +3821,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
                 }
             }
 
-            string serverState = dockerReady ? "NFSU2 konteyneri bulunamadı" : "Docker Engine hazır değil";
+            string serverState = dockerReady ? "NFSU2 dağıtımı bekleniyor — kurulum veya derleme henüz tamamlanmamış olabilir" : "Docker Engine hazır değil";
             bool httpReachable = false;
             bool serverContainerRunning = false;
             if (dockerReady && !string.IsNullOrWhiteSpace(dockerExe))
@@ -3924,11 +3926,14 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         SetStatusTexts("Docker", s.DockerReady ? "ÇALIŞIYOR" : s.DockerAppOpen ? "ENGINE BEKLENİYOR" : "ERİŞİLEMİYOR",
             dockerDetail, s.DockerReady ? "success" : s.DockerAppOpen ? "warning" : "danger");
 
-        string serverLevel = s.HttpReachable ? "success" : s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "warning" : "danger";
-        string serverLabel = s.HttpReachable ? "ERİŞİLEBİLİR" : s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "KONTEYNER AÇIK" : "DURMUŞ / YOK";
+        bool deploymentPending = s.ServerState.Contains("dağıtımı bekleniyor", StringComparison.OrdinalIgnoreCase);
+        string serverLevel = s.HttpReachable ? "success" : deploymentPending || s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "warning" : "danger";
+        string serverLabel = s.HttpReachable ? "ERİŞİLEBİLİR" : deploymentPending ? "KURULUM BEKLENİYOR" : s.ServerState.Contains("Up", StringComparison.OrdinalIgnoreCase) ? "KONTEYNER AÇIK" : "SERVİS DURUMU";
         string serverDetail = s.HttpReachable
             ? $"{s.ProbeUrl} yanıt veriyor. Aktif adres: {s.ActiveUrl}"
-            : $"{s.ServerState}. Kontrol edilen: {s.ProbeUrl}. Açılacak adres: {s.ActiveUrl}";
+            : deploymentPending
+                ? $"{s.ServerState}. Bu aşamada konteynerin bulunmaması tek başına Docker hatası değildir; İşlem Günlükleri ekranında ilk WASM derleme hatasını kontrol et."
+                : $"{s.ServerState}. Kontrol edilen: {s.ProbeUrl}. Açılacak adres: {s.ActiveUrl}";
         SetStatusTexts("Server", serverLabel, serverDetail, serverLevel);
 
         Brush wslBrush = BrushHex(!s.WslPresent ? "#FF687D" : s.WslListAvailable ? "#38D996" : "#F8C45C");

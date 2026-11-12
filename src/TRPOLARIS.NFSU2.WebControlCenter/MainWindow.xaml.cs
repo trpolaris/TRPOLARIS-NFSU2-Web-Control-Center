@@ -615,25 +615,17 @@ public partial class MainWindow : Window
             CornerRadius = new CornerRadius(18),
             Padding = new Thickness(18),
             BorderThickness = new Thickness(1),
-            BorderBrush = BrushHex("#34527D"),
+            BorderBrush = BrushHex("#31486A"),
             Background = new LinearGradientBrush(
-                BrushHex("#182B4A").Color,
-                BrushHex("#111D32").Color,
+                BrushHex("#1B2A40").Color,
+                BrushHex("#121D2D").Color,
                 new Point(0, 0),
                 new Point(1, 1))
         };
-        hero.Effect = new System.Windows.Media.Effects.DropShadowEffect
-        {
-            Color = (Color)ColorConverter.ConvertFromString("#6FA8FF"),
-            BlurRadius = 26,
-            ShadowDepth = 0,
-            Opacity = 0.09
-        };
-
         var heroGrid = new Grid();
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         heroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var intro = NewStack(9);
+        var intro = NewStack(6);
         intro.Children.Add(new TextBlock
         {
             Text = "TRPOLARIS  /  NFSU2 INFRASTRUCTURE",
@@ -644,9 +636,9 @@ public partial class MainWindow : Window
         intro.Children.Add(new TextBlock
         {
             Text = "Bütün sunucuların.\nTek kontrol merkezi.",
-            FontSize = 31,
+            FontSize = 23,
             FontWeight = FontWeights.Bold,
-            LineHeight = 29,
+            LineHeight = 28,
             Foreground = BrushHex("#F1F5FF"),
             TextWrapping = TextWrapping.Wrap
         });
@@ -662,12 +654,12 @@ public partial class MainWindow : Window
 
         var heroActions = new StackPanel
         {
-            Width = 218,
+            Width = 176,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(28, 0, 0, 0)
+            Margin = new Thickness(16, 0, 0, 0)
         };
         heroActions.Children.Add(MakeButton("＋  Uzak sunucu ekle", "ModernButton", (_, _) => ShowPage("Remote")));
-        heroActions.Children.Add(MakeButton("Yerel kurulumu aç", "SecondaryButton", (_, _) => ShowPage("Install"), new Thickness(0, 10, 0, 0)));
+        heroActions.Children.Add(MakeButton("Yerel kurulumu aç", "SecondaryButton", (_, _) => ShowPage("Install"), new Thickness(0, 6, 0, 0)));
         Grid.SetColumn(heroActions, 1);
         heroGrid.Children.Add(heroActions);
         hero.Child = heroGrid;
@@ -727,9 +719,9 @@ public partial class MainWindow : Window
 
         var localCard = MakeCard("LOCAL HOST  /  WINDOWS + WSL 2",
             "Geliştirme, yerel test, Docker Desktop ve kaynak kod güncellemeleri.");
-        var localStatus = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 10) };
+        var localStatus = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 6) };
         localStatus.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = BrushHex("#F6C66B"), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
-        localStatus.Children.Add(new TextBlock { Text = "Yerel ortam", FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#E8EEFB") });
+        localStatus.Children.Add(new TextBlock { Text = "Yerel ortam", FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#E8EEFB") });
         AddCardChild(localCard, localStatus);
         var localActions = new WrapPanel();
         localActions.Children.Add(MakeButton("Kurulum", "SecondaryButton", (_, _) => ShowPage("Install")));
@@ -742,7 +734,7 @@ public partial class MainWindow : Window
         var remoteCard = MakeCard("REMOTE HOSTS  /  LINUX + VPS",
             "SSH profilleri, bağımsız dağıtım, servis kontrolü ve güvenli SFTP dosya erişimi.");
         var remoteStatus = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 10) };
-        remoteStatus.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = BrushHex(_remoteServerSession?.IsConnected == true ? "#3DD6AE" : "#8D9BB3"), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
+        remoteStatus.Children.Add(new Ellipse { Width = 7, Height = 7, Fill = BrushHex(_remoteServerSession?.IsConnected == true ? "#3DD6AE" : "#8D9BB3"), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
         remoteStatus.Children.Add(new TextBlock { Text = _remoteServerSession?.IsConnected == true ? "SSH oturumu bağlı" : $"{remoteCount} kayıtlı bağlantı profili", FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = BrushHex("#E8EEFB") });
         AddCardChild(remoteCard, remoteStatus);
         var remoteActions = new WrapPanel();
@@ -807,7 +799,7 @@ public partial class MainWindow : Window
 
     private UIElement BuildInstallPage()
     {
-        var root = NewStack(16);
+        var root = NewStack(10);
         root.Children.Add(Heading("NFSU2 Web sunucu kurulumu", "Windows üzerinde WSL 2, Ubuntu, Docker ve güncel React + Rust sunucu bileşenlerini tek kurulum akışıyla hazırla."));
         var card = MakeCard("KURULUM ÖN HAZIRLIĞI", "Oyun verisi doğrulanır; doğrulama tamamlanmadan WSL veya Docker kurulumu başlatılmaz. Ayrıntılar için soru işaretlerinin üzerine gel.");
         var grid = new Grid();
@@ -874,7 +866,7 @@ public partial class MainWindow : Window
 
     private UIElement BuildUpdatePage()
     {
-        var root = NewStack(17);
+        var root = NewStack(10);
         root.Children.Add(Heading("Altyapı güncelleme", "NFSU2-Web deposunun main dalını ve bu projeyi derleyen WSL / Docker araç zincirini güncel tut."));
 
         var hero = new Border
@@ -985,7 +977,7 @@ public partial class MainWindow : Window
 
     private UIElement BuildServerFilesPage()
     {
-        var root = NewStack(14);
+        var root = NewStack(9);
         root.Children.Add(Heading("GitHub proje yöneticisi", "Kurulan NFSU2-Web deposunun tamamını FTP benzeri biçimde görüntüle. Frontend ve backend dosyalarını VS Code / Not Defteri ile aç; kaydedilen web kaynakları otomatik derlenip sunucuya uygulanabilir."));
 
         var location = MakeCard("SUNUCU PROJE KLASÖRÜ", "Bu klasör doğrudan WSL içindeki GitHub çalışma kopyasıdır. Windows üzerinden açılan dosyalar aynı depoya yazılır; ayrıca kopyalama gerekmez.");

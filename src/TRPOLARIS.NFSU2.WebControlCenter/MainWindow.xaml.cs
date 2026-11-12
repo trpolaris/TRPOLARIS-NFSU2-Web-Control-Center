@@ -3378,6 +3378,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
 
     private void RefreshVisibleLog()
     {
+        FlushPendingDiskLogs();
         if (_liveLogBox is not null)
         {
             var text = ReadSelectedLogText();

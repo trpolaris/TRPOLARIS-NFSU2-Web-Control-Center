@@ -938,6 +938,7 @@ public partial class MainWindow
             AuthenticationMode = privateKey ? "private-key" : "password",
             PrivateKeyPath = privateKey ? keyPath : "",
             HostKeyFingerprint = selected?.HostKeyFingerprint ?? "",
+            RemoteFileManagerRoot = selected?.RemoteFileManagerRoot ?? "",
             RemoteProjectDirectory = _remoteInstallRootBox is not null
                 ? ValidateRemoteInstallRoot(_remoteInstallRootBox.Text)
                 : ValidateRemoteInstallRoot(selected?.RemoteProjectDirectory ?? "/srv/nfsu2"),

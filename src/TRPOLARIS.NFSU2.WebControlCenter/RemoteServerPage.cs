@@ -267,17 +267,22 @@ public partial class MainWindow
         var diagnosticActions = new Grid();
         diagnosticActions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         diagnosticActions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        diagnosticActions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         diagnosticActions.Children.Add(new TextBlock
         {
-            Text = "SİSTEM TANILAMASI",
+            Text = "SSH ÜZERİNDEN SİSTEM TANILAMASI",
             FontSize = 9,
             FontWeight = FontWeights.Bold,
             Foreground = BrushHex("#8593A2"),
             VerticalAlignment = VerticalAlignment.Center
         });
-        var refresh = MakeButton("Yenile", "SecondaryButton", async (_, _) => await RefreshRemoteDiagnosticsAsync());
-        refresh.MinWidth = 100;
-        Grid.SetColumn(refresh, 1);
+        var connectAndScan = MakeButton("SSH ile bağlan ve tara", "ModernButton", async (_, _) => await ConnectRemoteAndScanAsync());
+        connectAndScan.MinWidth = 132;
+        Grid.SetColumn(connectAndScan, 1);
+        diagnosticActions.Children.Add(connectAndScan);
+        var refresh = MakeButton("Yenile", "SecondaryButton", async (_, _) => await RefreshRemoteDiagnosticsAsync(), new Thickness(7, 0, 0, 0));
+        refresh.MinWidth = 76;
+        Grid.SetColumn(refresh, 2);
         diagnosticActions.Children.Add(refresh);
         status.Children.Add(diagnosticActions);
 
@@ -301,6 +306,60 @@ public partial class MainWindow
                 : "Henüz uzak sunucuya bağlanılmadı.\nBir profil seçip Bağlan düğmesini kullan."
         };
         status.Children.Add(_remoteDiagnosticsBox);
+
+        var sshConsole = new Border
+        {
+            Background = BrushHex("#171F29"),
+            BorderBrush = BrushHex("#3A4755"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(11),
+            Padding = new Thickness(13)
+        };
+        var sshConsoleStack = NewStack(7);
+        sshConsoleStack.Children.Add(RemoteSectionTitle("SSH KOMUT PENCERESİ"));
+        sshConsoleStack.Children.Add(new TextBlock
+        {
+            Text = "Komutlar kayıtlı profildeki Linux kullanıcısıyla çalışır. Yetki gerekiyorsa komutta sudo kullan.",
+            FontSize = 10,
+            Foreground = BrushHex("#A5B0BE"),
+            TextWrapping = TextWrapping.Wrap
+        });
+        _remoteCommandBox = new TextBox
+        {
+            Height = 62,
+            MinHeight = 62,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Padding = new Thickness(11, 8, 11, 8),
+            FontSize = 11,
+            ToolTip = "Örnek: docker ps -a veya systemctl status nfsu2 --no-pager"
+        };
+        _remoteCommandBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
+        sshConsoleStack.Children.Add(_remoteCommandBox);
+        var commandActions = new WrapPanel();
+        var runCommand = MakeButton("Komutu SSH üzerinden çalıştır", "ModernButton", async (_, _) => await RunRemoteSshCommandAsync());
+        runCommand.MinWidth = 175;
+        commandActions.Children.Add(runCommand);
+        sshConsoleStack.Children.Add(commandActions);
+        _remoteCommandOutputBox = new TextBox
+        {
+            Height = 92,
+            MinHeight = 92,
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Padding = new Thickness(11, 8, 11, 8),
+            FontSize = 10.5,
+            Text = "SSH komut çıktısı burada görüntülenir."
+        };
+        _remoteCommandOutputBox.SetResourceReference(FrameworkElement.StyleProperty, "DarkTextBox");
+        sshConsoleStack.Children.Add(_remoteCommandOutputBox);
+        sshConsole.Child = sshConsoleStack;
+        status.Children.Add(sshConsole);
 
         var securityPanel = new Border
         {

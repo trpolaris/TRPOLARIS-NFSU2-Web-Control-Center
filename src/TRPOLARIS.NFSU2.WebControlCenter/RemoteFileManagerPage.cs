@@ -17,11 +17,12 @@ public partial class MainWindow
 
         try
         {
-            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
+            string root = GetRemoteFileManagerRootValue();
             string path = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             _remoteFilePathBox!.Text = path;
-            SetRemoteFileStatus("Uzak kurulum doğrulanıyor...", true);
-            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
+            SetRemoteFileStatus("Uzak klasör kontrol ediliyor...", true);
+            string access = (await _remoteServerSession.ExecuteDeploymentCommandAsync(
+                BuildRemoteFileManagerAccessCheck(root), TimeSpan.FromSeconds(15))).Trim();
             SetRemoteFileStatus("Uzak klasör listeleniyor...", true);
             var entries = await _remoteServerSession.ListRemoteDirectoryAsync(path);
             if (_remoteFileList is not null)
@@ -29,7 +30,14 @@ public partial class MainWindow
                 _remoteFileList.ItemsSource = entries;
                 _remoteFileList.SelectedItem = null;
             }
-            SetRemoteFileStatus($"{path} · {entries.Count} öğe", true);
+
+            bool managed = string.Equals(access, "MANAGED", StringComparison.Ordinal);
+            if (_remoteFileClaimButton is not null)
+                _remoteFileClaimButton.IsEnabled = !managed;
+            if (managed)
+                SetRemoteFileStatus($"{path} · {entries.Count} öğe · Dosya işlemleri açık", true);
+            else
+                SetRemoteFileStatus($"{path} · {entries.Count} öğe · Salt okunur. Yazma işlemleri için sağdan SFTP erişimini etkinleştir.", false);
         }
         catch (Exception ex)
         {
@@ -42,7 +50,7 @@ public partial class MainWindow
         if (_remoteFileList?.SelectedItem is not RemoteFileEntry entry || !entry.IsDirectory) return;
         try
         {
-            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
+            string root = GetRemoteFileManagerRootValue();
             string next = ValidateRemoteBrowserPath(entry.FullPath, root);
             _remoteFilePathBox!.Text = next;
             await RefreshRemoteFileListAsync();
@@ -54,7 +62,7 @@ public partial class MainWindow
     {
         try
         {
-            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
+            string root = GetRemoteFileManagerRootValue();
             string current = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             if (string.Equals(current, root, StringComparison.Ordinal))
             {
@@ -81,7 +89,7 @@ public partial class MainWindow
             return;
         }
 
-        string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
+        string root = GetRemoteFileManagerRootValue();
         string remotePath = ValidateRemoteBrowserPath(entry.FullPath, root);
         var dialog = new SaveFileDialog
         {
@@ -93,7 +101,6 @@ public partial class MainWindow
 
         try
         {
-            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
             SetRemoteFileStatus("Dosya indiriliyor: " + entry.Name, true);
             await _remoteServerSession.DownloadRemoteFileAsync(remotePath, dialog.FileName);
             SetRemoteFileStatus("Dosya indirildi: " + dialog.FileName, true);
@@ -104,7 +111,7 @@ public partial class MainWindow
     private async Task UploadRemoteFileAsync()
     {
         if (_remoteServerSession?.IsConnected != true) { SetRemoteFileStatus("Önce SSH bağlantısı kur.", false); return; }
-        string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
+        string root = GetRemoteFileManagerRootValue();
         string current = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
         var dialog = new OpenFileDialog
         {
@@ -117,7 +124,7 @@ public partial class MainWindow
 
         string name = Path.GetFileName(dialog.FileName);
         if (string.IsNullOrWhiteSpace(name) || name is "." or ".." ||
-            name.Equals(".nfsu2-control-center-managed", StringComparison.OrdinalIgnoreCase))
+            name.Equals(".nfsu2-control-center-managed", StringComparison.OrdinalIgnoreCase) ||\n            name.Equals(".nfsu2-control-center-sftp-root", StringComparison.OrdinalIgnoreCase))
         {
             SetRemoteFileStatus("Dosya adı geçersiz veya uygulamanın korumalı kurulum işaretçisi.", false);
             return;
@@ -125,7 +132,7 @@ public partial class MainWindow
 
         try
         {
-            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteFileManagerWriteCheck(root), TimeSpan.FromSeconds(15));
             SetRemoteFileStatus("Dosya yükleniyor: " + name, true);
             var item = new RemoteUploadItem(dialog.FileName, current.TrimEnd('/') + "/" + name, name);
             await _remoteServerSession.UploadFilesAsync(new[] { item });
@@ -148,11 +155,11 @@ public partial class MainWindow
 
         try
         {
-            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
+            string root = GetRemoteFileManagerRootValue();
             string current = ValidateRemoteBrowserPath(_remoteFilePathBox?.Text ?? root, root);
             string newPath = current.TrimEnd('/') + "/" + name;
             ValidateRemoteBrowserPath(newPath, root);
-            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteFileManagerWriteCheck(root), TimeSpan.FromSeconds(15));
             await _remoteServerSession.CreateRemoteDirectoryAsync(newPath);
             if (_remoteNewFolderBox is not null) _remoteNewFolderBox.Text = "";
             await RefreshRemoteFileListAsync();
@@ -172,11 +179,11 @@ public partial class MainWindow
 
         try
         {
-            string root = ValidateRemoteInstallRoot(GetRemoteInstallRootValue());
+            string root = GetRemoteFileManagerRootValue();
             string path = ValidateRemoteBrowserPath(entry.FullPath, root);
             if (string.Equals(path, root, StringComparison.Ordinal))
                 throw new InvalidOperationException("Kurulum kök dizini dosya yöneticisinden silinemez.");
-            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteOwnershipCheck(root), TimeSpan.FromSeconds(15));
+            await _remoteServerSession.ExecuteDeploymentCommandAsync(BuildRemoteFileManagerWriteCheck(root), TimeSpan.FromSeconds(15));
 
             string description = entry.IsDirectory
                 ? "Seçilen boş klasör silinecek. Dolu klasörleri silmek için önce içeriğini ayrı ayrı kaldır."

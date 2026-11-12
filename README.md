@@ -54,6 +54,10 @@ Aşağıdaki ekran turu, uygulamanın açılışından günlük ekranına kadar 
 </p>
 
 
+## 🗂️ Mevcut VPS dosyalarına erişim
+
+Eski Ubuntu/Debian kurulumlarında .nfsu2-control-center-managed işaretçisi bulunmayabilir. Bu durumda SFTP dosya yöneticisi seçilen klasörü salt okunur açar; klasörleri listeleyebilir ve dosya indirebilirsin. Yükleme, klasör oluşturma ve silme işlemlerini açmak için **Bu dizini SFTP için etkinleştir** onayı gerekir. Bu, Docker Compose projesine sahiplik vermez ve çalışan konteynerleri değiştirmez. Yazma işlemleri için SSH kullanıcısının Linux dosya sistemi izinleri de bulunmalıdır.
+
 ## 🧭 Yeni kontrol paneli ve menü yapısı
 
 **Blue Nebula** arayüzü, tek bir uzun uzak sunucu formu yerine görev odaklı sayfalardan oluşur.
@@ -185,6 +189,13 @@ Uygulamanın kendi güncellemesi ile NFSU2 Web sunucusunun **Altyapı güncellem
 - **Altyapı güncellemesi:** WSL içindeki web kaynaklarını, derleme araçlarını ve Docker sunucu imajını yeniler.
 
 ## 🆕 Sürüm notları
+### v2.0.1 · Compact UI ve eski sunucularda SFTP uyumluluğu
+- Ortak WPF kontrolleri, navigasyon, butonlar, kart boşlukları ve pencere ölçüleri kompakt hale getirildi; parlak gölgeler azaltıldı.
+- Uzak dosya yöneticisi artık dağıtım sahiplik işaretçisi olmayan mevcut klasörleri salt okunur listeleyebilir ve dosya indirebilir.
+- SFTP yazma işlemleri için Docker/Compose sahipliğinden bağımsız bir SFTP işaretçisi eklendi; açık kullanıcı onayı olmadan eski klasör yazılabilir hale getirilmez.
+- Uzak SFTP kök dizini profil başına ayrıca kaydedilebilir ve dosya yöneticisinden değiştirilebilir.
+- Linux hesabının gerçek yazma izni yoksa dosya yöneticisi bu durumu belirtir; sahiplik/ACL izni olmadan yükleme veya silme yapılmaz.
+
 ### v2.0.0 · Blue Nebula Control Room
 - Ana pencere, sol menü, üst kontrol çubuğu ve alt durum alanı sıfırdan düzenlendi.
 - Control room dashboard'u yerel ortam sağlığını, sunucu envanterini ve hızlı operasyonları tek bakışta gösterir.
@@ -265,7 +276,7 @@ Kaynak koddan derlemek için Windows üzerinde .NET 10 SDK ve WPF geliştirme ar
 
 <div align="center">
 
-**NFSU2 Server control** · **v2.0.0**
+**NFSU2 Server control** · **v2.0.1**
 
 *Install · Update · Maintain · Remove*
 

@@ -211,7 +211,7 @@ public partial class MainWindow
         };
         secretNote.Child = new TextBlock
         {
-            Text = "Güvenlik: SSH parolası ve özel anahtar parolası profil dosyasına kaydedilmez. İlk bağlantıda sunucu host key parmak izi ayrıca onaylanır.",
+            Text = "Güvenlik: SSH parolası ve anahtar parolası bu Windows hesabına bağlı DPAPI ile şifrelenerek profilde saklanır; başka bir Windows hesabında açılamaz. İlk bağlantıda host key parmak izini ayrıca doğrula.",
             FontSize = 10.5,
             Foreground = BrushHex("#D4B39B"),
             TextWrapping = TextWrapping.Wrap

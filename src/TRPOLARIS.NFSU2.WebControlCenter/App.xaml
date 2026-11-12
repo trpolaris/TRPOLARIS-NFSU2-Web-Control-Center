@@ -279,15 +279,17 @@
         <!-- ComboBox popup and items are fully templated: the default WPF popup uses
              the Windows light theme even when the closed control is dark. -->
         <Style x:Key="DarkComboBoxItem" TargetType="{x:Type ComboBoxItem}">
-            <Setter Property="Foreground" Value="#F4F6F8" />
+            <Setter Property="Foreground" Value="#E8EDF2" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Padding" Value="13,10" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ComboBoxItem}">
                         <Border x:Name="ItemSurface" Background="{TemplateBinding Background}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
                             <ContentPresenter RecognizesAccessKey="True"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"
@@ -295,12 +297,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="ItemSurface" Property="Background" Value="#1E3A58" />
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#303D4D" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemSurface" Property="Background" Value="#1E3A58" />
-                                <Setter Property="Foreground" Value="#FFFFFF" />
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#4A2B1D" />
+                                <Setter Property="Foreground" Value="#FFF0E7" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="ItemSurface" Property="Opacity" Value="0.42" />
@@ -422,10 +424,12 @@
         </Style>
 
         <Style x:Key="DarkListBoxItem" TargetType="{x:Type ListBoxItem}">
-            <Setter Property="Foreground" Value="#D4DFEF" />
+            <Setter Property="Foreground" Value="#E1E7ED" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="7,5" />
-            <Setter Property="Margin" Value="0,0,0,5" />
+            <Setter Property="Padding" Value="14,11" />
+            <Setter Property="MinHeight" Value="46" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,0,0,6" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -434,7 +438,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="#303D4D"
                                 BorderThickness="1"
-                                CornerRadius="7"
+                                CornerRadius="10"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"
@@ -442,13 +446,14 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ItemSurface" Property="Background" Value="#1E3A58" />
-                                <Setter TargetName="ItemSurface" Property="BorderBrush" Value="#74829A" />
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#202B37" />
+                                <Setter TargetName="ItemSurface" Property="BorderBrush" Value="#647180" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemSurface" Property="Background" Value="#193B52" />
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#3B2A20" />
                                 <Setter TargetName="ItemSurface" Property="BorderBrush" Value="#FF8243" />
-                                <Setter Property="Foreground" Value="#F4FFFF" />
+                                <Setter Property="Foreground" Value="#FFF0E7" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="ItemSurface" Property="Opacity" Value="0.45" />
@@ -460,11 +465,11 @@
         </Style>
 
         <Style x:Key="DarkListBox" TargetType="{x:Type ListBox}">
-            <Setter Property="Background" Value="#0D1219" />
-            <Setter Property="Foreground" Value="#D4DFEF" />
+            <Setter Property="Background" Value="#111821" />
+            <Setter Property="Foreground" Value="#E1E7ED" />
             <Setter Property="BorderBrush" Value="#303D4D" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="5" />
+            <Setter Property="Padding" Value="8" />
             <Setter Property="ItemContainerStyle" Value="{StaticResource DarkListBoxItem}" />
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
             <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
@@ -475,7 +480,7 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="9" Padding="{TemplateBinding Padding}">
+                                CornerRadius="13" Padding="{TemplateBinding Padding}">
                             <ScrollViewer Focusable="False"
                                           HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
                                           VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
@@ -490,8 +495,61 @@
         <Style x:Key="DarkCheckBox" TargetType="CheckBox">
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Margin" Value="0,5,0,5" />
+            <Setter Property="Margin" Value="0,7,0,7" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid MinHeight="36">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="23" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="CheckSurface"
+                                    Width="20" Height="20"
+                                    CornerRadius="6"
+                                    BorderThickness="1.5"
+                                    BorderBrush="#596675"
+                                    Background="#171F29"
+                                    VerticalAlignment="Center">
+                                <Path x:Name="CheckGlyph"
+                                      Data="M3,9 L7,13 L15,4"
+                                      Stroke="#171A1E"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Visibility="Collapsed"
+                                      Width="14" Height="14"
+                                      Stretch="Uniform"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                            </Border>
+                            <ContentPresenter Grid.Column="1"
+                                              Margin="10,0,0,0"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckSurface" Property="Background" Value="#FF8243" />
+                                <Setter TargetName="CheckSurface" Property="BorderBrush" Value="#FFB083" />
+                                <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckSurface" Property="BorderBrush" Value="#FF9B62" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="CheckSurface" Property="Opacity" Value="0.45" />
+                                <Setter Property="Foreground" Value="#788492" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource DarkTextBox}" />

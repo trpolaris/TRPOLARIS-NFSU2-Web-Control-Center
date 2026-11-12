@@ -4,7 +4,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="NFSU2 Server control"
         Icon="{StaticResource AppIconDrawing}"
-        Width="1520" Height="940" MinWidth="1160" MinHeight="740"
+        Width="1280" Height="820" MinWidth="1080" MinHeight="700"
         WindowStyle="None" ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource AppBackground}"
@@ -12,7 +12,7 @@
         Foreground="{StaticResource TextBrush}"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="40"
+        <shell:WindowChrome CaptionHeight="36"
                             ResizeBorderThickness="6"
                             GlassFrameThickness="0"
                             CornerRadius="18"
@@ -26,7 +26,7 @@
             ClipToBounds="True">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="40" />
+                <RowDefinition Height="36" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -110,7 +110,7 @@
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="270" />
+                    <ColumnDefinition Width="232" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -119,14 +119,14 @@
                         Background="#10151D"
                         BorderBrush="#293440"
                         BorderThickness="0,0,1,0">
-                    <Grid Margin="17,18,17,16">
+                    <Grid Margin="13,14,13,12">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                        <StackPanel Grid.Row="0" Margin="0,0,0,16">
                             <Grid Height="58">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="52" />
@@ -156,7 +156,7 @@
                                     BorderBrush="#303B48"
                                     BorderThickness="1"
                                     CornerRadius="12"
-                                    Padding="13,11"
+                                    Padding="11,9"
                                     Margin="0,16,0,0">
                                 <StackPanel>
                                     <TextBlock Text="ÇALIŞMA ALANI"
@@ -188,8 +188,8 @@
                                 <Button x:Name="NavDashboard" Tag="Dashboard"
                                         Click="Navigation_Click" Style="{StaticResource NavButton}">
                                     <Grid>
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Width="34" Height="34" CornerRadius="10" Background="#292019" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="38"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="30" Height="30" CornerRadius="9" Background="#292019" VerticalAlignment="Center">
                                             <Path Data="M3,3 H10 V10 H3 Z M14,3 H21 V10 H14 Z M3,14 H10 V21 H3 Z M14,14 H21 V21 H14 Z"
                                                   Stroke="#FF9B62" StrokeThickness="1.7" Fill="Transparent" StrokeLineJoin="Round"
                                                   Width="19" Height="19" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -290,16 +290,7 @@
                                         <TextBlock Grid.Column="1" Text="İşlem günlükleri" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="UpdateSettings_Click"
-                                        ToolTip="Güncelleme kanalı ve otomatik kontrol tercihleri"
-                                        Style="{StaticResource NavButton}">
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Width="34" Height="34" CornerRadius="10" Background="#242033" VerticalAlignment="Center">
-                                            <Path Data="M4,6 H20 M4,12 H20 M4,18 H20 M9,4 V8 M15,10 V14 M11,16 V20" Stroke="#B8A4FF" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Text="Güncelleme ayarları" VerticalAlignment="Center"/>
-                                    </Grid>
-                                </Button>
+                                
                             </StackPanel>
                         </ScrollViewer>
 
@@ -331,17 +322,17 @@
                 <!-- Main workspace -->
                 <Grid Grid.Column="1" Background="#0D1219">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="104" />
+                        <RowDefinition Height="82" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="34" />
+                        <RowDefinition Height="30" />
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0"
                             Background="#121922"
                             BorderBrush="#293440"
                             BorderThickness="0,0,0,1"
-                            Padding="27,16">
+                            Padding="20,11">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -355,7 +346,7 @@
                                            Foreground="#FF9B62" />
                                 <TextBlock x:Name="TopTitle"
                                            Text="Operasyon merkezi"
-                                           FontSize="25"
+                                           FontSize="21"
                                            FontWeight="Bold"
                                            Foreground="#F3F5F7"
                                            Margin="0,4,0,0" />
@@ -396,9 +387,9 @@
                                         ToolTip="Yerel Windows, WSL, Ubuntu ve Docker durumunu yenile"
                                         Style="{StaticResource ModernButton}">
                                     <StackPanel Orientation="Horizontal">
-                                        <Path Data="M20,11 A8,8 0 0 0 5,6 L3,8 M3,3 V8 H8 M4,13 A8,8 0 0 0 19,18 L21,16 M21,21 V16 H16"
-                                              Stroke="#15191F" StrokeThickness="1.7" Fill="Transparent"
-                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="16" Height="16" Margin="0,0,9,0"/>
+                                        <Path Data="M 20,7 A 8,8 0 0 0 6,5 L 3,8 M 3,3 L 3,8 L 8,8 M 4,17 A 8,8 0 0 0 18,19 L 21,16 M 16,16 L 21,16 L 21,21"
+                                              Stroke="#171A1E" StrokeThickness="1.8" Fill="Transparent"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" Margin="0,0,8,0"/>
                                         <TextBlock Text="Durumu yenile" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
@@ -408,7 +399,7 @@
 
                     <ContentControl x:Name="PageHost"
                                     Grid.Row="1"
-                                    Margin="24,20,24,20" />
+                                    Margin="18,14,18,14" />
 
                     <Border x:Name="OperationProgressPanel"
                             Grid.Row="2"
@@ -416,7 +407,7 @@
                             Background="#1A222C"
                             BorderBrush="#3B4653"
                             BorderThickness="0,1,0,1"
-                            Padding="23,11">
+                            Padding="18,8">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -470,7 +461,7 @@
                             Background="#0C1016"
                             BorderBrush="#293440"
                             BorderThickness="0,1,0,0"
-                            Padding="24,0">
+                            Padding="18,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />

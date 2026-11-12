@@ -290,7 +290,8 @@ public partial class MainWindow
         {
             IsReadOnly = true,
             AcceptsReturn = true,
-            TextWrapping = TextWrapping.Wrap,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             MinHeight = 220,
@@ -300,7 +301,7 @@ public partial class MainWindow
             BorderThickness = new Thickness(1),
             Padding = new Thickness(16),
             FontFamily = new FontFamily("Cascadia Mono, Consolas"),
-            FontSize = 10.5,
+            FontSize = 11,
             Text = _remoteServerSession?.IsConnected == true
                 ? "SSH bağlantısı açık.\nSunucu bilgilerini almak için Yenile seçeneğini kullan."
                 : "Henüz uzak sunucuya bağlanılmadı.\nBir profil seçip Bağlan düğmesini kullan."

@@ -46,7 +46,7 @@ public partial class MainWindow
 
     private UIElement BuildRemotePage()
     {
-        var root = NewStack(17);
+        var root = NewStack(8);
         root.Children.Add(Heading(
             "Uzak Linux sunucusu",
             "SSH üzerinden Ubuntu veya Debian sunucularına bağlan. Bu mod yerel Windows / WSL / Docker Desktop kurulumundan bağımsız çalışır."));
@@ -56,13 +56,13 @@ public partial class MainWindow
         profileStack.Children.Add(MutedLabel("KAYITLI BAĞLANTILAR"));
         _remoteProfileBox = new ComboBox
         {
-            Height = 36,
+            Height = 32,
             Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#0A1724"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#34506A"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(8, 5, 8, 5),
+            Padding = new Thickness(7, 4, 7, 4),
             DisplayMemberPath = nameof(RemoteServerProfile.Name),
             ItemsSource = RemoteServerProfileStore.LoadAll().ToList()
         };
@@ -82,7 +82,7 @@ public partial class MainWindow
 
         var formPanel = RemotePanel();
         formPanel.Margin = new Thickness(0, 0, 8, 0);
-        var form = NewStack(10);
+        var form = NewStack(8);
         form.Children.Add(RemoteSectionTitle("SSH BAĞLANTI AYARLARI"));
 
         _remoteNameBox = RemoteTextBox();
@@ -92,34 +92,34 @@ public partial class MainWindow
         _remoteUsernameBox = RemoteTextBox();
         _remoteAuthenticationBox = new ComboBox
         {
-            Height = 36,
+            Height = 32,
             Style = (Style)FindResource("DarkComboBox"),
             Background = BrushHex("#0A1724"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#34506A"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(8, 5, 8, 5),
+            Padding = new Thickness(7, 4, 7, 4),
             ItemsSource = new[] { "Parola", "SSH özel anahtarı" },
             SelectedIndex = 0
         };
         _remotePrivateKeyBox = RemoteTextBox();
         _remotePasswordBox = new PasswordBox
         {
-            Height = 36,
+            Height = 32,
             Background = BrushHex("#0A1724"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#34506A"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(8, 5, 8, 5)
+            Padding = new Thickness(7, 4, 7, 4)
         };
         _remoteKeyPassphraseBox = new PasswordBox
         {
-            Height = 36,
+            Height = 32,
             Background = BrushHex("#0A1724"),
             Foreground = BrushHex("#EAF3FD"),
             BorderBrush = BrushHex("#34506A"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(8, 5, 8, 5)
+            Padding = new Thickness(7, 4, 7, 4)
         };
 
         form.Children.Add(RemoteField("Profil adı", _remoteNameBox));
@@ -162,7 +162,7 @@ public partial class MainWindow
 
         var statusPanel = RemotePanel();
         statusPanel.Margin = new Thickness(8, 0, 0, 0);
-        var status = NewStack(10);
+        var status = NewStack(8);
         status.Children.Add(RemoteSectionTitle("UZAK SUNUCU DURUMU"));
         _remoteConnectionState = new TextBlock
         {
@@ -230,7 +230,7 @@ public partial class MainWindow
 
     private UIElement BuildRemoteDeploymentPage()
     {
-        var root = NewStack(19);
+        var root = NewStack(8);
         root.Children.Add(Heading(
             "Uzak sunucu dağıtımı",
             "Kurulum kaynağını, yayın adresini ve servis işlemlerini ayrı adımlarda yapılandır. SSH oturum yönetimi bu ekrandan bağımsızdır."));
@@ -271,7 +271,7 @@ public partial class MainWindow
         _remoteDomainBox = RemoteTextBox();
         _remoteAccessModeBox = new ComboBox
         {
-            Height = 38,
+            Height = 33,
             Style = (Style)FindResource("DarkComboBox"),
             ItemsSource = new[] { "Yerel ağ (LAN)", "Public IP (İnternet)", "Domain (HTTPS)" },
             SelectedIndex = 2
@@ -288,7 +288,7 @@ public partial class MainWindow
         _remoteHttpPortBox.Text = (profile?.HttpPort ?? 8080).ToString();
         _remoteProxyModeBox = new ComboBox
         {
-            Height = 38,
+            Height = 33,
             Style = (Style)FindResource("DarkComboBox"),
             ItemsSource = new[] { "Caddy otomatik HTTPS", "Mevcut Nginx / OpenLiteSpeed / CyberPanel proxy" },
             SelectedIndex = string.Equals(profile?.ProxyMode, "existing-proxy", StringComparison.OrdinalIgnoreCase) ? 1 : 0
@@ -306,7 +306,7 @@ public partial class MainWindow
 
         var sourcePanel = RemotePanel();
         sourcePanel.Margin = new Thickness(0, 0, 9, 0);
-        var sourceStack = NewStack(13);
+        var sourceStack = NewStack(9);
         sourceStack.Children.Add(RemoteSectionTitle("01  /  OYUN VE MODÜL KAYNAĞI"));
         sourceStack.Children.Add(new TextBlock
         {
@@ -363,7 +363,7 @@ public partial class MainWindow
 
         var targetPanel = RemotePanel();
         targetPanel.Margin = new Thickness(9, 0, 0, 0);
-        var targetStack = NewStack(12);
+        var targetStack = NewStack(9);
         targetStack.Children.Add(RemoteSectionTitle("02  /  YAYIN HEDEFİ"));
         targetStack.Children.Add(new TextBlock
         {
@@ -409,7 +409,7 @@ public partial class MainWindow
         root.Children.Add(columns);
 
         var operationPanel = RemotePanel();
-        var operationStack = NewStack(11);
+        var operationStack = NewStack(8);
         var operationHeader = new DockPanel { LastChildFill = true };
         operationHeader.Children.Add(RemoteSectionTitle("03  /  DAĞITIM İŞ AKIŞI"));
         var prerequisites = new TextBlock
@@ -455,7 +455,7 @@ public partial class MainWindow
 
         var servicePanel = RemotePanel();
         servicePanel.Margin = new Thickness(0, 0, 9, 0);
-        var serviceStack = NewStack(10);
+        var serviceStack = NewStack(8);
         serviceStack.Children.Add(RemoteSectionTitle("04  /  SERVİS KONTROLÜ"));
         serviceStack.Children.Add(new TextBlock
         {
@@ -475,7 +475,7 @@ public partial class MainWindow
 
         var maintenancePanel = RemotePanel();
         maintenancePanel.Margin = new Thickness(9, 0, 0, 0);
-        var maintenanceStack = NewStack(10);
+        var maintenanceStack = NewStack(8);
         maintenanceStack.Children.Add(RemoteSectionTitle("05  /  SERTİFİKA VE KURULUM TEMİZLİĞİ"));
         maintenanceStack.Children.Add(new TextBlock
         {
@@ -500,7 +500,7 @@ public partial class MainWindow
 
     private UIElement BuildRemoteFilesPage()
     {
-        var root = NewStack(19);
+        var root = NewStack(8);
         var profile = GetSelectedRemoteProfile();
         root.Children.Add(Heading("Uzak dosyalar", "SFTP dosya çalışma alanı. Gezinme, aktarım ve klasör işlemleri uzak dağıtım ekranından bağımsızdır."));
 
@@ -551,7 +551,7 @@ public partial class MainWindow
 
         var browserPanel = RemotePanel();
         browserPanel.Margin = new Thickness(0, 0, 10, 0);
-        var browser = NewStack(11);
+        var browser = NewStack(8);
         var browserHeader = new DockPanel { LastChildFill = true };
         browserHeader.Children.Add(RemoteSectionTitle("DOSYA SİSTEMİ"));
         var refreshList = MakeButton("Yenile", "SecondaryButton", async (_, _) => await RefreshRemoteFileListAsync());
@@ -600,7 +600,7 @@ public partial class MainWindow
         workspace.Children.Add(browserPanel);
 
         var actionsPanel = RemotePanel();
-        actionsPanel.Margin = new Thickness(10, 0, 0, 0);
+        actionsPanel.Margin = new Thickness(7, 0, 0, 0);
         var actions = NewStack(9);
         actions.Children.Add(RemoteSectionTitle("DOSYA İŞLEMLERİ"));
         actions.Children.Add(new TextBlock
@@ -677,12 +677,12 @@ public partial class MainWindow
 
     private static TextBox RemoteTextBox() => new()
     {
-        Height = 36,
+        Height = 32,
         Background = BrushHex("#0A1724"),
         Foreground = BrushHex("#EAF3FD"),
         BorderBrush = BrushHex("#34506A"),
         BorderThickness = new Thickness(1),
-        Padding = new Thickness(9, 6, 9, 6),
+        Padding = new Thickness(8, 4, 8, 4),
         VerticalContentAlignment = VerticalAlignment.Center
     };
 

@@ -649,6 +649,11 @@ public partial class MainWindow
         Grid.SetColumn(actionsPanel, 1);
         workspace.Children.Add(actionsPanel);
         root.Children.Add(workspace);
+        root.Loaded += async (_, _) =>
+        {
+            if (_remoteServerSession?.IsConnected == true)
+                await RefreshRemoteFileListAsync();
+        };
 
         return WrapScrollable(root);
     }

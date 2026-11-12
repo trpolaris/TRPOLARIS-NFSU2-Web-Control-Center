@@ -404,7 +404,9 @@
                                               Margin="0,0,15,0" />
                                     </Grid>
                
-                                <ContentPresenter x:Name="SelectionPresenter"
+                                
+                 </ToggleButton>
+<ContentPresenter x:Name="SelectionPresenter"
                                                   Margin="12,0,42,0"
                                                   VerticalAlignment="Center"
                                                   HorizontalAlignment="Left"
@@ -414,7 +416,6 @@
                                                   IsHitTestVisible="False"
                                                   RecognizesAccessKey="True"
                                                   TextElement.Foreground="{TemplateBinding Foreground}" />
-                 </ToggleButton>
                             </Grid>
                             <Popup x:Name="PART_Popup"
                                    Placement="Bottom"

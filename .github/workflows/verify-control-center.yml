@@ -167,6 +167,10 @@ jobs:
           assert 'ModernScrollThumb' in app and 'TargetName="ItemContent"' in app
           logs_page = main.split('private UIElement BuildLogsPage()', 1)[1].split('private string GetProgressStatusText()', 1)[0]
           assert 'FlushPendingDiskLogs();' in logs_page
+          assert 'MakeButton("Log aç", "SecondaryButton", (_, _) => OpenSelectedLogFile()' in logs_page
+          assert 'MakeButton("Temizle", "SecondaryButton", (_, _) => ClearLogs()' in logs_page
+          for removed in ('Günlük klasörü', 'Seçili dosyayı aç', 'Dışa aktar', 'Yenile'):
+              assert removed not in logs_page, f"Obsolete log toolbar action remains: {removed}"
           assert 'TextWrapping = TextWrapping.NoWrap' in logs_page
           assert 'VerticalAlignment = VerticalAlignment.Stretch' in logs_page
           assert 'VerticalContentAlignment="Stretch"' in window

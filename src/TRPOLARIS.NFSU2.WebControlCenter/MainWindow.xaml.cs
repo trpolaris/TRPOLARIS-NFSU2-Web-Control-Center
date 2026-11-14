@@ -3223,8 +3223,7 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
         Grid.SetRow(operationCard, 0);
         root.Children.Add(operationCard);
 
-        // One adaptive toolbar: filters first, file actions second. It wraps cleanly on
-        // narrower windows instead of forcing a horizontal page scroll.
+        // Keep the log toolbar deliberately minimal: opening the selected log and clearing logs.
         var toolbar = new Border
         {
             Background = BrushHex("#111C26"), BorderBrush = BrushHex("#293B49"),
@@ -3244,17 +3243,11 @@ printf '[CONTROL_CENTER] control_root=%s project=%s\\n' '__CONTROL_ROOT__' "$PWD
             Margin = new Thickness(2, 4, 9, 4), VerticalAlignment = VerticalAlignment.Center
         });
 
-        var openFolderButton = MakeButton("Günlük klasörü", "SecondaryButton", (_, _) => OpenLogFolder(), new Thickness(0, 0, 6, 0));
-        var openFileButton = MakeButton("Seçili dosyayı aç", "SecondaryButton", (_, _) => OpenSelectedLogFile(), new Thickness(0, 0, 6, 0));
-        var exportButton = MakeButton("Dışa aktar", "SecondaryButton", (_, _) => ExportSelectedLog(), new Thickness(0, 0, 6, 0));
-        var refreshButton = MakeButton("Yenile", "SecondaryButton", (_, _) => RefreshVisibleLog(), new Thickness(0, 0, 6, 0));
+        var openLogButton = MakeButton("Log aç", "SecondaryButton", (_, _) => OpenSelectedLogFile(), new Thickness(0, 0, 6, 0));
         var clearButton = MakeButton("Temizle", "SecondaryButton", (_, _) => ClearLogs());
-        foreach (var button in new[] { openFolderButton, openFileButton, exportButton, refreshButton, clearButton })
-            button.MinHeight = 31;
-        toolbarItems.Children.Add(openFolderButton);
-        toolbarItems.Children.Add(openFileButton);
-        toolbarItems.Children.Add(exportButton);
-        toolbarItems.Children.Add(refreshButton);
+        openLogButton.MinHeight = 31;
+        clearButton.MinHeight = 31;
+        toolbarItems.Children.Add(openLogButton);
         toolbarItems.Children.Add(clearButton);
         toolbar.Child = toolbarItems;
         Grid.SetRow(toolbar, 1);
